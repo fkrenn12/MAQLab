@@ -1,0 +1,29 @@
+{
+    "NTP-6531": {
+      "devicetype": "Powersupply",
+      "manufactorer": "Manson",
+      "cmd_idn": "GMOD\r",
+      "cmd_term": "\r",
+      "idn_string": "NTP6531",
+      "classname": "NTP6531",
+      "baudrate": 9600
+    },
+    "2400SM": {
+      "devicetype": "Sourcemeter",
+      "manufactorer": "Keithly Instruments",
+      "cmd_idn": "*idn?\n",
+      "cmd_term": "\n",
+      "idn_string": "KEITHLEY",
+      "classname": "SM2400",
+      "baudrate": 9600
+    },
+    "2831E": {
+      "devicetype": "Multimeter",
+      "manufactorer": "BK Precision",
+      "cmd_idn": "*idn?\n",
+      "cmd_term": "\n",
+      "idn_string": "2831E",
+      "classname": "BK2831E",
+      "baudrate": 9600
+    }
+}
