@@ -34,8 +34,8 @@ class NTP6531:
         self.__manufactorer = EMPTY_BYTE_STRING
         self.__devicetype = EMPTY_BYTE_STRING
         self.__last_measure_tic = 0
-        self.__volt_display = 0.00
-        self.__current_display = 0.00
+        self.__volt_display = 0.0
+        self.__current_display = 0.0
         self.__mode_display = 0
         self.__volt_setting = 0
         self.__current_setting = 0
@@ -227,40 +227,38 @@ class NTP6531:
 
     # --------------------------------------------------
     def __set_volt(self, v):
-        try:
+        # we only accept int or float
+        if type(v) is int or type(v) is float:
             v = float(v)
-        except:
-            return
-        v = self.__voltage_limiter(v)
-        try:
-            cmd = "VOLT" + (str(int(v * 100)).zfill(4)) + "\r"
-            self.__ser.write(cmd.encode('utf-8'))
-            response = self.__readline(TIMEOUT)
-            if response == OK_BYTE_STRING:
-                self.__volt_setting = v
-            return
-        except:
-            return
+            v = self.__voltage_limiter(v)
+            try:
+                cmd = "VOLT" + (str(int(v * 100)).zfill(4)) + "\r"
+                self.__ser.write(cmd.encode('utf-8'))
+                response = self.__readline(TIMEOUT)
+                if response == OK_BYTE_STRING:
+                    self.__volt_setting = v
+                return
+            except:
+                return
 
     # --------------------------------------------------
     def __get_current(self):
         return self.__current_setting
 
     def __set_current(self, c):
-        try:
+        # we only accept int or float
+        if type(c) is int or type(c) is float:
             c = float(c)
-        except:
-            return
-        c = self.__current_limiter(c)
-        try:
-            cmd = "CURR" + (str(int(c * 1000)).zfill(4)) + "\r"
-            self.__ser.write(cmd.encode('utf-8'))
-            response = self.__readline(TIMEOUT)
-            if response == OK_BYTE_STRING:
-                self.__current_setting = c
-            return
-        except:
-            return
+            c = self.__current_limiter(c)
+            try:
+                cmd = "CURR" + (str(int(c * 1000)).zfill(4)) + "\r"
+                self.__ser.write(cmd.encode('utf-8'))
+                response = self.__readline(TIMEOUT)
+                if response == OK_BYTE_STRING:
+                    self.__current_setting = c
+                return
+            except:
+                return
 
     # --------------------------------------------------
     def __get_serialnumber(self):
@@ -280,10 +278,12 @@ class NTP6531:
 
     # --------------------------------------------------
     def __set_current_high_limit(self, limit):
-        if limit > self.__device_current_high_limit:
-            self.__current_high_limit = self.__device_current_high_limit
-        else:
-            self.__current_high_limit = limit
+        # we only accept int or float
+        if type(limit) is int or type(limit) is float:
+            if limit > self.__device_current_high_limit:
+                self.__current_high_limit = self.__device_current_high_limit
+            else:
+                self.__current_high_limit = limit
 
     # --------------------------------------------------
     def __get_current_high_limit(self):
@@ -291,10 +291,11 @@ class NTP6531:
 
     # --------------------------------------------------
     def __set_volt_high_limit(self, limit):
-        if limit > self.__device_voltage_high_limit:
-            self.__voltage_high_limit = self.__device_voltage_high_limit
-        else:
-            self.__voltage_high_limit = limit
+        if type(limit) is int or type(limit) is float:
+            if limit > self.__device_voltage_high_limit:
+                self.__voltage_high_limit = self.__device_voltage_high_limit
+            else:
+                self.__voltage_high_limit = limit
 
     # --------------------------------------------------
     def __get_volt_high_limit(self):
@@ -308,6 +309,9 @@ class NTP6531:
     def __get_current_unit(self):
         return "A"
 
+    # ----------------------
+    # Interface to the world
+    # ----------------------
     volt = property(__get_volt, __set_volt)
     volt_display = property(__get_volt_display)
     volt_display_as_string = property(__get_volt_display_as_string)
