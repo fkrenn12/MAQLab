@@ -2,7 +2,7 @@ import serial
 import time
 import platform
 
-scan_start = 6
+scan_start = 2
 scan_stop = 40
 tout = 1000
 

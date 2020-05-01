@@ -1,6 +1,8 @@
-import serial
 import random
 import time
+
+import serial
+
 OK_BYTE_STRING = b'OK'
 EMPTY_BYTE_STRING = b''
 EMPTY_STRING = ""
@@ -163,17 +165,18 @@ class NTP6531:
     def __get_display(self):
         response = EMPTY_BYTE_STRING
         tic = int(round(time.time() * 1000))
+        #  check minimal call time interval
         if (tic - self.__last_measure_tic) < DISPLAY_INTERVAL:
             return response
         try:
-            for i in range(1, 10):  # 10 versuche da das NTP-6531 manchmal nichts zurückschickt
+            for i in range(1, 10):  # 10 Versuche da das NTP-6531 manchmal nichts zurückschickt
                 self.__ser.flush()
                 self.__ser.flushInput()
                 cmd = b'GETD\r'
                 self.__ser.write(cmd)
                 response = self.__readline(TIMEOUT)
                 if len(response) > 0:
-                    self.__readline(TIMEOUT)  # OK kann noch gechecjt werden
+                    self.__readline(TIMEOUT)  # OK kann noch gecheckt werden
                     if len(response) > 0:
                         break
         except:
@@ -182,7 +185,6 @@ class NTP6531:
         self.__last_measure_tic = int(round(time.time() * 1000))
         if len(response) > 0:
             res = response.split(b';')
-            # print(res)
             try:
                 self.__volt_display = float(res[0]) / 100.0
                 self.__current_display = float(res[1]) / 1000.0
@@ -200,6 +202,7 @@ class NTP6531:
 
     # --------------------------------------------------
     def __get_volt_display_as_string(self):
+        self.__get_display()
         return "{:.6f}".format(self.__volt_display) + " " + self.__get_volt_unit()
 
     # --------------------------------------------------
@@ -210,6 +213,7 @@ class NTP6531:
 
     # --------------------------------------------------
     def __get_current_display_as_string(self):
+        self.__get_display()
         return "{:.6f}".format(self.__current_display) + " " + self.__get_current_unit()
 
     # --------------------------------------------------
@@ -328,7 +332,6 @@ class NTP6531:
     devicetype = property(__get_devicetype)
     model = property(__get_model)
     mode = property(__get_display_mode)
-
 
     # --------------------------------------------------
     def __del__(self):
