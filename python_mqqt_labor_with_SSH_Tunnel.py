@@ -6,7 +6,7 @@ import json
 from sshtunnel import SSHTunnelForwarder
 
 from Devices import Manson_NTP6531, BKPrecision_2831E, Keithley_SM2400
-from scan import scanDevices
+from serial_scan import scanDevices
 
 p = platform.platform()
 if "Windows" in p:
