@@ -29,6 +29,7 @@ def scanDevices(devices, comlist, comlock):
         # print("Start check com")
         for number in range(scan_start, scan_stop):
             try:
+                # this is for windows
                 _com = "com" + str(number)
                 # print("NEW COM TESTING: " + _com)
                 ser = serial.Serial(_com, baudrate=9600)

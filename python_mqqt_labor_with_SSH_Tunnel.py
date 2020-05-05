@@ -5,11 +5,8 @@ import threading
 import json
 from sshtunnel import SSHTunnelForwarder
 
-import BKPrecision
-import Manson
-import Keithly
+from Devices import Manson_NTP6531, BKPrecision_2831E, Keithley_SM2400
 from scan import scanDevices
-import mqtt_client as mqtt
 
 p = platform.platform()
 if "Windows" in p:
@@ -51,7 +48,7 @@ comlock = threading.Lock()
 
 
 # --------------------------------------------------------
-class SM2400(Keithly.SM2400):
+class SM2400(Keithley_SM2400.SM2400):
 
     def __init__(self, _port, _baudrate=9600):
         super().__init__(_port, _baudrate)
@@ -73,7 +70,7 @@ class SM2400(Keithly.SM2400):
 # --------------------------------------------------------
 
 
-class NTP6531(Manson.NTP6531):
+class NTP6531(Manson_NTP6531.NTP6531):
 
     def __init__(self, _port, _baudrate=9600):
         super().__init__(_port, _baudrate)
@@ -94,7 +91,7 @@ class NTP6531(Manson.NTP6531):
 
 
 # --------------------------------------------------------
-class BK2831E(BKPrecision.BK2831E):
+class BK2831E(BKPrecision_2831E.BK2831E):
     def __init__(self, _port, _baudrate=9600):
         super().__init__(_port, _baudrate)
 
@@ -224,6 +221,7 @@ if __name__ == "__main__":
                         # print(devices[d]["classname"])
                         dclassname = devices[d]["classname"]
                         if dclassname in com:
+                            # generating a deviceclass from classname
                             devobject = globals()[dclassname](com[dclassname])
                         if devobject is not None:
                             with devlock:

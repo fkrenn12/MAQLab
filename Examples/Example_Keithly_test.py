@@ -1,8 +1,7 @@
-import serial
-import Keithly
+from Devices import Keithley_SM2400
 import time
 
-dev = Keithly.SM2400("com27")
+dev = Keithley_SM2400.SM2400("com3")
 
 print(dev.devicetype)
 print(dev.manufactorer)
@@ -32,7 +31,7 @@ dev.set_mode_voltage_source(30,1)
 
 for i in range(1, 20000):
     dev.volt = i
-    time.sleep(0.1)
+    time.sleep(0.5)
     dev.measure()
     print(dev.current_as_string, dev.volt_as_string)
     time.sleep(0.1)

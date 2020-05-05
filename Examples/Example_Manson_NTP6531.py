@@ -1,11 +1,11 @@
-import serial
 import time
-import Manson
+from Devices import Manson_NTP6531
+
 # ---------------------------------------------------
 # be sure to make proper COM port settings
 # ---------------------------------------------------
 VCOMport = "com4"  # -> change to your needs
-NTP = Manson.NTP6531(VCOMport)
+NTP = Manson_NTP6531.NTP6531(VCOMport)
 
 print(NTP.devicetype)
 print(NTP.manufactorer)

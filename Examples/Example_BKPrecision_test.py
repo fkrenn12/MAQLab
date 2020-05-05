@@ -1,8 +1,6 @@
-import serial
-import BKPrecision
-import time
+from Devices import BKPrecision_2831E
 
-dev = BKPrecision.BK2831E("com30")
+dev = BKPrecision_2831E.BK2831E("com4")
 
 print(dev.devicetype)
 print(dev.manufactorer)
