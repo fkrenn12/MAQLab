@@ -7,7 +7,7 @@ scan_stop = 40
 tout = 1000
 
 
-def scanDevices(devices, comlist, comlock):
+def scan_serial_devices(devices, comlist, comlock):
     deviceidentifications = list(devices.keys())
     idstrings = []
     for d in devices:

@@ -5,8 +5,11 @@ import threading
 import json
 from sshtunnel import SSHTunnelForwarder
 
-from Devices import Manson_NTP6531, BKPrecision_2831E, Keithley_SM2400
-from serial_scan import scanDevices
+from serial_scan import scan_serial_devices
+from ethernet_scan import scan_ethernet_devices
+from Manson_NTP6531_extension import NTP6531
+from BKPrecision_2831E_extension import BK2831E
+from Keithley_SM2400_extension import SM2400
 
 p = platform.platform()
 if "Windows" in p:
@@ -40,87 +43,18 @@ with open('config/devices.json') as json_file:
 
 devlist = []
 comlist = []
+iplist = []
 devlock = threading.Lock()
 comlock = threading.Lock()
+etherlock = threading.Lock()
 
 
 # exit(0)
 
 
-# --------------------------------------------------------
-class SM2400(Keithley_SM2400.SM2400):
-
-    def __init__(self, _port, _baudrate=9600):
-        super().__init__(_port, _baudrate)
-
-    @staticmethod
-    def mqttmessage(_msg):
-        pass
-
-    def on_created(self):
-        print("SM2400 Ser:" + str(self.serialnumber) + "plugged in")
-
-    def on_destroyed(self):
-        print("SM2400 removed")
-
-    def execute(self):
-        pass
 
 
-# --------------------------------------------------------
 
-
-class NTP6531(Manson_NTP6531.NTP6531):
-
-    def __init__(self, _port, _baudrate=9600):
-        super().__init__(_port, _baudrate)
-
-    @staticmethod
-    def mqttmessage(_msg):
-        # print(_msg.topic)
-        pass
-
-    def on_created(self):
-        print("NTP6531Ser:" + str(self.serialnumber) + " plugged in")
-
-    def on_destroyed(self):
-        print("NTP6531 removed")
-
-    def execute(self):
-        pass
-
-
-# --------------------------------------------------------
-class BK2831E(BKPrecision_2831E.BK2831E):
-    def __init__(self, _port, _baudrate=9600):
-        super().__init__(_port, _baudrate)
-
-    @staticmethod
-    def mqttmessage(_msg):
-        pass
-        # print("NEW BK2831E:" + _msg.topic + " " + str(_msg.qos) + " " + str(_msg.payload))
-
-    def on_created(self):
-        print("BK2831E Ser:" + str(self.serialnumber) + " plugged in")
-
-    def on_destroyed(self):
-        print("BK2831E removed")
-
-    def execute(self):
-        anumber = 0
-        try:
-            anumber = self.volt
-            # print(anumber)
-        except:
-            print("ERR get")
-            pass
-        try:
-            # client.publish("Krenn/BK/Volt",str(anumber))
-            client.publish("Krenn/BK/Volt", "{:.2f}".format(anumber))
-        except:
-            print("ERR publish")
-
-        pass
 
 
 # --------------------------------------------------------
@@ -182,9 +116,11 @@ if __name__ == "__main__":
     thread_mqttloop = threading.Thread(target=mqttloop, args=(client,))
     thread_mqttloop.start()
 
-    thread_detect = threading.Thread(target=scanDevices, args=(devices, comlist, comlock,))
-    thread_detect.start()
+    thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
+    thread_detect_serial.start()
 
+    thread_detect_ethernet = threading.Thread(target=scan_ethernet_devices, args=(devices, iplist, etherlock,))
+    thread_detect_ethernet.start()
     '''
     # -------------------------------------------------------------------------------
     #                                   M Q T T
