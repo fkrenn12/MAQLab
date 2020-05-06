@@ -4,7 +4,8 @@ from Devices import Manson_NTP6531
 # ---------------------------------------------------
 # be sure to make proper COM port settings
 # ---------------------------------------------------
-VCOMport = "com4"  # -> change to your needs
+VCOMport = "com10"  # -> change to your needs
+
 NTP = Manson_NTP6531.NTP6531(VCOMport)
 
 print(NTP.devicetype)
