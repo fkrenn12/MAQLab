@@ -5,8 +5,8 @@ import threading
 import json
 from sshtunnel import SSHTunnelForwarder
 
-from serial_scan import scan_serial_devices
-from ethernet_scan import scan_ethernet_devices
+from scan_serial import scan_serial_devices
+
 from Manson_NTP6531_extension import NTP6531
 from BKPrecision_2831E_extension import BK2831E
 from Keithley_SM2400_extension import SM2400
@@ -26,7 +26,7 @@ with open('config/inventar.json') as json_file:
 with open('config/devices.json') as json_file:
     devices = json.load(json_file)
     deviceidentifications = list(devices.keys())
-    print("Devices:")
+    print("Instruments:")
     print(devices)
     print("Deviceidentifications:")
     print(deviceidentifications)
@@ -119,8 +119,7 @@ if __name__ == "__main__":
     thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
     thread_detect_serial.start()
 
-    thread_detect_ethernet = threading.Thread(target=scan_ethernet_devices, args=(devices, iplist, etherlock,))
-    thread_detect_ethernet.start()
+
     '''
     # -------------------------------------------------------------------------------
     #                                   M Q T T

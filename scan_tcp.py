@@ -1,7 +1,7 @@
 import socket
 import time
 
-def scan_ethernet_devices(devices, comlist, comlock):
+def scan_tcp_devices(devices, comlist, comlock):
     deviceidentifications = list(devices.keys())
     while True:
         time.sleep(1)

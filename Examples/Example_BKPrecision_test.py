@@ -1,4 +1,4 @@
-from Devices import BKPrecision_2831E
+from Instruments import BKPrecision_2831E
 
 dev = BKPrecision_2831E.BK2831E("com4")
 

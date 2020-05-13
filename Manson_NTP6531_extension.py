@@ -1,5 +1,5 @@
 # --------------------------------------------------------
-from Devices import Manson_NTP6531, BKPrecision_2831E, Keithley_SM2400
+from Instruments import Manson_NTP6531, BKPrecision_2831E, Keithley_SM2400
 
 
 class NTP6531(Manson_NTP6531.NTP6531):

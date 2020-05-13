@@ -1,5 +1,5 @@
 # --------------------------------------------------------
-from Devices import BKPrecision_2831E
+from Instruments import BKPrecision_2831E
 
 
 # --------------------------------------------------------

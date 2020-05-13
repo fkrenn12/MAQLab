@@ -1,4 +1,4 @@
-from Devices import Keithley_SM2400
+from Instruments import Keithley_SM2400
 import time
 
 dev = Keithley_SM2400.SM2400("com3")
@@ -18,6 +18,7 @@ print(dev.devicetype)
 '''
 
 
+'''
 print("Voltage source")
 #dev.set_mode_voltage_source(20, 0.5)
 #dev.disable_human_security_mode()
@@ -30,31 +31,32 @@ dev.set_mode_voltage_source(30,1)
 #print(dev.volt)
 
 for i in range(1, 20000):
-    dev.volt = i
-    time.sleep(0.5)
+    dev.volt = i/100
+    time.sleep(0.1)
     dev.measure()
     print(dev.current_as_string, dev.volt_as_string)
-    time.sleep(0.1)
+    #time.sleep(0.1)
+'''
 
 
 '''
 dev.setOutput_off()
 '''
 
-'''
+
 print("Current source")
 dev.disable_human_security_mode()
-dev.set_mode_current_source(0.5, 200)
+dev.set_mode_current_source(0.5, 10)
 time.sleep(1)
-dev.current = 0.05
+dev.apply_current = -0.05
 
-for i in range(10, 1000):
-    #dev.current = i / 400
+for i in range(200, 300):
+    dev.apply_current = (i / 1000) * -1
     #dev.volt = i/10
     dev.measure()
-    print(dev.volt, dev.current)
-    time.sleep(1)
-'''
+    print(dev.volt_as_string, dev.current_as_string)
+    time.sleep(0.1)
+
 
 '''
 print("Voltmeter")
@@ -71,14 +73,15 @@ for i in range(1, 10):
     print(dev.current)
     time.sleep(1)
 '''
+
 '''
 print("Sink Mode")
 dev.set_mode_sink(0)
-time.sleep(5)
-for i in range(10, 1000):
+# time.sleep(5)
+for i in range(10, 200):
     dev.current = i / 100
     print(dev.volt, dev.current)
-    time.sleep(0.05)
+    time.sleep(0.5)
 
 time.sleep(1)
 '''
