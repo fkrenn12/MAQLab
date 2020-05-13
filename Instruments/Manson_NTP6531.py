@@ -22,7 +22,9 @@ NTP6531_CURRENT_LOW_LIMIT = 0.250
 class NTP6531:
     def __init__(self, port,
                  baudrate=NTP6531_DEFAULT_BAUDRATE,
+                 voltage_low_limit=NTP6531_VOLTAGE_LOW_LIMIT,
                  voltage_high_limit=NTP6531_VOLTAGE_HIGH_LIMIT,
+                 current_low_limit=NTP6531_CURRENT_LOW_LIMIT,
                  current_high_limit=NTP6531_CURRENT_HIGH_LIMIT):
 
         # open serial connection
@@ -39,7 +41,7 @@ class NTP6531:
         self.__volt_display = 0.0
         self.__current_display = 0.0
         self.__mode_display = 0
-        self.__volt_setting = 0
+        self.__volt_applied = 0
         self.__current_setting = 0
         # ---------------------------
         # limits for MANSON NTP-6531
@@ -54,31 +56,58 @@ class NTP6531:
         self.__voltage_high_limit = voltage_high_limit
         self.__current_high_limit = current_high_limit
         # ---------------------------
+        # application limits
+        # ---------------------------
+        self.__app_voltage_low_limit = voltage_low_limit
+        self.__app_voltage_high_limit = voltage_high_limit
+        self.__app_current_low_limit = current_low_limit
+        self.__app_current_high_limit = current_high_limit
+        # ---------------------------
         # human security limits
         # ---------------------------
         self.__voltage_high_limit_human_secure = HUMAN_SECURE_MAX_VOLTAGE
         self.id()
 
     # --------------------------------------------------
+    def set_current_limits(self, max_current=NTP6531_CURRENT_HIGH_LIMIT, min_current=NTP6531_CURRENT_LOW_LIMIT):
+        self.__app_current_low_limit = min_current
+        self.__app_current_high_limit = max_current
+
+    # --------------------------------------------------
+    def set_volt_limits(self, max_volt=NTP6531_VOLTAGE_HIGH_LIMIT, min_volt=NTP6531_VOLTAGE_LOW_LIMIT):
+        self.__app_voltage_low_limit = min_volt
+        self.__app_voltage_high_limit = max_volt
+
+    # --------------------------------------------------
     def __voltage_limiter(self, volt):
+        # upper limits
         if volt > self.__device_voltage_high_limit:
             volt = self.__device_voltage_high_limit
-        if volt > self.__voltage_high_limit:
-            volt = self.__voltage_high_limit
-        if volt > self.__voltage_high_limit_human_secure:
-            volt = self.__voltage_high_limit_human_secure
+        if volt > self.__app_voltage_high_limit:
+            volt = self.__app_voltage_high_limit
+        if volt > abs(self.__voltage_high_limit_human_secure):
+            volt = abs(self.__voltage_high_limit_human_secure)
+        # lower limit
         if volt < self.__device_voltage_low_limit:
             volt = self.__device_voltage_low_limit
+        if volt < self.__app_voltage_low_limit:
+            volt = self.__app_voltage_low_limit
+        if volt < -abs(self.__voltage_high_limit_human_secure):
+            volt = -abs(self.__voltage_high_limit_human_secure)
         return volt
 
     # --------------------------------------------------
     def __current_limiter(self, current):
+        # upper limits
         if current > self.__device_current_high_limit:
             current = self.__device_current_high_limit
-        if current > self.__current_high_limit:
-            current = self.__current_high_limit
+        if current > self.__app_current_high_limit:
+            current = self.__app_current_high_limit
+        # lower limit
         if current < self.__device_current_low_limit:
             current = self.__device_current_low_limit
+        if current < self.__app_current_low_limit:
+            current = self.__app_current_low_limit
         return current
 
     # --------------------------------------------------
@@ -227,7 +256,7 @@ class NTP6531:
 
     # --------------------------------------------------
     def __get_volt(self):
-        return self.__volt_setting
+        return self.__volt_applied
 
     # --------------------------------------------------
     def __set_volt(self, v):
@@ -240,14 +269,14 @@ class NTP6531:
                 self.__ser.write(cmd.encode('utf-8'))
                 response = self.__readline(TIMEOUT)
                 if response == OK_BYTE_STRING:
-                    self.__volt_setting = v
+                    self.__volt_applied = v
                 return
             except:
                 return
 
     # --------------------------------------------------
     def __get_current(self):
-        return self.__current_setting
+        return self.__current_applied
 
     def __set_current(self, c):
         # we only accept int or float
@@ -259,7 +288,7 @@ class NTP6531:
                 self.__ser.write(cmd.encode('utf-8'))
                 response = self.__readline(TIMEOUT)
                 if response == OK_BYTE_STRING:
-                    self.__current_setting = c
+                    self.__current_applied = c
                 return
             except:
                 return
@@ -316,14 +345,14 @@ class NTP6531:
     # ----------------------
     # Interface to the world
     # ----------------------
-    volt = property(__get_volt, __set_volt)
-    volt_display = property(__get_volt_display)
-    volt_display_as_string = property(__get_volt_display_as_string)
+    apply_volt = property(__get_volt, __set_volt)
+    volt = property(__get_volt_display)
+    volt_as_string = property(__get_volt_display_as_string)
     volt_max = property(__get_volt_high_limit, __set_volt_high_limit)
     volt_unit = property(__get_volt_unit)
-    current = property(__get_current, __set_current)
-    current_display = property(__get_current_display)
-    current_display_as_string = property(__get_current_display_as_string)
+    apply_current = property(__get_current, __set_current)
+    current = property(__get_current_display)
+    current_as_string = property(__get_current_display_as_string)
     current_max = property(__get_current_high_limit, __set_current_high_limit)
     current_unit = property(__get_current_unit)
 
