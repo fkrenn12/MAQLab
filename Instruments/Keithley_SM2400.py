@@ -6,17 +6,19 @@ EMPTY_STRING = ""
 
 TIMEOUT = 500  # serial read time in milliseconds of a line
 
-HUMAN_SECURE_MAX_VOLTAGE = 50
+HUMAN_SECURE_MAX_VOLTAGE = 50.0  # Volt
+DEFAULT_CURRENT_MAX = 0.5  # max Ampere in voltage source mode
+DEFAULT_VOLTAGE_MAX = 20.0  # max Volt in current source mode
 
-SM2400_POWER_MAX = 22
-SM2400_DEFAULT_BAUDRATE = 9600
-SM2400_VOLTAGE_HIGH_LIMIT = 200.0
-SM2400_VOLTAGE_LOW_LIMIT = -200.0
-SM2400_CURRENT_HIGH_LIMIT = 1.0
-SM2400_CURRENT_LOW_LIMIT = -1.0
+SM2400_POWER_MAX = 22.0  # Watt
+SM2400_DEFAULT_BAUDRATE = 9600  # bit/sec
+SM2400_VOLTAGE_HIGH_LIMIT = 200.0  # Volt
+SM2400_VOLTAGE_LOW_LIMIT = -200.0  # Volt
+SM2400_CURRENT_HIGH_LIMIT = 1.0  # Ampere
+SM2400_CURRENT_LOW_LIMIT = -1.0  # Ampere
 
 
-class Mode (enum.Enum):
+class Mode(enum.Enum):
     NONE = enum.auto()
     CONSTANT_VOLTAGE = enum.auto()
     CONSTANT_CURRENT = enum.auto()
@@ -24,11 +26,14 @@ class Mode (enum.Enum):
     AMPERE_METER = enum.auto()
     OHM_METER = enum.auto()
 
+
 # --------------------------------------------------
 class SM2400:
     def __init__(self, port,
                  baudrate=SM2400_DEFAULT_BAUDRATE,
+                 voltage_low_limit=SM2400_VOLTAGE_LOW_LIMIT,
                  voltage_high_limit=SM2400_VOLTAGE_HIGH_LIMIT,
+                 current_low_limit=SM2400_CURRENT_LOW_LIMIT,
                  current_high_limit=SM2400_CURRENT_HIGH_LIMIT):
 
         # open serial connection
@@ -47,8 +52,8 @@ class SM2400:
         self.__last_volt = 0
         self.__last_current = 0
         self.__last_resistance = 0
-        self.__volt_setting = 0
-        self.__current_setting = 0
+        self.__volt_applied = 0
+        self.__current_applied = 0
         self.__mode = Mode.NONE
         self.__beep = 0
         # ---------------------------
@@ -61,8 +66,10 @@ class SM2400:
         # ---------------------------
         # application limits
         # ---------------------------
-        self.__voltage_high_limit = voltage_high_limit
-        self.__current_high_limit = current_high_limit
+        self.__app_voltage_low_limit = voltage_low_limit
+        self.__app_voltage_high_limit = voltage_high_limit
+        self.__app_current_low_limit = current_low_limit
+        self.__app_current_high_limit = current_high_limit
         # ---------------------------
         # human security limits
         # ---------------------------
@@ -70,25 +77,49 @@ class SM2400:
         self.id()
 
     # --------------------------------------------------
+    def set_current_limits(self, max_current=SM2400_CURRENT_HIGH_LIMIT, min_current=SM2400_CURRENT_LOW_LIMIT):
+        self.__app_current_low_limit = min_current
+        self.__app_current_high_limit = max_current
+        if self.__mode == Mode.CONSTANT_VOLTAGE:
+            self.__ser.write(b':SENS:CURR:PROT ' + str(self.__current_limiter(max_current)).encode("utf-8") + b'\n')
+
+    # --------------------------------------------------
+    def set_volt_limits(self, max_volt=SM2400_VOLTAGE_HIGH_LIMIT, min_volt=SM2400_VOLTAGE_LOW_LIMIT):
+        self.__app_voltage_low_limit = min_volt
+        self.__app_voltage_high_limit = max_volt
+        if self.__mode == Mode.CONSTANT_CURRENT:
+            self.__ser.write(b':SENS:VOLT:PROT ' + str(self.__voltage_limiter(max_volt)).encode("utf-8") + b'\n')
+
+    # --------------------------------------------------
     def __voltage_limiter(self, volt):
+        # upper limits
         if volt > self.__device_voltage_high_limit:
             volt = self.__device_voltage_high_limit
-        if volt > self.__voltage_high_limit:
-            volt = self.__voltage_high_limit
-        if volt > self.__voltage_high_limit_human_secure:
-            volt = self.__voltage_high_limit_human_secure
+        if volt > self.__app_voltage_high_limit:
+            volt = self.__app_voltage_high_limit
+        if volt > abs(self.__voltage_high_limit_human_secure):
+            volt = abs(self.__voltage_high_limit_human_secure)
+        # lower limit
         if volt < self.__device_voltage_low_limit:
             volt = self.__device_voltage_low_limit
+        if volt < self.__app_voltage_low_limit:
+            volt = self.__app_voltage_low_limit
+        if volt < -abs(self.__voltage_high_limit_human_secure):
+            volt = -abs(self.__voltage_high_limit_human_secure)
         return volt
 
     # --------------------------------------------------
     def __current_limiter(self, current):
+        # upper limits
         if current > self.__device_current_high_limit:
             current = self.__device_current_high_limit
-        if current > self.__current_high_limit:
-            current = self.__current_high_limit
+        if current > self.__app_current_high_limit:
+            current = self.__app_current_high_limit
+        # lower limit
         if current < self.__device_current_low_limit:
             current = self.__device_current_low_limit
+        if current < self.__app_current_low_limit:
+            current = self.__app_current_low_limit
         return current
 
     # --------------------------------------------------
@@ -128,10 +159,10 @@ class SM2400:
         self.__voltage_high_limit_human_secure = SM2400_VOLTAGE_HIGH_LIMIT
 
         # --------------------------------------------------
+
     def set_output_on(self):
         try:
             self.__ser.write(b'OUTP:STAT ON\n')
-            pass
         except:
             pass
 
@@ -143,31 +174,30 @@ class SM2400:
             pass
 
     # --------------------------------------------------
-    def set_mode_voltage_source(self, u_max, current_protect=0.5):
+    def set_mode_voltage_source(self):
         try:
             self.__mode = Mode.CONSTANT_VOLTAGE
-            self.__voltage_high_limit = self.__voltage_limiter(u_max)
             # self.__ser.write(b':SOUR:FUNC VOLT;:SOUR:VOLT:RANG:AUTO ON;:SOUR:VOLT:LEV 0\n')
             self.__ser.write(b':SOUR:FUNC VOLT\n')
             self.__ser.write(b':SOUR:VOLT:RANG:AUTO ON\n')
             self.__ser.write(b':SOUR:VOLT:LEV 0\n')
-            self.__ser.write(b':SENS:CURR:PROT ' + str(self.__current_limiter(current_protect)).encode("utf-8") + b'\n')
+            self.__ser.write(b':SENS:CURR:PROT ' +
+                             str(self.__current_limiter(self.__app_current_high_limit)).encode("utf-8") + b'\n')
             self.__ser.write(b':FUNC "VOLT","CURR"\n')  # neu
             self.set_output_on()
         except:
             self.__mode = Mode.NONE
 
     # --------------------------------------------------
-    def set_mode_voltage_source_2wire(self, u_max, current_protect=0.5):
-        self.set_mode_voltage_source(u_max, current_protect)
+    def set_mode_voltage_source_2wire(self):
+        self.set_mode_voltage_source()
 
     # --------------------------------------------------
-    def set_mode_voltage_source_4wire(self, u_max, current_protect=0.5):
-        self.set_mode_voltage_source(u_max, current_protect)
+    def set_mode_voltage_source_4wire(self):
+        self.set_mode_voltage_source()
         try:
             self.__ser.write(b':SYST:RSEN ON\n')
             self.set_output_on()
-            pass
         except:
             pass
 
@@ -181,64 +211,54 @@ class SM2400:
 
     # --------------------------------------------------
     def __get_apply_voltage(self):
-        return self.__volt_setting
+        return self.__volt_applied
 
     # --------------------------------------------------
     def __set_apply_voltage(self, volt):
-        _old_setting = self.__volt_setting
+        _old_applied = self.__volt_applied
         try:
-            self.__volt_setting = self.__voltage_limiter(volt)
+            self.__volt_applied = self.__voltage_limiter(volt)
             # :SOURce[1]:CURRent[:LEVel][:IMMediate][:AMPLitude] <n> Set fixed I-Source amplitude immediately
+
             if self.__mode == Mode.CONSTANT_VOLTAGE:
-                self.__ser.write(b'SOUR:VOLT:LEV:IMM:AMPL ' + str(self.__volt_setting).encode("utf-8") + b'\n')
+                self.__ser.write(b'SOUR:VOLT:LEV:IMM:AMPL ' + str(self.__volt_applied).encode("utf-8") + b'\n')
+
             elif self.__mode == Mode.CONSTANT_CURRENT:
-                self.__ser.write(b':SENS:VOLT:PROT ' + str(self.__volt_setting).encode("utf-8") + b'\n')
+                self.__ser.write(b':SENS:VOLT:PROT ' + str(self.__volt_applied).encode("utf-8") + b'\n')
         except:
-            self.__volt_setting = _old_setting
+            self.__volt_applied = _old_applied
 
     # --------------------------------------------------
-    def set_mode_current_source(self, current_min, current_max, volt_protect=5):
+    def set_mode_current_source(self):
         try:
+            # Model 2400: 21V @ 1.05A or 210V @ 105mA
             self.__mode = Mode.CONSTANT_CURRENT
             self.__ser.write(b'*RST\n')
             self.__set_beep(self.__beep)
-            self.__current_high_limit = current_max
             # TODO: negative limits
             # self.__current_low_limit = current_min
             self.__ser.write(b':SOURCE:FUNC:MODE CURR \n')
-            # ser.write(b':SOURCE:CURR:RANG 100E-3 \n')
+            self.__ser.write(b':SOURCE:CURR:RANG 100E-3 \n')
             self.__ser.write(b':SOURCE:CURR:RANG:AUTO ON\n')
             # self.__ser.write(b':SOURCE:CURR:LEV -100.000E-3 \n')
             self.__ser.write(b':SOURCE:CURR:LEV 0.000E-3 \n')  # set to 0
             self.__ser.write(b':SOURCE:CURR:MODE FIXED \n')
-            # REM*****set function
-            # ser.write(b':SENS:FUNC:OFF:ALL \n')
+            self.__ser.write(b':SENS:FUNC:OFF:ALL \n')
             self.__ser.write(b':SENS:FUNC "VOLT" ,"CURR" \n')
-            self.__ser.write(b':SENSE:VOLT:RANG:AUTO ON\n')
-            self.__ser.write(b':SENSE:VOLT:PROT ' + str(self.__voltage_limiter(volt_protect)).encode("utf-8") + b'\n')
+            self.__ser.write(b':VOLT:RANG:AUTO ON\n')
+            self.__ser.write(b':VOLT:PROT ' +
+                             str(self.__voltage_limiter(self.__app_voltage_high_limit)).encode("utf-8") + b'\n')
             self.set_output_on()
-            '''
-            self.__mode = Mode.CONSTANT_CURRENT
-            self.__current_high_limit = current_max
-            self.__current_setting = 0
-            self.__volt_setting = volt_protect
-            self.__ser.write(b':SOUR:FUNC CURR\n')
-            self.__ser.write(b':SOUR:CURR:RANG:AUTO ON\n')
-            self.__ser.write(b':SOUR:CURR:LEV 0\n')
-            self.__ser.write(b':SENS:VOLT:PROT ' + str(self.__voltage_limiter(volt_protect)).encode("utf-8") + b'\n')
-            self.__ser.write(b':FUNC "VOLT","CURR"\n')  # neu
-            self.set_output_on()
-            '''
         except:
             self.__mode = Mode.NONE
 
     # --------------------------------------------------
-    def set_mode_current_source_2wire(self, current_max, volt_protect=20):
-        self.set_mode_current_source(current_max, volt_protect)
+    def set_mode_current_source_2wire(self, current_max, volt_max=DEFAULT_VOLTAGE_MAX):
+        self.set_mode_current_source()
 
     # --------------------------------------------------
-    def set_mode_current_source_4wire(self, current_max, volt_protect=20):
-        self.set_mode_current_source(current_max, volt_protect)
+    def set_mode_current_source_4wire(self, current_max, volt_max=DEFAULT_VOLTAGE_MAX):
+        self.set_mode_current_source()
         try:
             self.__ser.write(b':SYST:RSEN ON\n')
             self.set_output_on()
@@ -255,27 +275,21 @@ class SM2400:
 
     # --------------------------------------------------
     def __get_apply_current(self):
-        return self.__current_setting
+        return self.__current_applied
 
     # --------------------------------------------------
     def __set_apply_current(self, current):
-        _old_setting = self.__current_setting
+        _old_applied = self.__current_applied
         try:
-            self.__current_setting = self.__current_limiter(current)
+            self.__current_applied = self.__current_limiter(current)
 
             if self.__mode == Mode.CONSTANT_CURRENT:
                 # :SOURce[1]:CURRent[:LEVel][:IMMediate][:AMPLitude] <n> Set fixed I-Source amplitude immediately
-                self.__ser.write(b'SOUR:CURR:LEV:IMM:AMPL ' + str(self.__current_setting).encode("utf-8") + b'\n')
-                '''
-                elif self.__mode == Mode.SINK:
-                    self.set_output_on()
-                    self.__ser.write(b'SENS:CURR:PROT ' + str(self.__current_setting).encode("utf-8") + b'\n')
-                    self.__get_value()  # initiates the new setting
-                '''
+                self.__ser.write(b'SOUR:CURR:LEV:IMM:AMPL ' + str(self.__current_applied).encode("utf-8") + b'\n')
             elif self.__mode == Mode.CONSTANT_VOLTAGE:
-                self.__ser.write(b':SENS:CURR:PROT ' + str(self.__current_setting).encode("utf-8") + b'\n')
+                self.__ser.write(b':SENS:CURR:PROT ' + str(self.__current_applied).encode("utf-8") + b'\n')
         except:
-            self.__current_setting = _old_setting
+            self.__current_applied = _old_applied
 
     # --------------------------------------------------
     def set_mode_volt_meter(self):
@@ -336,33 +350,6 @@ class SM2400:
             self.set_output_on()
         except:
             self.__mode = Mode.NONE
-
-    '''
-    # --------------------------------------------------
-    def set_mode_sink(self, current_sink, current_max=SM2400_CURRENT_HIGH_LIMIT):
-        try:
-            self.__mode = Mode.SINK
-            self.__ser.write(b'*RST\n')
-            self.__set_beep(self.__beep)
-            self.__current_high_limit = current_max
-            if current_sink <= 0:
-                current_sink = 0.0001  # this is minimal current
-            # :SOURce[1]:CURRent[:LEVel][:IMMediate][:AMPLitude] <n> Set fixed I-Source amplitude immediately
-            self.__ser.write(b':SOUR:FUNC VOLT\n')
-            self.__ser.write(b':SOUR:VOLT:MODE FIXED\n')
-            self.__ser.write(b':SOUR:VOLT:RANG MIN\n')
-            self.__ser.write(b':SOUR:VOLT:LEV 0\n')
-
-            # FIXME: was ist da los?
-            self.__set_current(current_sink)
-            self.__ser.write(b':SENS:CURR:RANG:AUTO ON\n')
-            # self.__ser.write(b':SENS:VOLT:RANG:AUTO ON\n')
-            self.__ser.write(b':FUNC "VOLT","CURR"\n')
-            self.set_output_on()
-            self.__get_value()
-        except:
-            self.__mode = Mode.NONE
-    '''
 
     # --------------------------------------------------
     def __set_beep(self, on_off):

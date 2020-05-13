@@ -21,8 +21,10 @@ print(dev.devicetype)
 '''
 print("Voltage source")
 #dev.set_mode_voltage_source(20, 0.5)
-#dev.disable_human_security_mode()
-dev.set_mode_voltage_source(30,1)
+dev.disable_human_security_mode()
+dev.set_mode_voltage_source()
+# dev.set_current_limits(0.2)
+dev.apply_current = 1
 #dev.volt = 1
 #dev.measure()
 #dev.set_output_on()
@@ -30,44 +32,46 @@ dev.set_mode_voltage_source(30,1)
 #print(dev.volt, dev.current)
 #print(dev.volt)
 
-for i in range(1, 20000):
-    dev.volt = i/100
-    time.sleep(0.1)
+for i in range(-300, 300):
+    dev.apply_volt = i/100
+    time.sleep(0)
     dev.measure()
     print(dev.current_as_string, dev.volt_as_string)
     #time.sleep(0.1)
 '''
 
-
 '''
 dev.setOutput_off()
 '''
 
-
+'''
 print("Current source")
-dev.disable_human_security_mode()
-dev.set_mode_current_source(0.5, 10)
+# dev.disable_human_security_mode()
+
+dev.set_mode_current_source()
+dev.set_volt_limits(180)
+dev.apply_volt = 84
 time.sleep(1)
-dev.apply_current = -0.05
+# dev.apply_current = -0.101
 
 for i in range(200, 300):
-    dev.apply_current = (i / 1000) * -1
+    dev.apply_current = (i / 10000) * -1
     #dev.volt = i/10
     dev.measure()
     print(dev.volt_as_string, dev.current_as_string)
     time.sleep(0.1)
-
-
 '''
+
+
 print("Voltmeter")
-dev.set_mode_voltmeter()
+dev.set_mode_volt_meter()
 for i in range(1, 10):
     dev.measure()
     print(dev.volt)
-    time.sleep(1)
-
+    time.sleep(0.1)
+'''
 print("Amperemeter")
-dev.set_mode_amperemeter()
+dev.set_mode_ampere_meter()
 for i in range(1, 10):
     dev.measure()
     print(dev.current)
