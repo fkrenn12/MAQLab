@@ -13,15 +13,21 @@ print(NTP.manufactorer)
 print(NTP.serialnumber)
 print(NTP.model)
 
-NTP.volt_max = 20  # max spannung in V für die schaltung
-NTP.current_max = 2  # max strom für die schaltung
 
-NTP.apply_current = 1.5  # strombegrenzung
+NTP.set_voltage_limit(10)
+NTP.set_current_limit(0.5)
+NTP.apply_current = 1.1  # strombegrenzung
+for i in range(1, 10):
+    NTP.output(True)
+    time.sleep(0.3)
+    NTP.output(False)
+    time.sleep(0.3)
+
 NTP.output_on()
 
-for i in range(0, 100, 5):
+for i in range(20, 300, 5):
     NTP.apply_volt = i/10
-    #print(NTP.volt)
-    time.sleep(2)  # wait for voltage setting / 2sec is a good value
-    print(NTP.current_as_string + "  " + NTP.volt_as_string)
+    time.sleep(3)  # wait for voltage setting / 2sec is a good valu2
+    print(str(NTP.apply_volt) + ":" + NTP.current_as_string + "  " + NTP.volt_as_string + " " + NTP.source_mode)
+
 NTP.output_off()

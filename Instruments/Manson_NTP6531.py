@@ -69,14 +69,29 @@ class NTP6531:
         self.id()
 
     # --------------------------------------------------
-    def set_current_limits(self, max_current=NTP6531_CURRENT_HIGH_LIMIT, min_current=NTP6531_CURRENT_LOW_LIMIT):
-        self.__app_current_low_limit = min_current
-        self.__app_current_high_limit = max_current
+    def set_current_limit(self, upper=NTP6531_CURRENT_HIGH_LIMIT, lower=NTP6531_CURRENT_LOW_LIMIT):
+        if type(upper) is int or type(upper) is float and \
+                type(lower) is int or type(lower) is float:
+
+            self.__app_current_high_limit = upper
+            if lower == NTP6531_CURRENT_LOW_LIMIT and upper != NTP6531_CURRENT_HIGH_LIMIT:
+                self.__app_current_low_limit = -upper
+            else:
+                self.__app_current_low_limit = lower
+        else:
+            return
 
     # --------------------------------------------------
-    def set_volt_limits(self, max_volt=NTP6531_VOLTAGE_HIGH_LIMIT, min_volt=NTP6531_VOLTAGE_LOW_LIMIT):
-        self.__app_voltage_low_limit = min_volt
-        self.__app_voltage_high_limit = max_volt
+    def set_voltage_limit(self, upper=NTP6531_VOLTAGE_HIGH_LIMIT, lower=NTP6531_VOLTAGE_LOW_LIMIT):
+        if type(upper) is int or type(upper) is float and \
+                type(lower) is int or type(lower) is float:
+            self.__app_voltage_high_limit = upper
+            if lower == NTP6531_VOLTAGE_LOW_LIMIT and upper != NTP6531_VOLTAGE_HIGH_LIMIT:
+                self.__app_voltage_low_limit = -upper
+            else:
+                self.__app_voltage_low_limit = lower
+        else:
+            return
 
     # --------------------------------------------------
     def __voltage_limiter(self, volt):
@@ -128,6 +143,21 @@ class NTP6531:
         return EMPTY_BYTE_STRING
 
     # --------------------------------------------------
+    def __send_command(self, cmd):
+        if type(cmd) is bytes:
+            try:
+                for i in range(1, 11):  # 10 times trying
+                    self.__ser.flush()
+                    self.__ser.flushInput()
+                    self.__ser.write(cmd)
+                    response = self.__readline(TIMEOUT)
+                    if response == OK_BYTE_STRING:
+                        return True
+                return False
+            except:
+                return False
+
+    # --------------------------------------------------
     def disable_human_security_mode(self):
         self.__voltage_high_limit_human_secure = NTP6531_VOLTAGE_HIGH_LIMIT
 
@@ -142,53 +172,48 @@ class NTP6531:
     # --------------------------------------------------
     def id(self):
         try:
-            self.__ser.write(b'GMOD\r')
-            idstring = self.__readline(TIMEOUT)
+            idstring = EMPTY_BYTE_STRING
+            for i in range(1, 11):  # 10 times trying
+                self.__ser.flush()
+                self.__ser.flushInput()
+                self.__ser.write(b'GMOD\r')
+                idstring = self.__readline(TIMEOUT)
+                if len(idstring) > 0:
+                    break
             t = idstring.split(b'\r')
-            self.__model = t[0]
-            self.__manufactorer = b'Manson'
-            self.__serialnumber = str(random.randrange(999)).encode("utf-8")
-            self.__devicetype = b"DC-Powersupply"
-            idstring = self.__readline(TIMEOUT)
+            self.__model = t[0].decode("utf-8")
+            self.__manufactorer = "Manson"
+            self.__serialnumber = str(random.randrange(999))
+            self.__devicetype = "DC-Powersupply"
+            self.__readline(TIMEOUT)  # read remaining chars
         except:
-            self.__model = EMPTY_BYTE_STRING
-            self.__manufactorer = EMPTY_BYTE_STRING
-            self.__serialnumber = EMPTY_BYTE_STRING
-            self.__devicetype = EMPTY_BYTE_STRING
-        if self.__model == EMPTY_BYTE_STRING:
+            self.__model = EMPTY_STRING
+            self.__manufactorer = EMPTY_STRING
+            self.__serialnumber = EMPTY_STRING
+            self.__devicetype = EMPTY_STRING
+        if self.__model == EMPTY_STRING:
             print("ERR - NO RESPONSE")
             raise
 
     # --------------------------------------------------
     def output(self, s):
-        try:
-            state = int(bool(int(s)))
-            cmd = "SOUT" + (str(state).zfill(1)) + "\r"
-            self.__ser.write(cmd.encode('utf-8'))
-            response = self.__readline(TIMEOUT)
-            return response == OK_BYTE_STRING
-        except:
-            return False
+        if type(s) is int or type(s) is float or type(s) is bool:
+            try:
+                state = int(bool(int(s)))
+                cmd = ("SOUT" + (str(state).zfill(1)) + "\r").encode('utf-8')
+                return bool(self.__send_command(cmd))  # self.__ser.write(cmd.encode('utf-8'))
+            except:
+                return False
 
     # --------------------------------------------------
     def output_on(self):
         cmd = b"SOUT1\r"
-        try:
-            self.__ser.write(cmd)
-            response = self.__readline(TIMEOUT)
-            return response == OK_BYTE_STRING
-        except:
-            return False
+        return bool(self.__send_command(cmd))
 
     # --------------------------------------------------
     def output_off(self):
         cmd = b'SOUT0\r'
-        try:
-            self.__ser.write(cmd)
-            response = self.__readline(TIMEOUT)
-            return response == OK_BYTE_STRING
-        except:
-            return False
+        return bool(self.__send_command(cmd))
 
     # --------------------------------------------------
     def __get_display(self):
@@ -198,8 +223,7 @@ class NTP6531:
         if (tic - self.__last_measure_tic) < DISPLAY_INTERVAL:
             return response
         try:
-            for i in range(1, 10):  # 10 Versuche da das NTP-6531 manchmal nichts zurückschickt
-                self.__ser.flush()
+            for i in range(1, 11):   # 10 times trying
                 self.__ser.flushInput()
                 cmd = b'GETD\r'
                 self.__ser.write(cmd)
@@ -265,11 +289,16 @@ class NTP6531:
             v = float(v)
             v = self.__voltage_limiter(v)
             try:
-                cmd = "VOLT" + (str(int(v * 100)).zfill(4)) + "\r"
-                self.__ser.write(cmd.encode('utf-8'))
-                response = self.__readline(TIMEOUT)
-                if response == OK_BYTE_STRING:
-                    self.__volt_applied = v
+                for i in range(1, 11):   # 10 times trying
+                    self.__ser.flush()
+                    self.__ser.flushInput()
+                    cmd = "VOLT" + (str(int(v * 100)).zfill(4)) + "\r"
+                    self.__ser.write(cmd.encode('utf-8'))
+                    response = self.__readline(TIMEOUT)
+                    # print(response)
+                    if response == OK_BYTE_STRING:
+                        self.__volt_applied = v
+                        break
                 return
             except:
                 return
@@ -284,11 +313,15 @@ class NTP6531:
             c = float(c)
             c = self.__current_limiter(c)
             try:
-                cmd = "CURR" + (str(int(c * 1000)).zfill(4)) + "\r"
-                self.__ser.write(cmd.encode('utf-8'))
-                response = self.__readline(TIMEOUT)
-                if response == OK_BYTE_STRING:
-                    self.__current_applied = c
+                for i in range(1, 10):  # 10 Versuche da das NTP-6531 manchmal nichts zurückschickt
+                    self.__ser.flush()
+                    self.__ser.flushInput()
+                    cmd = "CURR" + (str(int(c * 1000)).zfill(4)) + "\r"
+                    self.__ser.write(cmd.encode('utf-8'))
+                    response = self.__readline(TIMEOUT)
+                    if response == OK_BYTE_STRING:
+                        self.__current_applied = c
+                        break
                 return
             except:
                 return
@@ -310,31 +343,6 @@ class NTP6531:
         return self.__model
 
     # --------------------------------------------------
-    def __set_current_high_limit(self, limit):
-        # we only accept int or float
-        if type(limit) is int or type(limit) is float:
-            if limit > self.__device_current_high_limit:
-                self.__current_high_limit = self.__device_current_high_limit
-            else:
-                self.__current_high_limit = limit
-
-    # --------------------------------------------------
-    def __get_current_high_limit(self):
-        return self.__current_high_limit
-
-    # --------------------------------------------------
-    def __set_volt_high_limit(self, limit):
-        if type(limit) is int or type(limit) is float:
-            if limit > self.__device_voltage_high_limit:
-                self.__voltage_high_limit = self.__device_voltage_high_limit
-            else:
-                self.__voltage_high_limit = limit
-
-    # --------------------------------------------------
-    def __get_volt_high_limit(self):
-        return self.__voltage_high_limit
-
-    # --------------------------------------------------
     def __get_volt_unit(self):
         return "V"
 
@@ -348,19 +356,17 @@ class NTP6531:
     apply_volt = property(__get_volt, __set_volt)
     volt = property(__get_volt_display)
     volt_as_string = property(__get_volt_display_as_string)
-    volt_max = property(__get_volt_high_limit, __set_volt_high_limit)
     volt_unit = property(__get_volt_unit)
     apply_current = property(__get_current, __set_current)
     current = property(__get_current_display)
     current_as_string = property(__get_current_display_as_string)
-    current_max = property(__get_current_high_limit, __set_current_high_limit)
     current_unit = property(__get_current_unit)
 
     serialnumber = property(__get_serialnumber)
     manufactorer = property(__get_manufactorer)
     devicetype = property(__get_devicetype)
     model = property(__get_model)
-    mode = property(__get_display_mode)
+    source_mode = property(__get_display_mode)
 
     # --------------------------------------------------
     def __del__(self):

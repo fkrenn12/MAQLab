@@ -77,18 +77,37 @@ class SM2400:
         self.id()
 
     # --------------------------------------------------
-    def set_current_limits(self, max_current=SM2400_CURRENT_HIGH_LIMIT, min_current=SM2400_CURRENT_LOW_LIMIT):
-        self.__app_current_low_limit = min_current
-        self.__app_current_high_limit = max_current
-        if self.__mode == Mode.CONSTANT_VOLTAGE:
-            self.__ser.write(b':SENS:CURR:PROT ' + str(self.__current_limiter(max_current)).encode("utf-8") + b'\n')
+    def set_current_limit(self, upper=SM2400_CURRENT_HIGH_LIMIT, lower=SM2400_CURRENT_LOW_LIMIT):
+        if type(upper) is int or type(upper) is float and \
+                type(lower) is int or type(lower) is float:
+            self.__app_current_high_limit = upper
+
+            if lower == SM2400_CURRENT_LOW_LIMIT and upper != SM2400_CURRENT_HIGH_LIMIT:
+                self.__app_current_low_limit = -upper
+            else:
+                self.__app_current_low_limit = lower
+
+            if self.__mode == Mode.CONSTANT_VOLTAGE:
+                self.__ser.write(b':SENS:CURR:PROT ' + str(self.__current_limiter(upper)).encode("utf-8") + b'\n')
+        else:
+            return
 
     # --------------------------------------------------
-    def set_volt_limits(self, max_volt=SM2400_VOLTAGE_HIGH_LIMIT, min_volt=SM2400_VOLTAGE_LOW_LIMIT):
-        self.__app_voltage_low_limit = min_volt
-        self.__app_voltage_high_limit = max_volt
-        if self.__mode == Mode.CONSTANT_CURRENT:
-            self.__ser.write(b':SENS:VOLT:PROT ' + str(self.__voltage_limiter(max_volt)).encode("utf-8") + b'\n')
+    def set_voltage_limit(self, upper=SM2400_VOLTAGE_HIGH_LIMIT, lower=SM2400_VOLTAGE_LOW_LIMIT):
+        if type(upper) is int or type(upper) is float and \
+                type(lower) is int or type(lower) is float:
+
+            self.__app_voltage_high_limit = upper
+
+            if lower == SM2400_VOLTAGE_LOW_LIMIT and upper != SM2400_VOLTAGE_HIGH_LIMIT:
+                self.__app_voltage_low_limit = -upper
+            else:
+                self.__app_voltage_low_limit = lower
+
+            if self.__mode == Mode.CONSTANT_CURRENT:
+                self.__ser.write(b':SENS:VOLT:PROT ' + str(self.__voltage_limiter(upper)).encode("utf-8") + b'\n')
+        else:
+            return
 
     # --------------------------------------------------
     def __voltage_limiter(self, volt):
@@ -142,16 +161,16 @@ class SM2400:
             # KEITHLEY INSTRUMENTS INC., MODEL nnnn, xxxxxxx, yyyyy/zzzzz /a/d
             # KEITHLEY INSTRUMENTS INC.,MODEL 2400,1033388,C27   Feb  4 2004 14:58:04/A02  /K/H
             t = self.__idstring.split(b',')
-            self.__manufactorer = t[0]
-            self.__model = t[1]
-            self.__serialnumber = t[2]
-            self.__devicetype = b"Sourcemeter"
+            self.__manufactorer = t[0].decode("utf-8")
+            self.__model = t[1].decode("utf-8")
+            self.__serialnumber = t[2].decode("utf-8")
+            self.__devicetype = "Sourcemeter"
         except:
-            self.__model = EMPTY_BYTE_STRING
-            self.__manufactorer = EMPTY_BYTE_STRING
-            self.__serialnumber = EMPTY_BYTE_STRING
-            self.__devicetype = EMPTY_BYTE_STRING
-        if self.__model == EMPTY_BYTE_STRING:
+            self.__model = EMPTY_STRING
+            self.__manufactorer = EMPTY_STRING
+            self.__serialnumber = EMPTY_STRING
+            self.__devicetype = EMPTY_STRING
+        if self.__model == EMPTY_STRING:
             print("ERR - NO RESPONSE")
             raise
 
@@ -215,18 +234,19 @@ class SM2400:
 
     # --------------------------------------------------
     def __set_apply_voltage(self, volt):
-        _old_applied = self.__volt_applied
-        try:
-            self.__volt_applied = self.__voltage_limiter(volt)
-            # :SOURce[1]:CURRent[:LEVel][:IMMediate][:AMPLitude] <n> Set fixed I-Source amplitude immediately
+        if type(volt) is int or type(volt) is float:
+            _old_applied = self.__volt_applied
+            try:
+                self.__volt_applied = self.__voltage_limiter(volt)
+                # :SOURce[1]:CURRent[:LEVel][:IMMediate][:AMPLitude] <n> Set fixed I-Source amplitude immediately
 
-            if self.__mode == Mode.CONSTANT_VOLTAGE:
-                self.__ser.write(b'SOUR:VOLT:LEV:IMM:AMPL ' + str(self.__volt_applied).encode("utf-8") + b'\n')
+                if self.__mode == Mode.CONSTANT_VOLTAGE:
+                    self.__ser.write(b'SOUR:VOLT:LEV:IMM:AMPL ' + str(self.__volt_applied).encode("utf-8") + b'\n')
 
-            elif self.__mode == Mode.CONSTANT_CURRENT:
-                self.__ser.write(b':SENS:VOLT:PROT ' + str(self.__volt_applied).encode("utf-8") + b'\n')
-        except:
-            self.__volt_applied = _old_applied
+                elif self.__mode == Mode.CONSTANT_CURRENT:
+                    self.__ser.write(b':SENS:VOLT:PROT ' + str(self.__volt_applied).encode("utf-8") + b'\n')
+            except:
+                self.__volt_applied = _old_applied
 
     # --------------------------------------------------
     def set_mode_current_source(self):
@@ -279,17 +299,18 @@ class SM2400:
 
     # --------------------------------------------------
     def __set_apply_current(self, current):
-        _old_applied = self.__current_applied
-        try:
-            self.__current_applied = self.__current_limiter(current)
+        if type(current) is int or type(current) is float:
+            _old_applied = self.__current_applied
+            try:
+                self.__current_applied = self.__current_limiter(current)
 
-            if self.__mode == Mode.CONSTANT_CURRENT:
-                # :SOURce[1]:CURRent[:LEVel][:IMMediate][:AMPLitude] <n> Set fixed I-Source amplitude immediately
-                self.__ser.write(b'SOUR:CURR:LEV:IMM:AMPL ' + str(self.__current_applied).encode("utf-8") + b'\n')
-            elif self.__mode == Mode.CONSTANT_VOLTAGE:
-                self.__ser.write(b':SENS:CURR:PROT ' + str(self.__current_applied).encode("utf-8") + b'\n')
-        except:
-            self.__current_applied = _old_applied
+                if self.__mode == Mode.CONSTANT_CURRENT:
+                    # :SOURce[1]:CURRent[:LEVel][:IMMediate][:AMPLitude] <n> Set fixed I-Source amplitude immediately
+                    self.__ser.write(b'SOUR:CURR:LEV:IMM:AMPL ' + str(self.__current_applied).encode("utf-8") + b'\n')
+                elif self.__mode == Mode.CONSTANT_VOLTAGE:
+                    self.__ser.write(b':SENS:CURR:PROT ' + str(self.__current_applied).encode("utf-8") + b'\n')
+            except:
+                self.__current_applied = _old_applied
 
     # --------------------------------------------------
     def set_mode_volt_meter(self):
@@ -353,16 +374,18 @@ class SM2400:
 
     # --------------------------------------------------
     def __set_beep(self, on_off):
-        try:
-            if on_off == 0:
-                self.__ser.write(b':SYST:BEEP:STAT OFF\n')
-                self.__beep = 0
-            else:
-                self.__ser.write(b':SYST:BEEP:STAT ON\n')
-                self.__beep = 1
-        except:
-            pass
-        return
+        if type(on_off) is int or type(on_off) is float or type(on_off) is bool:
+            on_off = int(bool(int(on_off)))
+            try:
+                if on_off == 0:
+                    self.__ser.write(b':SYST:BEEP:STAT OFF\n')
+                    self.__beep = 0
+                else:
+                    self.__ser.write(b':SYST:BEEP:STAT ON\n')
+                    self.__beep = 1
+            except:
+                pass
+            return
 
     # --------------------------------------------------
     def set_beep_on(self):
