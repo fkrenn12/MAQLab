@@ -9,7 +9,7 @@ EMPTY_STRING = ""
 
 HUMAN_SECURE_MAX_VOLTAGE = 50
 
-TIMEOUT = 500  # serial read time in milliseconds of a line
+TIMEOUT = 200  # serial read time in milliseconds of a line
 DISPLAY_INTERVAL = 100  # minimal interval between display readings in milliseconds
 NTP6531_DEFAULT_BAUDRATE = 9600
 NTP6531_VOLTAGE_HIGH_LIMIT = 36.0

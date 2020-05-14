@@ -15,7 +15,7 @@ print(NTP.model)
 
 
 NTP.set_voltage_limit(10)
-NTP.set_current_limit(0.5)
+NTP.set_current_limit(2)
 NTP.apply_current = 1.1  # strombegrenzung
 for i in range(1, 10):
     NTP.output(True)
