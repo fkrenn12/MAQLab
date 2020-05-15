@@ -20,6 +20,9 @@ NTP6531_CURRENT_LOW_LIMIT = 0.250
 
 # --------------------------------------------------
 class NTP6531:
+    # --------------------------------------------------
+    # Class Constructor
+    # --------------------------------------------------
     def __init__(self, port,
                  baudrate=NTP6531_DEFAULT_BAUDRATE,
                  voltage_low_limit=NTP6531_VOLTAGE_LOW_LIMIT,
@@ -368,6 +371,8 @@ class NTP6531:
     model = property(__get_model)
     source_mode = property(__get_display_mode)
 
+    # --------------------------------------------------
+    # Class Destructor
     # --------------------------------------------------
     def __del__(self):
         try:

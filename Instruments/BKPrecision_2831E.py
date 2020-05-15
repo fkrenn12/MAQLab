@@ -30,6 +30,9 @@ class Mode (enum.Enum):
 
 
 class BK2831E:
+    # --------------------------------------------------
+    # Class Constructor
+    # --------------------------------------------------
     def __init__(self, port, baudrate=BK2831E_DEFAULT_BAUDRATE):
         # open serial connection
         # open serial connection
@@ -362,5 +365,11 @@ class BK2831E:
     devicetype = property(__get_devicetype)
     model = property(__get_model)
 
+    # --------------------------------------------------
+    # Class Destructor
+    # --------------------------------------------------
     def __del__(self):
-        self.__ser.close()
+        try:
+            self.__ser.close()
+        except:
+            pass

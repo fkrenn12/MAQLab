@@ -29,6 +29,9 @@ class Mode(enum.Enum):
 
 # --------------------------------------------------
 class SM2400:
+    # --------------------------------------------------
+    # Class Constructor
+    # --------------------------------------------------
     def __init__(self, port,
                  baudrate=SM2400_DEFAULT_BAUDRATE,
                  voltage_low_limit=SM2400_VOLTAGE_LOW_LIMIT,
@@ -475,5 +478,10 @@ class SM2400:
     model = property(__get_model)
 
     # --------------------------------------------------
+    # Class Destructor
+    # --------------------------------------------------
     def __del__(self):
-        self.__ser.close()
+        try:
+            self.__ser.close()
+        except:
+            pass
