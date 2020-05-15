@@ -1,7 +1,7 @@
-from Instruments import Keithley_SM2400
+from Instruments.Keithley import SM2400
 import time
 
-dev = Keithley_SM2400.SM2400("com3")
+dev = SM2400.SM2400("com3")
 
 print(dev.devicetype)
 print(dev.manufactorer)

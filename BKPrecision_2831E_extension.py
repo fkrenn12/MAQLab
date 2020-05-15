@@ -1,9 +1,9 @@
 # --------------------------------------------------------
-from Instruments import BKPrecision_2831E
+from Instruments.BKPrecision import E2831
 
 
 # --------------------------------------------------------
-class BK2831E(BKPrecision_2831E.BK2831E):
+class BK2831E(E2831.BK2831E):
     def __init__(self, _port, _baudrate=9600):
         super().__init__(_port, _baudrate)
 

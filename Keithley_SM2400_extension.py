@@ -1,9 +1,9 @@
 # --------------------------------------------------------
-from Instruments import Keithley_SM2400
+from Instruments.Keithley import SM2400
 
 
 # --------------------------------------------------------
-class SM2400(Keithley_SM2400.SM2400):
+class SM2400(SM2400.SM2400):
 
     def __init__(self, _port, _baudrate=9600):
         super().__init__(_port, _baudrate)

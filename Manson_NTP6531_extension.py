@@ -1,8 +1,8 @@
 # --------------------------------------------------------
-from Instruments import Manson_NTP6531, BKPrecision_2831E, Keithley_SM2400
+from Instruments.Manson import NTP6531
 
 
-class NTP6531(Manson_NTP6531.NTP6531):
+class NTP6531(NTP6531.NTP6531):
 
     def __init__(self, _port, _baudrate=9600):
         super().__init__(_port, _baudrate)

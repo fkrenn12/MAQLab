@@ -1,6 +1,6 @@
-from Instruments import BKPrecision_2831E
+from Instruments.BKPrecision import E2831
 
-dev = BKPrecision_2831E.BK2831E("com4")
+dev = E2831.BK2831E("com4")
 
 print(dev.devicetype)
 print(dev.manufactorer)
