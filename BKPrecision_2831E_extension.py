@@ -1,5 +1,5 @@
 # --------------------------------------------------------
-from Instruments.BKPrecision import E2831
+from Devices.BKPrecision import E2831
 
 
 # --------------------------------------------------------
@@ -11,9 +11,10 @@ class BK2831E(E2831.BK2831E):
     def mqttmessage(_msg):
         pass
         # print("NEW BK2831E:" + _msg.topic + " " + str(_msg.qos) + " " + str(_msg.payload))
+        print(_msg.topic, _msg.payload)
 
     def on_created(self):
-        print("BK2831E Ser:" + str(self.serialnumber) + " plugged in")
+        print("BK2831E Ser:" + str(self.serialnumber) + " found")
 
     def on_destroyed(self):
         print("BK2831E removed")
@@ -28,8 +29,6 @@ class BK2831E(E2831.BK2831E):
             pass
         try:
             pass
-            # client.publish("Krenn/BK/Volt",str(anumber))
-            # client.publish("Krenn/BK/Volt", "{:.2f}".format(anumber))
         except:
             print("ERR publish")
 

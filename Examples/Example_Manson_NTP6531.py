@@ -1,33 +1,107 @@
-# from Instruments.Manson import Manson_NTP6531 as Manson
-import Instruments.Manson.NTP6531 as NTP6531
+from Devices.Manson.NTP6531 import NTP6531
+from Devices.Keithley.SM2400 import SM2400
+from Devices.BKPrecision.E2831 import BK2831E
+
+import Devices
+import time
+import datetime
 
 # ---------------------------------------------------
 # be sure to make proper COM port settings
 # ---------------------------------------------------
 VCOMport = "com4"  # -> change to your needs
 
+
+class Portmanager:
+    def __init__(self):
+        self.__usedports = {}
+
+    def add(self, instrument, port):
+        if port in self.__usedports:
+            if self.__usedports[port] != instrument:
+                # close if another instrument used port
+                try:
+                    self.__usedports[port].close()
+                finally:
+                    del self.__usedports[port]
+        try:
+            self.__usedports[port] = instrument
+        except:
+            pass
+
+
+
+pm = Portmanager()
+
+
 # istrmnt = Manson.NTP6531(VCOMport)
 
-isinstance()
-class Spannungsquelle():
-    def __init__(self, instrument):
-        isinstance()
-        if type(instrument) is NTP6531.NTP6531:
-            self.__dev = instrument
-            self.__dev.output_on()
+class Voltmeter:
+    def __init__(self, instrument_name, port):
+        # isinstance()
+        if type(instrument_name) is str:
+            pm.add(self, port)
+            self.__name = instrument_name
+            # print(globals())
+            self.__comport = port
+            self.__dev = globals()[self.__name](port)
 
     def __get_volt(self):
-        return self.__dev.volt
+        if self.__dev is not None:
+            return self.__dev.volt
+
+    def on(self):
+        self.__dev.output_on()
+
+    def close(self):
+        self.__dev.close()
+
+    volt = property(__get_volt)
+
+
+# isinstance()
+class VoltageSource:
+    def __init__(self, instrument_name, port):
+        # isinstance()
+        if type(instrument_name) is str:
+            pm.add(self, port)
+            self.__name = instrument_name
+            # print(globals())
+            self.__comport = port
+            self.__dev = globals()[self.__name](port)
+
+    def __get_volt(self):
+        if self.__dev is not None:
+            return self.__dev.volt
 
     def __set_volt(self, v):
-        self.__dev.apply_volt = v
+        if self.__dev is not None:
+            self.__dev.apply_volt = v
+
+    def on(self):
+        self.__dev.output_on()
+
+    def close(self):
+        self.__dev.close()
 
     volt = property(__get_volt, __set_volt)
 
 
-source = Spannungsquelle(NTP6531.NTP6531(VCOMport))
-source.volt = 12
-print(source.volt)
+u1 = VoltageSource("NTP6531", "com4")
+u1.on()
+u1.volt = 2
+
+time.sleep(2)
+v1 = Voltmeter("NTP6531", "com4")
+print(str(datetime.datetime.now()) + " " + str(v1.volt))
+v3 = Voltmeter("NTP6531", "com4")
+print(str(datetime.datetime.now()) + " " + str(v3.volt))
+time.sleep(5)
+
+u2 = VoltageSource("NTP6531", "com4")
+u2.volt = 1
+time.sleep(5)
+print(u2.volt)
 '''
 NTP = Manson_NTP6531.NTP6531(VCOMport)
 

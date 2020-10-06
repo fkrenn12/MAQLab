@@ -26,7 +26,7 @@ with open('config/inventar.json') as json_file:
 with open('config/devices.json') as json_file:
     devices = json.load(json_file)
     deviceidentifications = list(devices.keys())
-    print("Instruments:")
+    print("Devices:")
     print(devices)
     print("Deviceidentifications:")
     print(deviceidentifications)
@@ -52,11 +52,6 @@ etherlock = threading.Lock()
 # exit(0)
 
 
-
-
-
-
-
 # --------------------------------------------------------
 # MQTT Broker callbacks
 # --------------------------------------------------------
@@ -66,14 +61,14 @@ def mqttloop(_client):
 
 def on_connect(_client, userdata, flags, rc):
     # print("CONNACK received with code %d." % (rc))
-    _client.subscribe("#", qos=0)
+    _client.subscribe("maqlab/cmd/#", qos=0)
 
 
 def on_disconnect(_client, userdata, rc):
     if rc != 0:
         print("Unexpected disconnection.")
-    server.stop()
-    server.start()
+    # server.stop()
+    # server.start()
     _client.reconnect()
 
 
@@ -86,7 +81,7 @@ def on_message(_client, _userdata, _msg):
             # distribute message to all devices
             for _dev in devlist:
                 try:
-                    _dev.mqttmessage(_msg)
+                    _dev.mqttmessage(_client, _msg)
                 except:
                     pass
 
@@ -94,15 +89,15 @@ def on_message(_client, _userdata, _msg):
 if __name__ == "__main__":
     print("Started...")
     # --------------------------------------------------------
-    server = SSHTunnelForwarder(
-        '94.16.117.246',
-        ssh_username="franz",
-        ssh_password="FK_s10rr6fr_246",
-        remote_bind_address=('127.0.0.1', 1883)
-    )
+    # server = SSHTunnelForwarder(
+    #    '94.16.117.246',
+    #    ssh_username="franz",
+    #    ssh_password="",
+    #    remote_bind_address=('127.0.0.1', 1883)
+    # )
 
     # --------------------------------------------------------
-    server.start()
+    # server.start()
 
     # print(server.local_bind_port)  # show assigned local port
     # work with `SECRET SERVICE` through `server.local_bind_port`.
@@ -110,15 +105,14 @@ if __name__ == "__main__":
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
-    client.username_pw_set("labor", "labor")
-    client.connect("127.0.0.1", server.local_bind_port)
+    client.username_pw_set("maqlab", "maqlab")
+    client.connect("techfit.at", 1883)
 
     thread_mqttloop = threading.Thread(target=mqttloop, args=(client,))
     thread_mqttloop.start()
 
     thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
     thread_detect_serial.start()
-
 
     '''
     # -------------------------------------------------------------------------------
@@ -149,7 +143,7 @@ if __name__ == "__main__":
         with comlock:
             if len(comlist) > 0:
                 for com in comlist:
-                    # print(com)
+                    print(com)
                     for d in deviceidentifications:
                         devobject = None
                         # print(d)
@@ -165,7 +159,7 @@ if __name__ == "__main__":
 
                 comlist.clear()
         # --------------------------------------------------------------------------
-        time.sleep(0.001)
+        time.sleep(0.02)
 
         # --------------------------------------------------------------------------
         # Die bereits verbundenen Geräte durchgehen und execute aufrufen

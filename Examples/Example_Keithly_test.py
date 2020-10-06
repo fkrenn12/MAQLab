@@ -1,4 +1,4 @@
-from Instruments.Keithley import SM2400
+from Devices.Keithley import SM2400
 import time
 
 dev = SM2400.SM2400("com3")
@@ -44,13 +44,13 @@ for i in range(-300, 300):
 dev.setOutput_off()
 '''
 
-'''
+
 print("Current source")
 # dev.disable_human_security_mode()
 
 dev.set_mode_current_source()
-dev.set_volt_limits(180)
-dev.apply_volt = 84
+# dev.set_volt_limits(180)
+dev.apply_volt = 13
 time.sleep(1)
 # dev.apply_current = -0.101
 
@@ -60,15 +60,16 @@ for i in range(200, 300):
     dev.measure()
     print(dev.volt_as_string, dev.current_as_string)
     time.sleep(0.1)
+
+
 '''
-
-
 print("Voltmeter")
 dev.set_mode_volt_meter()
 for i in range(1, 10):
     dev.measure()
     print(dev.volt)
     time.sleep(0.1)
+'''
 '''
 print("Amperemeter")
 dev.set_mode_ampere_meter()

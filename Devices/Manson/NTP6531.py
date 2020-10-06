@@ -353,6 +353,9 @@ class NTP6531:
     def __get_current_unit(self):
         return "A"
 
+    def close(self):
+        self.__ser.close()
+
     # ----------------------
     # Interface to the world
     # ----------------------

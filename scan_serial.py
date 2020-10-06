@@ -3,7 +3,7 @@ import time
 import platform
 
 scan_start = 2
-scan_stop = 40
+scan_stop = 8
 tout = 1000
 
 
