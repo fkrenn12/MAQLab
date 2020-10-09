@@ -3,7 +3,7 @@ import time
 import platform
 
 scan_start = 2
-scan_stop = 8
+scan_stop = 20
 tout = 1000
 
 
@@ -34,114 +34,58 @@ def scan_serial_devices(devices, comlist, comlock):
                 # print("NEW COM TESTING: " + _com)
                 ser = serial.Serial(_com, baudrate=9600)
                 ser.timeout = 1
-                # print(idstrings)
                 buff = b''
                 for ids in idstrings:
                     # the following sleep is necessary because a device
                     # which got a unknown command first needs time to recover
                     # internal for a new command. BK2831E needs 0.05sec,
-                    # so at first we try four times more - 0.2sec
-                    time.sleep(0.2)
+                    # so at first we try four times more - 0.5sec
+                    time.sleep(0.5)
                     try:
-                        # print("FLUSH")
                         ser.flush()
                         ser.flushInput()
-                    except:
-                        # print("FLUSH - ERROR")
-                        continue
-                    # print(len(ids))
-                    # termchar = ids[len(ids) - 1].encode("utf-8")
-                    termchar = b""
-                    if ids[len(ids) - 1] == 10:
-                        termchar = b"\n"
-                    if ids[len(ids) - 1] == 13:
-                        termchar = b"\r"
-
-                    # print(termchar)
-                    # print("+1")
-                    try:
                         # print("SEND")
                         # print(ids)
                         ser.write(ids)
                     except:
-                        pass
-                        # print("LOOP1 - WRITE ERROR")
-                    # ser.write(b'*idn?\n')
-                    # print(ids)
-                    # ser.write(b'GMOD\r')
-                    # print("+2")
+                        continue
 
+                    # ---------  reading loop  ---------------------------
                     tic = int(round(time.time() * 1000))
                     buff = b''
                     while (int(round(time.time() * 1000)) - tic) < tout:
+                        time.sleep(0.005)
                         if ser.in_waiting > 0:
-                            # print("LOOP1 - DATA Waiting")
-                            # print("#"+str(ser.in_waiting))
+                            tic = int(round(time.time() * 1000))
                             c = ser.read(1)
-                            # print(c)
-                            # print(termchar)
-                            if c != termchar:
+                            if c != b'\n' and c != b'\r':
                                 buff += c
-                                # print(buff)
-                            else:
-                                # print("LOOP1 - BREAK")
+                    # ----------- end of reading loop --------------------
+                    if buff != b'':
+                        found = False
+                        for _d in deviceidentifications:
+                            # print(devices[d]["idn_string"].encode())
+                            if devices[_d]["idn_string"].encode() in buff:
+                                found = True
                                 break
-                        #time.sleep(0.01)
-                    if int(round(time.time() * 1000)) - tic >= tout:
-                        # ser.close()
-                        # del ser
-                        # print("LOOP1 - TIMEOUT")
-                        continue
-                    # print("RETURN")
-                    # print(buff)
-                    ids = ids.rstrip()
-                    # print("LOOP1 - FINISHED")
-                    # print("BUFF:" + str(buff) + "IDS: " + str(ids))
-                    if buff == ids:
-                        # print("LOOP2 - ENTERED")
-                        # the device repeated the command
-                        # so we get the id from the second reply
-                        # pass
-                        # print("+3")
+                        if found:
+                            break  # stop sending idstring because already found
+                    # --------end of for loop writing idstrings ---------
+                if buff == b'':
+                    continue  # next com port
 
-                        tic = int(round(time.time() * 1000))
-                        buff = b''
-                        while (int(round(time.time() * 1000)) - tic) < tout:
-                            if ser.in_waiting > 0:
-                                # print("LOOP2 - DATA Waiting")
-                                c = ser.read(1)
-                                # print(c)
-                                if c != termchar:
-                                    buff += c
-                                    # print("LOOP2 - TERMCHAR")
-                                else:
-                                    # print("LOOP2 - BREAK")
-                                    break
-                            time.sleep(0.01)
-                        if int(round(time.time() * 1000)) - tic >= tout:
-                            # ser.close()
-                            # del ser
-                            # print("LOOP2 - TIMEOUT")
-                            continue
-                        break
-                    else:
-                        break
-
-                idstring = buff
+                # close serial port
                 ser.close()
                 del ser
-                # print(idstring)
-                # ser.readline()
-                # print("+4")
+                # search for device and add it to comlist
                 for _d in deviceidentifications:
                     # print(devices[d]["idn_string"].encode())
-                    if devices[_d]["idn_string"].encode() in idstring:
+                    if devices[_d]["idn_string"].encode() in buff:
+                        # search for inventarnumber of this device
                         with comlock:
                             comlist.append({devices[_d]["classname"]: _com})
                             # print("Found " + devices[d]["classname"])
                             break
             except:
-                # print("COM - ERROR\n")
-                # time.sleep(1)
                 continue
         time.sleep(0.5)

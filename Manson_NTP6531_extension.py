@@ -12,87 +12,98 @@ class NTP6531(_NTP6531.NTP6531):
     def __init__(self, _port, _baudrate=9600):
         super().__init__(_port, _baudrate)
         self.__client = None
+        self.__comport = ""
+        self.__inventarnumber = "0"
 
     def mqttmessage(self, client, msg):
         timestamp = str(datetime.datetime.utcnow())
         self.__client = client
         print(msg.topic, msg.payload)
-        topic_in = msg.topic.lower()
-        topic_in_split = topic_in.split("/")
+        topic_received = msg.topic.lower()
+        topic_received_split = topic_received.split("/")
+        # check the number of elements in splitted topic
+        # we want to avoid exception because of list overflows
+        # when there are received topics with false syntax and format
+        numsplits = len(topic_received_split)
+        if numsplits < 3 or numsplits > 4:
+            return
+
         # immediately prepare topic for reply at the end of this code section
-        topic_out = topic_in.replace(g.topic_cmd, g.topic_reply)
-        payload_in = msg.payload.lower()
-        payload_out = "error: " + timestamp
-        if topic_in_split[1] == g.topic_cmd:
+        topic_reply = topic_received.replace(g.topic_cmd, g.topic_reply)
+        payload_received = msg.payload.lower()
+        if isinstance(payload_received, bytes):
+            payload_received = payload_received.decode("utf-8")
+        if not isinstance(payload_received, str):
+            payload_received = str(payload_received)
+        payload_error = "error: " + timestamp
+        payload_accepted = "accepted: " + timestamp
+        if topic_received_split[1] == g.topic_cmd:
             # parsing the topic
-            if topic_in_split[2] == g.topic_request:
+            if topic_received_split[2] == g.topic_request:
                 # reply the ? request
-                client.publish(g.topic_root + "/" + g.topic_reply + "/" + self.model + "/sernum",
-                               str(self.serialnumber))
+                client.publish(g.topic_root + "/" + g.topic_reply + "/" + self.model + "/accessnumber",
+                               str(self.__inventarnumber))
                 return
 
-            elif topic_in_split[2] != str(self.serialnumber):
+            elif topic_received_split[2] != str(self.serialnumber):
                 # serialnumber does not match, so we exit doing nothing
                 # because an other device could handle this message
                 return
             else:
                 # the serial numbers are matching
-                # check and prepare the payload
-                if isinstance(payload_in, bytes):
-                    # we do not handle empty payload
-                    if payload_in == b'':
-                        client.publish(topic_out, payload_out)
-                        return
-                    # convert it to str
-                    payload_in = payload_in.decode("utf-8")
-                else:
-                    # payload which is not bytes cannot be correct
-                    client.publish(topic_out, payload_out)
-                    return
-
                 # transpose "off" and "on"
-                payload_in = payload_in.replace('off', "0")
-                payload_in = payload_in.replace("on", "1")
+                payload_received = payload_received.replace('off', "0")
+                payload_received = payload_received.replace("on", "1")
                 try:
-                    value = float(payload_in)
+                    value = float(payload_received)
                 except:
                     # if value cannot be cast into float
                     # we reply error and exit
-                    value = 0
-                    client.publish(topic_out, payload_out)
+                    client.publish(topic_reply, payload_error)
                     return
-
-                accepted = False
-                if "output" in topic_in_split[3]:
+                command = topic_received_split[3]
+                if command == "output":
                     if int(value) == 0:
                         self.output_off()
-                        accepted = True
+                        client.publish(topic_reply, payload_accepted)
+                        return
                     else:
                         self.output_on()
-                        accepted = True
+                        client.publish(topic_reply, payload_accepted)
+                        return
+                elif command == "volt":
+                    # checking the value limits
+                    if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
+                        self.apply_volt = value
+                        client.publish(topic_reply, payload_accepted)
+                        return
+                elif command == "curr":
+                    # checking limits
+                    if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= value >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
+                        self.apply_current = value
+                        client.publish(topic_reply, payload_accepted)
+                        return
+                elif command == "volt?":
+                    client.publish(topic_reply, self.volt_as_string)
+                    return
+                elif command == "curr?":
+                    client.publish(topic_reply, self.current_as_string)
+                    return
+                elif command == "mode?":
+                    client.publish(topic_reply, self.source_mode)
+                    return
 
-                elif "apply" in topic_in_split[3]:
-                    if "volt" in topic_in_split[4]:
-                        # checking the value limits
-                        if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
-                            self.apply_volt = value
-                            accepted = True
-                    elif "curr" in topic_in_split[4]:
-                        # checking limits
-                        if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= value >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
-                            self.apply_current = value
-                            accepted = True
+                client.publish(topic_reply, payload_error)
 
-                if accepted:
-                    payload_out = "accepted: " + timestamp
-
-                client.publish(topic_out, payload_out)
-
-    def on_created(self):
-        print("NTP6531Ser:" + str(self.serialnumber) + " plugged in")
+    def on_created(self, comport, inventarnumber):
+        self.__comport = comport
+        self.__inventarnumber = inventarnumber
+        print(self.devicetype + " " + self.model + " Inventarnumber: "
+              + str(inventarnumber) + " plugged into " + self.__comport)
 
     def on_destroyed(self):
-        print("NTP6531 removed")
+        print(self.model + " removed from " + self.__comport)
+        self.__comport = ""
 
     def execute(self):
 

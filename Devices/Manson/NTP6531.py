@@ -161,7 +161,7 @@ class NTP6531:
                 return False
 
     # --------------------------------------------------
-    def disable_human_security_mode(self):
+    def disable_human_safety_mode(self):
         self.__voltage_high_limit_human_secure = NTP6531_VOLTAGE_HIGH_LIMIT
 
     # --------------------------------------------------
@@ -186,7 +186,7 @@ class NTP6531:
             t = idstring.split(b'\r')
             self.__model = t[0].decode("utf-8")
             self.__manufactorer = "Manson"
-            self.__serialnumber = str(random.randrange(999))
+            self.__serialnumber = str(9000 + random.randrange(999))
             self.__devicetype = "DC-Powersupply"
             self.__readline(TIMEOUT)  # read remaining chars
         except:

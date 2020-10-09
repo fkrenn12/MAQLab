@@ -143,7 +143,7 @@ if __name__ == "__main__":
         with comlock:
             if len(comlist) > 0:
                 for com in comlist:
-                    print(com)
+                    # print(com)
                     for d in deviceidentifications:
                         devobject = None
                         # print(d)
@@ -153,9 +153,26 @@ if __name__ == "__main__":
                             # generating a deviceclass from classname
                             devobject = globals()[dclassname](com[dclassname])
                         if devobject is not None:
+                            # search for inventarnumber of the device with spec serialnumber
+                            # there are some devices not declared with a serialnumber
+                            # so we have to use the random generated serial for the inventarnumber
+                            inventarnumber = '0'
+                            for number in inventarnumbers:
+                                try:
+                                    serialnumber = inventar[str(number)]["serial"]
+                                except:
+                                    serialnumber = "0"
+
+                                if devobject.serialnumber == serialnumber:
+                                    inventarnumber = number
+                                    break
+
+                            if inventarnumber == '0':
+                                inventarnumber = devobject.serialnumber
+
                             with devlock:
                                 devlist.append(devobject)
-                                devobject.on_created()
+                                devobject.on_created(com[dclassname], inventarnumber)
 
                 comlist.clear()
         # --------------------------------------------------------------------------

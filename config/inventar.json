@@ -1,19 +1,25 @@
   {
     "653":
     {
-      "type": "2400SM",
-      "serial": ""
+      "device": "2400SM",
+      "serial": "none"
     },
 
     "1000":
     {
-      "type": "NTP-6531",
-      "serial": ""
+      "device": "NTP-6531",
+      "serial": "none"
     },
 
     "1747":
     {
-      "type": "2831E",
+      "device": "2831E",
       "serial": "123C19219"
+    },
+
+    "1748":
+    {
+      "device": "2831E",
+      "serial": "123C19213"
     }
   }

@@ -1,6 +1,6 @@
 {
     "NTP-6531": {
-      "devicetype": "Powersupply",
+      "devicetype": "DC-Powersupply",
       "manufactorer": "Manson",
       "cmd_idn": "GMOD\r",
       "cmd_term": "\r",

@@ -42,11 +42,11 @@ class BK2831E:
         except:
             print("ERR - COULD NOT CONNECT")
             raise
-        self.__idstring = EMPTY_BYTE_STRING
-        self.__serialnumber = EMPTY_BYTE_STRING
-        self.__model = EMPTY_BYTE_STRING
-        self.__manufactorer = EMPTY_BYTE_STRING
-        self.__devicetype = EMPTY_BYTE_STRING
+        self.__idstring = EMPTY_STRING
+        self.__serialnumber = EMPTY_STRING
+        self.__model = EMPTY_STRING
+        self.__manufactorer = EMPTY_STRING
+        self.__devicetype = EMPTY_STRING
         self.__last_current = 0
         self.__last_voltage = 0
         self.__last_resistance = 0
@@ -61,6 +61,7 @@ class BK2831E:
 
         self.__mode = Mode.NONE
         self.id()
+        self.set_mode_vdc_auto_range()
 
     # --------------------------------------------------
     def connected(self):
@@ -114,14 +115,15 @@ class BK2831E:
     # --------------------------------------------------
     def id(self):
         try:
+
             if self.__send_command(b'*idn?\n'):
-                self.__idstring = self.__ser.readline()
-                _t = self.__idstring.split(b',')
-                self.__model = _t[0].split(b" ")[0]
-                self.__manufactorer = b"BK Precision"
-                self.__serialnumber = _t[2].replace(b'\n', b'')
-                self.__serialnumber = self.__serialnumber.replace(b'\r', b'')
-                self.__devicetype = b'Multimeter'
+                self.__idstring = self.__ser.readline().decode("utf-8")
+                _t = self.__idstring.split(",")
+                self.__model = _t[0].split(" ")[0]
+                self.__manufactorer = "BK Precision"
+                self.__serialnumber = _t[2].replace("\n", '')
+                self.__serialnumber = self.__serialnumber.replace('\r', '')
+                self.__devicetype = "Multimeter"
                 # Initialise system
                 n_lpc = str(NLPC_DEFAULT).encode("utf-8")
                 self.__send_command(b'volt:dc:nplc ' + n_lpc + b'\n')
@@ -137,105 +139,110 @@ class BK2831E:
         if self.__model == EMPTY_BYTE_STRING:
             print("ERR - NO RESPONSE")
             raise
-
     # --------------------------------------------------
-    def set_mode_vdc_auto_range(self):
+    def set_mode_vdc_auto_range(self, force=False):
         try:
-            self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-            self.__send_command(b'func volt:DC\n')
-            self.__send_command(b':volt:dc:rang:auto ON\n')
-            self.__mode = Mode.VOLT_METER_DC
+            if force or self.__mode != Mode.VOLT_METER_DC:
+                self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
+                self.__send_command(b'func volt:DC\n')
+                self.__send_command(b':volt:dc:rang:auto ON\n')
+                self.__mode = Mode.VOLT_METER_DC
             return True
         except:
             self.__mode = Mode.NONE
             return False
 
     # --------------------------------------------------
-    def set_mode_vac_auto_range(self):
+    def set_mode_vac_auto_range(self, force=False):
         try:
-            self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-            self.__send_command(b'func volt:AC\n')
-            self.__send_command(b':volt:ac:rang:auto ON\n')
-            self.__mode = Mode.VOLT_METER_AC
+            if force or self.__mode != Mode.VOLT_METER_AC:
+                self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
+                self.__send_command(b'func volt:AC\n')
+                self.__send_command(b':volt:ac:rang:auto ON\n')
+                self.__mode = Mode.VOLT_METER_AC
             return True
         except:
             self.__mode = Mode.NONE
             return False
 
     # --------------------------------------------------
-    def set_mode_idc_range_200mA(self):
+    def set_mode_idc_range_200mA(self, force=False):
         try:
-            self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-            #self.__send_command(b':curr:dc:rang:auto OFF\n')
-            self.__send_command(b'func curr:dc\n')
-            self.__send_command(b':curr:dc:rang 0.2\n')
-            self.__mode = Mode.AMPERE_METER_DC
+            if force or self.__mode != Mode.AMPERE_METER_DC:
+                self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
+                #self.__send_command(b':curr:dc:rang:auto OFF\n')
+                self.__send_command(b'func curr:dc\n')
+                self.__send_command(b':curr:dc:rang 0.2\n')
+                self.__mode = Mode.AMPERE_METER_DC
             return True
         except:
             self.__mode = Mode.NONE
             return False
 
     # --------------------------------------------------
-    def set_mode_iac_range_200mA(self):
+    def set_mode_iac_range_200mA(self, force=False):
         try:
-            self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-            self.__send_command(b'func curr:AC\n')
-            #self.__send_command(b':curr:ac:rang:auto OFF\n')
-            self.__send_command(b':curr:ac:rang 0.2\n')
-
-            self.__mode = Mode.AMPERE_METER_AC
+            if force or self.__mode != Mode.AMPERE_METER_AC:
+                self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
+                self.__send_command(b'func curr:AC\n')
+                #self.__send_command(b':curr:ac:rang:auto OFF\n')
+                self.__send_command(b':curr:ac:rang 0.2\n')
+                self.__mode = Mode.AMPERE_METER_AC
             return True
         except:
             self.__mode = Mode.NONE
             return False
 
     # --------------------------------------------------
-    def set_mode_idc_range_20A(self):
+    def set_mode_idc_range_20A(self, force=False):
         try:
-            self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-            self.__send_command(b'func curr:dc\n')
-            #self.__send_command(b':curr:dc:rang:auto OFF\n')
-            self.__send_command(b':curr:dc:rang 20\n')
-            self.__mode = Mode.AMPERE_METER_DC
+            if force or self.__mode != Mode.AMPERE_METER_DC:
+                self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
+                self.__send_command(b'func curr:dc\n')
+                #self.__send_command(b':curr:dc:rang:auto OFF\n')
+                self.__send_command(b':curr:dc:rang 20\n')
+                self.__mode = Mode.AMPERE_METER_DC
             return True
         except:
             self.__mode = Mode.NONE
             return False
 
     # --------------------------------------------------
-    def set_mode_iac_range_20A(self):
+    def set_mode_iac_range_20A(self, force=False):
         try:
-            self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-            self.__send_command(b'func curr:AC\n')
-            #self.__send_command(b':curr:ac:rang:auto OFF\n')
-            self.__send_command(b':curr:ac:rang 20\n')
-
-            self.__mode = Mode.AMPERE_METER_AC
+            if force or self.__mode != Mode.AMPERE_METER_AC:
+                self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
+                self.__send_command(b'func curr:AC\n')
+                #self.__send_command(b':curr:ac:rang:auto OFF\n')
+                self.__send_command(b':curr:ac:rang 20\n')
+                self.__mode = Mode.AMPERE_METER_AC
             return True
         except:
             self.__mode = Mode.NONE
             return False
 
     # --------------------------------------------------
-    def set_mode_resistance_auto_range(self):
+    def set_mode_resistance_auto_range(self, force=False):
         try:
-            self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-            # if self.__mode == Mode.RESISTANCE:
-            self.__send_command(b'func res\n')
-            self.__send_command(b':res:rang:auto ON\n')
-            self.__mode = Mode.RESISTANCE
-            return True
+            if force or self.__mode != Mode.RESISTANCE:
+                self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
+                # if self.__mode == Mode.RESISTANCE:
+                self.__send_command(b'func res\n')
+                self.__send_command(b':res:rang:auto ON\n')
+                self.__mode = Mode.RESISTANCE
+                return True
         except:
             self.__mode = Mode.NONE
             return False
 
     # --------------------------------------------------
-    def set_mode_frequency_auto_range(self):
+    def set_mode_frequency_auto_range(self, force=False):
         try:
-            self.__ser.timeout = 2 * RECEIVE_LINE_TIMEOUT / 1000
-            self.__send_command(b'func freq\n')
-            self.__mode = Mode.FREQUENCE
-            return True
+            if force or self.__mode != Mode.FREQUENCE:
+                self.__ser.timeout = 2 * RECEIVE_LINE_TIMEOUT / 1000
+                self.__send_command(b'func freq\n')
+                self.__mode = Mode.FREQUENCE
+                return True
         except:
             self.__mode = Mode.NONE
             return False
