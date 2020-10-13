@@ -3,7 +3,6 @@ import time
 import paho.mqtt.client as paho
 import threading
 import json
-from sshtunnel import SSHTunnelForwarder
 
 from scan_serial import scan_serial_devices
 
@@ -17,6 +16,7 @@ if "Windows" in p:
 else:
     this_os = "Linux"
 
+# TODO: loading the configurations should be done via mqtt also
 with open('config/inventar.json') as json_file:
     inventar = json.load(json_file)
     inventarnumbers = list(inventar.keys())
@@ -35,7 +35,6 @@ with open('config/devices.json') as json_file:
         ld.append(devices[d]["cmd_idn"])
         # print(devices[d]["cmd_idn"])
     ld = set(ld)
-
     # print(ld)
 
 # print(inventarnumbers)
@@ -47,9 +46,6 @@ iplist = []
 devlock = threading.Lock()
 comlock = threading.Lock()
 etherlock = threading.Lock()
-
-
-# exit(0)
 
 
 # --------------------------------------------------------
@@ -88,19 +84,6 @@ def on_message(_client, _userdata, _msg):
 
 if __name__ == "__main__":
     print("Started...")
-    # --------------------------------------------------------
-    # server = SSHTunnelForwarder(
-    #    '94.16.117.246',
-    #    ssh_username="franz",
-    #    ssh_password="",
-    #    remote_bind_address=('127.0.0.1', 1883)
-    # )
-
-    # --------------------------------------------------------
-    # server.start()
-
-    # print(server.local_bind_port)  # show assigned local port
-    # work with `SECRET SERVICE` through `server.local_bind_port`.
     client = paho.Client()
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
@@ -114,28 +97,6 @@ if __name__ == "__main__":
     thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
     thread_detect_serial.start()
 
-    '''
-    # -------------------------------------------------------------------------------
-    #                                   M Q T T
-    # -------------------------------------------------------------------------------
-    try:
-        mqttclient = mqtt.Mqtt(ssh_host=config.ssh_tunnel["IP"],
-                               ssh_user=config.ssh_tunnel["User"],
-                               ssh_pass=config.ssh_tunnel["Password"],
-                               mqtt_user=config.mqtt_broker["User"],
-                               mqtt_pass=config.mqtt_broker["Password"])
-    
-        # wait for successful connection to mqtt-broker
-        time_of_mqtt_connect_start = int(time.time() * 1000)
-        while not mqttclient.connected:
-            time.sleep(1)
-            if int(time.time() * 1000) - time_of_mqtt_connect_start > 10000:
-                raise Exception
-        time.sleep(1)
-    except:
-        log("SSH tunnel could not be established or Mqtt-Broker not reachable.")
-        app_exit()
-    '''
     while True:
         # --------------------------------------------------------------------------
         # Die Comliste durchgehen und die entsprechende Deviceklasse erzeugen
@@ -194,4 +155,3 @@ if __name__ == "__main__":
                         devlist.remove(dev)
                         del dev
 
-    # server.stop()
