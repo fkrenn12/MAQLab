@@ -24,7 +24,8 @@ class Mode(enum.Enum):
     CONSTANT_CURRENT = enum.auto()
     VOLT_METER = enum.auto()
     AMPERE_METER = enum.auto()
-    OHM_METER = enum.auto()
+    OHM_METER_2W = enum.auto()
+    OHM_METER_4W = enum.auto()
 
 
 # --------------------------------------------------
@@ -198,15 +199,17 @@ class SM2400:
     # --------------------------------------------------
     def set_mode_voltage_source(self):
         try:
-            self.__mode = Mode.CONSTANT_VOLTAGE
-            # self.__ser.write(b':SOUR:FUNC VOLT;:SOUR:VOLT:RANG:AUTO ON;:SOUR:VOLT:LEV 0\n')
-            self.__ser.write(b':SOUR:FUNC VOLT\n')
-            self.__ser.write(b':SOUR:VOLT:RANG:AUTO ON\n')
-            self.__ser.write(b':SOUR:VOLT:LEV 0\n')
-            self.__ser.write(b':SENS:CURR:PROT ' +
-                             str(self.__current_limiter(self.__app_current_high_limit)).encode("utf-8") + b'\n')
-            self.__ser.write(b':FUNC "VOLT","CURR"\n')  # neu
-            self.set_output_on()
+            if self.__mode != Mode.CONSTANT_VOLTAGE:
+                self.__mode = Mode.CONSTANT_VOLTAGE
+                # self.__ser.write(b':SOUR:FUNC VOLT;:SOUR:VOLT:RANG:AUTO ON;:SOUR:VOLT:LEV 0\n')
+                self.__ser.write(b'*RST\n')
+                self.__ser.write(b':SOUR:FUNC VOLT\n')
+                self.__ser.write(b':SOUR:VOLT:RANG:AUTO ON\n')
+                self.__ser.write(b':SOUR:VOLT:LEV 0\n')
+                self.__ser.write(b':SENS:CURR:PROT ' +
+                                 str(self.__current_limiter(self.__app_current_high_limit)).encode("utf-8") + b'\n')
+                self.__ser.write(b':FUNC "VOLT","CURR"\n')  # neu
+                self.set_output_on()
         except:
             self.__mode = Mode.NONE
 
@@ -255,23 +258,24 @@ class SM2400:
     def set_mode_current_source(self):
         try:
             # Model 2400: 21V @ 1.05A or 210V @ 105mA
-            self.__mode = Mode.CONSTANT_CURRENT
-            self.__ser.write(b'*RST\n')
-            self.__set_beep(self.__beep)
-            # TODO: negative limits
-            # self.__current_low_limit = current_min
-            self.__ser.write(b':SOURCE:FUNC:MODE CURR \n')
-            self.__ser.write(b':SOURCE:CURR:RANG 100E-3 \n')
-            self.__ser.write(b':SOURCE:CURR:RANG:AUTO ON\n')
-            # self.__ser.write(b':SOURCE:CURR:LEV -100.000E-3 \n')
-            self.__ser.write(b':SOURCE:CURR:LEV 0.000E-3 \n')  # set to 0
-            self.__ser.write(b':SOURCE:CURR:MODE FIXED \n')
-            self.__ser.write(b':SENS:FUNC:OFF:ALL \n')
-            self.__ser.write(b':SENS:FUNC "VOLT" ,"CURR" \n')
-            self.__ser.write(b':VOLT:RANG:AUTO ON\n')
-            self.__ser.write(b':VOLT:PROT ' +
-                             str(self.__voltage_limiter(self.__app_voltage_high_limit)).encode("utf-8") + b'\n')
-            self.set_output_on()
+            if self.__mode != Mode.CONSTANT_CURRENT:
+                self.__mode = Mode.CONSTANT_CURRENT
+                self.__ser.write(b'*RST\n')
+                self.__set_beep(self.__beep)
+                # TODO: negative limits
+                # self.__current_low_limit = current_min
+                self.__ser.write(b':SOURCE:FUNC:MODE CURR \n')
+                self.__ser.write(b':SOURCE:CURR:RANG 100E-3 \n')
+                self.__ser.write(b':SOURCE:CURR:RANG:AUTO ON\n')
+                # self.__ser.write(b':SOURCE:CURR:LEV -100.000E-3 \n')
+                self.__ser.write(b':SOURCE:CURR:LEV 0.000E-3 \n')  # set to 0
+                self.__ser.write(b':SOURCE:CURR:MODE FIXED \n')
+                self.__ser.write(b':SENS:FUNC:OFF:ALL \n')
+                self.__ser.write(b':SENS:FUNC "VOLT" ,"CURR" \n')
+                self.__ser.write(b':VOLT:RANG:AUTO ON\n')
+                self.__ser.write(b':VOLT:PROT ' +
+                                 str(self.__voltage_limiter(self.__app_voltage_high_limit)).encode("utf-8") + b'\n')
+                self.set_output_on()
         except:
             self.__mode = Mode.NONE
 
@@ -318,60 +322,74 @@ class SM2400:
     # --------------------------------------------------
     def set_mode_volt_meter(self):
         try:
-            self.__mode = Mode.VOLT_METER
-            self.__ser.write(b':SOUR:FUNC CURR\n')
-            self.__ser.write(b':SOUR:CURR:MODE FIXED\n')
-            self.__ser.write(b':SOUR:CURR:RANG MIN\n')
-            self.__ser.write(b':SOUR:CURR:LEV 0\n')
-            self.__ser.write(b':SENS:VOLT:PROT 200\n')  # '+str(_volt_protect).encode("utf-8")+b'\n')
-            self.__ser.write(b':FUNC "VOLT","CURR"\n')
-            self.__ser.write(b':SENS:VOLT:RANG 200\n')
-            self.set_output_on()
+            if self.__mode != Mode.VOLT_METER:
+                self.__mode = Mode.VOLT_METER
+                self.__ser.write(b'*RST\n')
+                self.__set_beep(self.__beep)
+                self.set_output_on()
+                self.__ser.write(b':SOUR:FUNC CURR\n')
+                self.__ser.write(b':SOUR:CURR:MODE FIXED\n')
+                self.__ser.write(b':SOUR:CURR:RANG MIN\n')
+                self.__ser.write(b':SOUR:CURR:LEV 0\n')
+                self.__ser.write(b':SENS:FUNC "VOLT"\n')
+                self.__ser.write(b':SENS:VOLT:PROT 200\n')  # '+str(_volt_protect).encode("utf-8")+b'\n')
+                self.__ser.write(b':SENS:VOLT:RANG 200\n')
+                self.__ser.write(b':SENS:RANG:AUTO ON\n')
+                # self.__ser.write(b':FUNC "VOLT","CURR"\n')
+
+                self.set_output_on()
         except:
             self.__mode = Mode.NONE
 
     # --------------------------------------------------
     def set_mode_ampere_meter(self):
         try:
-            self.__mode = Mode.AMPERE_METER
-            self.__ser.write(b':SOUR:FUNC VOLT\n')
-            self.__ser.write(b':SOUR:VOLT:MODE FIXED\n')
-            self.__ser.write(b':SOUR:VOLT:RANG MIN\n')
-            self.__ser.write(b':SOUR:VOLT:LEV 0\n')
-            self.__ser.write(b':SENS:CURR:PROT  1\n')  # + str(_curr_protect).encode("utf-8") + b'\n')
-            self.__ser.write(b':FUNC "VOLT","CURR"\n')
-            self.__ser.write(b':SENS:CURR:RANG 1\n')
-            self.set_output_on()
+            if self.__mode != Mode.AMPERE_METER:
+                self.__mode = Mode.AMPERE_METER
+                self.__ser.write(b'*RST\n')
+                self.__set_beep(self.__beep)
+                self.set_output_on()
+                self.__ser.write(b':SOUR:FUNC VOLT\n')
+                self.__ser.write(b':SOUR:VOLT:MODE FIXED\n')
+                self.__ser.write(b':SOUR:VOLT:RANG MIN\n')
+                self.__ser.write(b':SOUR:VOLT:LEV 0\n')
+                self.__ser.write(b':SENS:CURR:PROT  1\n')  # + str(_curr_protect).encode("utf-8") + b'\n')
+                self.__ser.write(b':SENS:FUNC "CURR"\n')
+                self.__ser.write(b':SENS:RANG:AUTO ON\n')
+                # self.__ser.write(b':SENS:CURR:RANG 0.01\n')
+                self.set_output_on()
         except:
             self.__mode = Mode.NONE
 
     # --------------------------------------------------
     def set_mode_ohmmeter_2wire(self):
         try:
-            self.__mode = Mode.OHM_METER
-            self.__ser.write(b'*RST\n')
-            self.__set_beep(self.__beep)
-            self.__ser.write(b'FUNC "RES"\n')
-            self.__ser.write(b'RES:MODE AUTO\n')
-            self.__ser.write(b'RES:RANG:AUTO ON\n')
-            self.__ser.write(b':SYST:RSEN OFF\n')
-            self.__ser.write(b':CONF:RES\n')
-            self.set_output_on()
+            if self.__mode != Mode.OHM_METER_2W:
+                self.__mode = Mode.OHM_METER_2W
+                self.__ser.write(b'*RST\n')
+                self.__set_beep(self.__beep)
+                self.__ser.write(b'FUNC "RES"\n')
+                self.__ser.write(b'RES:MODE AUTO\n')
+                self.__ser.write(b'RES:RANG:AUTO ON\n')
+                self.__ser.write(b':SYST:RSEN OFF\n')
+                self.__ser.write(b':CONF:RES\n')
+                self.set_output_on()
         except:
             self.__mode = Mode.NONE
 
     # --------------------------------------------------
     def set_mode_ohmmeter_4wire(self):
         try:
-            self.__mode = Mode.OHM_METER
-            self.__ser.write(b'*RST\n')
-            self.__set_beep(self.__beep)
-            self.__ser.write(b'FUNC "RES"\n')
-            self.__ser.write(b'RES:MODE AUTO\n')
-            self.__ser.write(b'RES:RANG:AUTO ON\n')
-            self.__ser.write(b':SYST:RSEN ON\n')
-            self.__ser.write(b':CONF:RES\n')
-            self.set_output_on()
+            if self.__mode != Mode.OHM_METER_4W:
+                self.__mode = Mode.OHM_METER_4W
+                self.__ser.write(b'*RST\n')
+                self.__set_beep(self.__beep)
+                self.__ser.write(b'FUNC "RES"\n')
+                self.__ser.write(b'RES:MODE AUTO\n')
+                self.__ser.write(b'RES:RANG:AUTO ON\n')
+                self.__ser.write(b':SYST:RSEN ON\n')
+                self.__ser.write(b':CONF:RES\n')
+                self.set_output_on()
         except:
             self.__mode = Mode.NONE
 
@@ -461,6 +479,10 @@ class SM2400:
     def __get_resistance_unit(self):
         return "Ohm"
 
+    # --------------------------------------------------
+    def __get_resistance_as_string(self):
+        return "{:.6f}".format(self.__get_resistance()) + " " + self.__get_resistance_unit()
+
     values = property(__get_value)
     apply_volt = property(__get_apply_voltage, __set_apply_voltage)
     volt = property(__get_voltage)
@@ -472,6 +494,7 @@ class SM2400:
     current_unit = property(__get_current_unit)
     resistance = property(__get_resistance)
     resistance_unit = property(__get_resistance_unit)
+    resistance_as_string = property(__get_resistance_as_string)
     serialnumber = property(__get_serialnumber)
     manufactorer = property(__get_manufactorer)
     devicetype = property(__get_devicetype)

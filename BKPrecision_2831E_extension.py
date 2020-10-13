@@ -16,6 +16,7 @@ class BK2831E(E2831.BK2831E):
     def mqttmessage(self, client, msg):
         timestamp = str(datetime.datetime.utcnow())
         self.__client = client
+        print("BKPrecision")
         print(msg.topic, msg.payload)
         topic_received = msg.topic.lower()
         topic_received_split = topic_received.split("/")
@@ -51,12 +52,13 @@ class BK2831E(E2831.BK2831E):
                 # the serial numbers are matching
                 command = topic_received_split[3]
                 command = command.replace("1", "")
+                command = command.replace(" ", "")
                 if command == "volt:dc?" or command == "vdc?":
                     self.set_mode_vdc_auto_range()
                     self.measure()
                     client.publish(topic_reply, self.volt_as_string)
                     return
-                if command == "volt:ac?" or command == "vac?":
+                elif command == "volt:ac?" or command == "vac?":
                     self.set_mode_vac_auto_range()
                     self.measure()
                     client.publish(topic_reply, self.volt_as_string)
@@ -104,7 +106,7 @@ class BK2831E(E2831.BK2831E):
                     iac = self.current
                     irms = math.sqrt(math.pow(iac, 2) + math.pow(idc, 2))
                     client.publish(topic_reply, "{:.6f}".format(irms) + " ARMS")
-                elif command == "pow:dc?" or command == "p:dc?":
+                elif command == "pow:dc?" or command == "p:dc?" or command == "power:dc?":
                     self.set_mode_vdc_auto_range()
                     self.measure()
                     vdc = self.volt
@@ -113,7 +115,7 @@ class BK2831E(E2831.BK2831E):
                     idc = self.current
                     power = vdc * idc
                     client.publish(topic_reply, "{:.6f}".format(power) + " WDC")
-                elif command == "pow:ac?" or command == "p:ac?":
+                elif command == "pow:ac?" or command == "p:ac?" or command == "power:ac?":
                     self.set_mode_vac_auto_range()
                     self.measure()
                     vac = self.volt
@@ -122,6 +124,12 @@ class BK2831E(E2831.BK2831E):
                     iac = self.current
                     power = vac * iac
                     client.publish(topic_reply, "{:.6f}".format(power) + " WAC")
+                elif command == "?":
+                    client.publish(topic_reply + "/manufactorer", self.manufactorer)
+                    client.publish(topic_reply + "/devicetype", self.devicetype)
+                    client.publish(topic_reply + "/model", self.model)
+                    client.publish(topic_reply + "/serialnumber", str(self.serialnumber))
+
                     return
 
     def on_created(self, comport, inventarnumber):
@@ -135,16 +143,4 @@ class BK2831E(E2831.BK2831E):
         self.__comport = ""
 
     def execute(self):
-        anumber = 0
-        try:
-            anumber = self.volt
-            # print(anumber)
-        except:
-            print("ERR get")
-            pass
-        try:
-            pass
-        except:
-            print("ERR publish")
-
         pass

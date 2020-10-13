@@ -18,6 +18,7 @@ class NTP6531(_NTP6531.NTP6531):
     def mqttmessage(self, client, msg):
         timestamp = str(datetime.datetime.utcnow())
         self.__client = client
+        print("NTP6531")
         print(msg.topic, msg.payload)
         topic_received = msg.topic.lower()
         topic_received_split = topic_received.split("/")
@@ -62,6 +63,8 @@ class NTP6531(_NTP6531.NTP6531):
                     client.publish(topic_reply, payload_error)
                     return
                 command = topic_received_split[3]
+                command = command.replace("1", "")
+                command = command.replace(" ", "")
                 if command == "output":
                     if int(value) == 0:
                         self.output_off()
@@ -71,23 +74,29 @@ class NTP6531(_NTP6531.NTP6531):
                         self.output_on()
                         client.publish(topic_reply, payload_accepted)
                         return
-                elif command == "volt":
+                elif command == "volt" or command == "volt:dc" or command == "vdc":
                     # checking the value limits
                     if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
                         self.apply_volt = value
                         client.publish(topic_reply, payload_accepted)
                         return
-                elif command == "curr":
+                elif command == "curr" or command == "curr:dc" or command == "idc":
                     # checking limits
                     if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= value >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
                         self.apply_current = value
                         client.publish(topic_reply, payload_accepted)
                         return
-                elif command == "volt?":
+                elif command == "volt?" or command == "volt:dc?" or command == "vdc?":
                     client.publish(topic_reply, self.volt_as_string)
                     return
-                elif command == "curr?":
+                elif command == "curr?" or command == "curr:dc?" or command == "idc?":
                     client.publish(topic_reply, self.current_as_string)
+                    return
+                elif command == "power?" or command == "pow?" or command == "p?":
+                    volt = self.volt
+                    curr = self.current
+                    power = volt * curr
+                    client.publish(topic_reply, "{:.6f}".format(power) + " WDC")
                     return
                 elif command == "mode?":
                     client.publish(topic_reply, self.source_mode)
