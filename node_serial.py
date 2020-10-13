@@ -7,9 +7,9 @@ from sshtunnel import SSHTunnelForwarder
 
 from scan_serial import scan_serial_devices
 
-from Manson_NTP6531_extension import NTP6531
-from BKPrecision_2831E_extension import BK2831E
-from Keithley_SM2400_extension import SM2400
+from Extensions.Manson_NTP6531 import NTP6531
+from Extensions.BKPrecision_2831E import BK2831E
+from Extensions.Keithley_SM2400 import SM2400
 
 p = platform.platform()
 if "Windows" in p:
