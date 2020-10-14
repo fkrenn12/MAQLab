@@ -36,7 +36,6 @@
       "cmd_term": "\n",
       "idn_string": "PS7035",
       "classname": "zegei",
-      "interface": "ethernet",
-      "baudrate": 9600
+      "interface": "ethernet"
     }
 }
