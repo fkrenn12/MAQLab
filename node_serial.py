@@ -10,12 +10,6 @@ from Extensions.Manson_NTP6531 import NTP6531
 from Extensions.BKPrecision_2831E import BK2831E
 from Extensions.Keithley_SM2400 import SM2400
 
-p = platform.platform()
-if "Windows" in p:
-    this_os = "Windows"
-else:
-    this_os = "Linux"
-
 # TODO: loading the configurations should be done via mqtt also
 with open('config/inventar.json') as json_file:
     inventar = json.load(json_file)
@@ -45,7 +39,7 @@ comlist = []
 iplist = []
 devlock = threading.Lock()
 comlock = threading.Lock()
-etherlock = threading.Lock()
+
 
 
 # --------------------------------------------------------

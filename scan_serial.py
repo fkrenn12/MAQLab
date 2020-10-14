@@ -11,7 +11,8 @@ def scan_serial_devices(devices, comlist, comlock):
     deviceidentifications = list(devices.keys())
     idstrings = []
     for d in devices:
-        idstrings.append(devices[d]["cmd_idn"].encode("utf-8"))
+        if devices[d]["interface"] == "usb-vcom":
+            idstrings.append(devices[d]["cmd_idn"].encode("utf-8"))
         # idstrings.append(devices[d]["cmd_idn"])
     # idstrings.sort()
     idstrings = list(set(idstrings))
