@@ -30,4 +30,3 @@ etherlock = threading.Lock()
 
 thread_detect_ethernet = threading.Thread(target=scan_tcp_devices, args=(devices, iplist, etherlock,))
 thread_detect_ethernet.start()
-# comm
