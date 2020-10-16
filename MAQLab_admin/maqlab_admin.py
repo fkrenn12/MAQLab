@@ -27,7 +27,7 @@ def mqttloop(_client):
 def on_connect(_client, userdata, flags, rc):
     # print("CONNACK received with code %d." % (rc))
     print("Connected :-) ")
-    _client.subscribe("maqlab/rep/config/#", qos=0)
+    _client.subscribe("maqlab/file/#", qos=0)
 
 
 def on_disconnect(_client, userdata, rc):
@@ -125,7 +125,7 @@ def initialize():
     global completed
     print("Request configuration")
     completed = False
-    client.publish("maqlab/cmd/config/?")
+    client.publish("maqlab/file/?", "/config/devices.json")
     while True:
         with lock:
             if completed:
