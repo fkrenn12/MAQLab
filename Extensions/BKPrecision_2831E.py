@@ -16,18 +16,17 @@ class BK2831E(E2831.BK2831E):
     def mqttmessage(self, client, msg):
         timestamp = str(datetime.datetime.utcnow())
         self.__client = client
-        print("BKPrecision")
-        print(msg.topic, msg.payload)
+
         topic_received = msg.topic.lower()
         topic_received_split = topic_received.split("/")
         # check the number of elements in splitted topic
         # we want to avoid exception because of list overflows
         # when there are received topics with false syntax and format
-
+        # TODO: ---------- USERID berücksichtigen
         numsplits = len(topic_received_split)
         if numsplits < 3 or numsplits > 4:
             return
-
+        # TODO: ---------- USERID berücksichtigen
         # immediately prepare topic for reply at the end of this code section
         topic_reply = topic_received.replace(g.topic_cmd, g.topic_reply)
         payload_received = msg.payload.lower()
@@ -50,6 +49,7 @@ class BK2831E(E2831.BK2831E):
                 return
             else:
                 # the serial numbers are matching
+                print("BK2831E " + str(msg.topic) + " " + str(msg.payload))
                 command = topic_received_split[3]
                 command = command.replace("1", "")
                 command = command.replace(" ", "")

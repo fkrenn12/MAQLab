@@ -10,36 +10,15 @@ from Extensions.Manson_NTP6531 import NTP6531
 from Extensions.BKPrecision_2831E import BK2831E
 from Extensions.Keithley_SM2400 import SM2400
 
-# TODO: loading the configurations should be done via mqtt also
-with open('config/inventar.json') as json_file:
-    inventar = json.load(json_file)
-    inventarnumbers = list(inventar.keys())
-    # print("Inventarumbers:")
-    # print(inventarnumbers)
-
-with open('config/devices.json') as json_file:
-    devices = json.load(json_file)
-    deviceidentifications = list(devices.keys())
-    print("Devices:")
-    print(devices)
-    print("Deviceidentifications:")
-    print(deviceidentifications)
-    ld = []
-    for d in devices:
-        ld.append(devices[d]["cmd_idn"])
-        # print(devices[d]["cmd_idn"])
-    ld = set(ld)
-    # print(ld)
-
-# print(inventarnumbers)
-# print(deviceidentifications)
+inventar = None
+inventarnumbers = None
+devices = None
+deviceidentifications = None
 
 devlist = []
 comlist = []
-iplist = []
 devlock = threading.Lock()
 comlock = threading.Lock()
-
 
 
 # --------------------------------------------------------
@@ -52,7 +31,9 @@ def mqttloop(_client):
 def on_connect(_client, userdata, flags, rc):
     # print("CONNACK received with code %d." % (rc))
     _client.subscribe("maqlab/cmd/#", qos=0)
-
+    _client.subscribe("maqlab/+/cmd/#", qos=0)
+    _client.subscribe("maqlab/rep/file/#", qos=0)
+    _client.subscribe("maqlab/+/rep/file/#", qos=0)
 
 def on_disconnect(_client, userdata, rc):
     if rc != 0:
@@ -65,7 +46,46 @@ def on_disconnect(_client, userdata, rc):
 def on_message(_client, _userdata, _msg):
     global devlist
     global devlock
+    global inventar
+    global inventarnumbers
+    global devices
+    global deviceidentifications
 
+    # check topic
+    if isinstance(_msg.topic, bytes):
+        topic = _msg.topic.decode("utf-8")
+    elif isinstance(_msg.topic, str):
+        topic = _msg.topic
+    else:
+        return
+
+    if "/rep/file/" in topic:
+        if "devices.json" in topic:
+            with devlock:
+                try:
+                    devices = json.loads(_msg.payload.decode("utf-8"))
+                    deviceidentifications = list(devices.keys())
+                    print("DEVICE-IDENTIFICATIONS:" + str(deviceidentifications))
+                except:
+                    print("Error in devices.json")
+                    return
+        elif "inventar.json" in topic:
+            with devlock:
+                try:
+                    inventar = json.loads(_msg.payload.decode("utf-8"))
+                    inventarnumbers = list(inventar.keys())
+                    print("INVENTARNUMBERS:" + str(inventarnumbers))
+                except:
+                    print("Error in inventar.json")
+                    return
+        return
+
+    # loaded configuration must be done before any
+    # messages can be distributed
+    if devices is None or inventar is None:
+        return
+
+    # print(topic, _msg.payload)
     with devlock:
         if len(devlist) > 0:
             # distribute message to all devices
@@ -87,6 +107,18 @@ if __name__ == "__main__":
 
     thread_mqttloop = threading.Thread(target=mqttloop, args=(client,))
     thread_mqttloop.start()
+
+    time.sleep(1)
+    client.publish("maqlab/cmd/file/get", "/config/devices.json")
+    time.sleep(0.05)
+    client.publish("maqlab/cmd/file/get", "/config/inventar.json")
+
+    # wait for data from mqtt file server
+    while True:
+        time.sleep(0.1)
+        with devlock:
+            if devices is not None and inventar is not None:
+                break
 
     thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
     thread_detect_serial.start()
@@ -148,4 +180,3 @@ if __name__ == "__main__":
                         dev.on_destroyed()
                         devlist.remove(dev)
                         del dev
-

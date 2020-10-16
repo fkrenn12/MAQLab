@@ -4,16 +4,17 @@ import os
 import threading
 import datetime
 
-stop = False
 path = "/home/maqlab"
-# path = ""
+
+
 def mqtt_loop(_client):
     _client.loop_forever()
 
 
 def on_connect(_client, userdata, flags, rc):
     # print("CONNACK received with code %d." % (rc))
-    client.subscribe("maqlab/file/#", qos=0)
+    client.subscribe("maqlab/cmd/file/get/#", qos=0)
+    client.subscribe("maqlab/cmd/file/store/#", qos=0)
     pass
 
 
@@ -24,44 +25,44 @@ def on_subscribe(_client, userdata, mid, granted_qos):
 
 def on_message(_client, userdata, msg):
     # print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-    # check topic
-    if isinstance(msg.topic, bytes):
-        topic = msg.topic.decode("utf-8")
-    elif isinstance(msg.topic, str):
-        topic = msg.topic
-    else:
-        return
-    # check payload
-    if isinstance(msg.payload, bytes):
-        payload = msg.payload.decode("utf-8")
-    elif isinstance(msg.payload, str):
-        payload = msg.payload
-    else:
-        return
-
-    if "/?" in topic:
-        if not payload.startswith("/"):
-            payload = "/" + payload
-        filepath = path + payload
-        print(filepath)
-        if os.path.exists(filepath):
-            try:
-                with open(filepath, mode='rb') as fp:
-                    f = fp.read()
-                    byte_array = bytes(f)
-                    client.publish("maqlab/file/"+payload, byte_array, 0)
-            except:
-                client.publish("maqlab/file/err", "internal error ocurred")
+    try:
+        # check topic
+        if isinstance(msg.topic, bytes):
+            topic = msg.topic.decode("utf-8")
+        elif isinstance(msg.topic, str):
+            topic = msg.topic
         else:
-            client.publish("maqlab/file/err", "file does not exist")
+            return
+        # check payload
+        if isinstance(msg.payload, bytes):
+            payload = msg.payload.decode("utf-8")
+        elif isinstance(msg.payload, str):
+            payload = msg.payload
+        else:
+            return
 
-
-
-    else:
-        return
-    pass
-    # if msg.topic=="WROOM/TEMP":
-    #    label.configure(text=msg.payload)
+        if "/cmd/file/get" in topic:
+            if not payload.startswith("/"):
+                payload = "/" + payload
+            filepath = path + payload
+            print(filepath)
+            if os.path.exists(filepath):
+                try:
+                    with open(filepath, mode='rb') as fp:
+                        f = fp.read()
+                        byte_array = bytes(f)
+                        topic = topic.replace("/cmd/file/get", "/rep/file")
+                        client.publish(topic + payload, byte_array, 0)
+                except:
+                    topic = topic.replace("/cmd/file/get", "/rep/file/err")
+                    client.publish(topic, "internal error occurred")
+            else:
+                topic = topic.replace("/cmd/file/get", "/rep/file/err")
+                client.publish(topic, "file does not exist")
+        else:
+            return
+    except:
+        pass
 
 
 client = mqtt.Client()
@@ -80,14 +81,7 @@ time.sleep(1)
 # -------------------------------------------------------------------------------
 while True:
     try:
-        time.sleep(2)  # needed !! do not remove
-        #topic = "maqlab/ping/"
-        #payload = str(datetime.datetime.utcnow().timestamp())
-        # print(payload)
-        #client.publish(topic=topic, payload=payload, retain=False)
-
-    # except KeyboardInterrupt:  # Ctrl+C # FIXME: "raise error(EBADF, 'Bad file descriptor')"
+        # nothing to do in the main looop
+        time.sleep(10)
     except Exception:
-        # print("Error ocorred")
         break
-quit()

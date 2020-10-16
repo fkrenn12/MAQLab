@@ -18,17 +18,17 @@ class NTP6531(_NTP6531.NTP6531):
     def mqttmessage(self, client, msg):
         timestamp = str(datetime.datetime.utcnow())
         self.__client = client
-        print("NTP6531")
-        print(msg.topic, msg.payload)
+
         topic_received = msg.topic.lower()
         topic_received_split = topic_received.split("/")
         # check the number of elements in splitted topic
         # we want to avoid exception because of list overflows
         # when there are received topics with false syntax and format
+        # TODO: ---------- USERID berücksichtigen
         numsplits = len(topic_received_split)
         if numsplits < 3 or numsplits > 4:
             return
-
+        # TODO: ---------- USERID berücksichtigen
         # immediately prepare topic for reply at the end of this code section
         topic_reply = topic_received.replace(g.topic_cmd, g.topic_reply)
         payload_received = msg.payload.lower()
@@ -51,6 +51,7 @@ class NTP6531(_NTP6531.NTP6531):
                 # because an other device could handle this message
                 return
             else:
+                print("NTP-6531 " + str(msg.topic) + " " + str(msg.payload))
                 # the serial numbers are matching
                 # transpose "off" and "on"
                 payload_received = payload_received.replace('off', "0")
