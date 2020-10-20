@@ -1,33 +1,39 @@
 import time
-import shared
 import xlwings as xw
 import xlwings.utils as xwu
 import paho.mqtt.client as paho
 import threading
 import json
 import os
+import secrets
+from pydispatch import dispatcher
 
+MQTT = "mqtt"
+MQTT_RECEIVE_INVENTAR = "inventar"
+MQTT_RECEIVE_DEVICES = "devices"
 py_filename_without_extension = ""
 py_filename = ""
 xl_filename = ""
 global wb
+global xb
 global client
 global lock
 global config_string
-global completed
+global session_id
 
 
 # --------------------------------------------------------
-# MQTT Broker callbacks
+# MQTT Broker handler functions
 # --------------------------------------------------------
 def mqttloop(_client):
     client.loop_forever()
 
 
 def on_connect(_client, userdata, flags, rc):
-    # print("CONNACK received with code %d." % (rc))
-    print("Connected :-) ")
-    _client.subscribe("maqlab/file/#", qos=0)
+    if rc == 0:
+        # print("CONNACK received with code %d." % (rc))
+        print("Connected :-) ")
+        _client.subscribe("maqlab/" + session_id + "/rep/file/#", qos=0)
 
 
 def on_disconnect(_client, userdata, rc):
@@ -42,35 +48,68 @@ def on_message(_client, userdata, msg):
     global lock
     global config_string
     global completed
-    print(msg.topic, msg.payload)
+    completed = True
     topic_received = msg.topic.lower()
-    topic_received_split = topic_received.split("/")
-    state = topic_received_split[3]
-    if state == "start":
-        with lock:
-            print("Startet transmitting ...")
-            config_string = ""
-            completed = False
-    elif state == "finish":
-        with lock:
-            completed = True
-            print("Finished transmitting...")
-    elif state.isnumeric():
-        state = int(state)
-        with lock:
-            print("Received data...#" + str(state))
-            config_string = config_string + msg.payload.decode("utf-8")
-        pass
+    config_string = msg.payload.decode("utf-8")
+    if "devices.json" in topic_received:
+        dispatcher.send(message=msg.payload.decode("utf-8"),
+                        signal=MQTT_RECEIVE_DEVICES,
+                        sender=MQTT)
+    if "inventar.json" in topic_received:
+        dispatcher.send(message=msg.payload.decode("utf-8"),
+                        signal=MQTT_RECEIVE_INVENTAR,
+                        sender=MQTT)
+    # print(config_string)
 
 
+# --------------------------------------------------------
+#               DISPATCHER  handler functions
+# --------------------------------------------------------
+def on_mqtt_receive_inventar(message):
+    book = xw.Book(xl_filename)
+    try:
+        book.sheets["Inventar"]
+    except:
+        book.sheets.add("Inventar", after="Devices")
+    sht = book.sheets["Inventar"]
+    sht.clear()
+    sht.range(5, 5).value = message
+    inventar = json.loads(message)  # this could raise exception and stop the script
+    inventar_numbers = list(inventar.keys())
+    inventar_numbers.sort()
+    # print(inventar_numbers)
+    # print(message)
+
+
+def on_mqtt_receive_devices(message):
+    book = xw.Book(xl_filename)
+    try:
+        book.sheets["Devices"]
+    except:
+        book.sheets.add("Devices")
+    sht = book.sheets["Devices"]
+    # print(message)
+
+
+# --------------------------------------------------------------------------
+#                                   M A I N
 # --------------------------------------------------------------------------
 def main():
     global py_filename_without_extension
     global py_filename
     global xl_filename
     global lock
+    global session_id
+    # global xb
+
+    dispatcher.connect(on_mqtt_receive_inventar, signal=MQTT_RECEIVE_INVENTAR,
+                       sender=MQTT)
+    dispatcher.connect(on_mqtt_receive_devices, signal=MQTT_RECEIVE_DEVICES,
+                       sender=MQTT)
 
     lock = threading.Lock()
+    session_id = secrets.token_urlsafe(5)
+    # xb = xw.Book(xl_filename)
 
     # sht = None
 
@@ -120,22 +159,19 @@ def main():
 
 
 # --------------------------------------------------------------------------
+#                       I N I T I A L I Z E - Button
+# --------------------------------------------------------------------------
 def initialize():
     global wb
-    global completed
     print("Request configuration")
-    completed = False
-    client.publish("maqlab/file/?", "/config/devices.json")
-    while True:
-        with lock:
-            if completed:
-                break
-        time.sleep(0.1)
-    # Receive completed
-    print(config_string)
-    # write it to excel
+    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/inventar.json")
+    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/devices.json")
 
 
+
+
+# --------------------------------------------------------------------------
+#                            U P L O A D - Button
 # --------------------------------------------------------------------------
 def upload():
     global wb
