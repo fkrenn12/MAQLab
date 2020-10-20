@@ -1,4 +1,5 @@
 import datetime
+import shared as s
 
 
 # --------------------------------------------------------
@@ -6,8 +7,8 @@ import datetime
 # --------------------------------------------------------
 def validate_payload(payload):
     timestamp = str(datetime.datetime.utcnow())
-    payload_error = "ERROR " + timestamp
-    payload_accepted = "ACCEPTED " + timestamp
+    payload_error = s.payload_error + " " + timestamp
+    payload_accepted = s.payload_accepted + " " + timestamp
     valid = True
     try:
         payload = payload.lower()
@@ -38,27 +39,25 @@ def validate_topic(topic, serial_number, model):
 
     if isinstance(topic, bytes):
         topic = topic.decode("utf-8")
-    if isinstance(topic, str):
-        topic = topic.lower()
-        topic_splitted = topic.split("/")
-        split_count = len(topic_splitted)
-        if 3 <= split_count < 6 and topic_splitted[0] == "maqlab":
-            try:
-                index_of_cmd = topic_splitted.index("cmd")
-            except:
-                return {'valid': False}
-            reply_topic = topic.replace("cmd", "rep")
-            if topic_splitted[index_of_cmd + 1] == "?":
-                command = "accessnumber"
-                reply_topic = reply_topic.replace("?", "")
-                reply_topic = reply_topic + model + "/accessnumber"
+
+    topic = topic.lower()
+    topic_splitted = topic.split("/")
+    split_count = len(topic_splitted)
+    if 3 <= split_count < 6 and topic_splitted[0] == s.topic_root:
+        try:
+            index_of_cmd = topic_splitted.index(s.topic_cmd)
+            reply_topic = topic.replace(s.topic_cmd, s.topic_reply)
+            if topic_splitted[index_of_cmd + 1] == s.topic_request:
+                command = s.topic_access_number
+                reply_topic = reply_topic.replace(s.topic_request, "")
+                reply_topic = reply_topic + model + "/" + s.topic_access_number
             else:
                 command = topic_splitted[index_of_cmd + 2]
                 command = command.replace("1", "")
                 command = command.replace(" ", "")
                 if topic_splitted[index_of_cmd + 1] == str(serial_number):
                     matching = True
-
             return {'valid': True, "topic": topic, 'cmd': command, 'matching': matching, 'reply': reply_topic}
-
+        except:
+            pass
     return {'valid': False}

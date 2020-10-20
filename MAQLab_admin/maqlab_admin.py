@@ -1,5 +1,5 @@
 import time
-import global_share
+import shared
 import xlwings as xw
 import xlwings.utils as xwu
 import paho.mqtt.client as paho

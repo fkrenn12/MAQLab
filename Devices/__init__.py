@@ -1,4 +1,8 @@
-class du():
+import time
+import paho.mqtt.client as paho
+import threading
+
+class maqlab():
     def __init__(self):
         print("INIT")
         pass
@@ -11,5 +15,4 @@ class du():
         print("Ja das sind die Geräte")
 
 
-test = du()
-test1 = "Hallo"
+ml = maqlab()
