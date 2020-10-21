@@ -1,5 +1,6 @@
 import time
 import xlwings as xw
+from xlwings import constants
 import xlwings.utils as xwu
 import paho.mqtt.client as paho
 import threading
@@ -9,6 +10,8 @@ import secrets
 from pydispatch import dispatcher
 import jsontable as jsontable
 
+FILENAME_CONFIG_DEVICES = "devices_1.json"
+FILENAME_CONFIG_INVENTAR = "inventar_1.json"
 MQTT = "mqtt"
 MQTT_RECEIVE_INVENTAR = "inventar"
 MQTT_RECEIVE_DEVICES = "devices"
@@ -55,11 +58,11 @@ def on_message(_client, userdata, msg):
     completed = True
     topic_received = msg.topic.lower()
     config_string = msg.payload.decode("utf-8")
-    if "devices_1.json" in topic_received:
+    if FILENAME_CONFIG_DEVICES in topic_received:
         dispatcher.send(message=msg.payload.decode("utf-8"),
                         signal=MQTT_RECEIVE_DEVICES,
                         sender=MQTT)
-    if "inventar_1.json" in topic_received:
+    if FILENAME_CONFIG_INVENTAR in topic_received:
         dispatcher.send(message=msg.payload.decode("utf-8"),
                         signal=MQTT_RECEIVE_INVENTAR,
                         sender=MQTT)
@@ -91,18 +94,24 @@ def on_mqtt_receive_inventar(message):
              {"$.ipaddress": "IP-Adresse"},
              {"$.port": "Port"}]
     # Create an instance of a converter
-    converter = jsontable.converter()
+    convert_inventar = jsontable.converter()
     # Set the paths you want to extract
-    converter.set_paths(paths)
+    convert_inventar.set_paths(paths)
     # Input a JSON to be interpreted
-    table = converter.convert_json(inventar)
+    table = convert_inventar.convert_json(inventar)
 
     for i in range(0, len(table)):
         print(table[i])
         try:
             sht.range(row + i, col).value = table[i]
+            # first entry is the header
+            # we use other format and insert an additional empty row
             if i == 0:
+                sht.range(row + i, col).expand("right").api.HorizontalAlignment = constants.HAlign.xlHAlignCenter
+                # empty row
                 row += 1
+            else:
+                sht.range(row + i, col).expand("right").api.HorizontalAlignment = constants.HAlign.xlHAlignRight
         except:
             pass
 
@@ -121,11 +130,11 @@ def on_mqtt_receive_devices(message):
     paths = [{"$.device": "Gerät"},
              {"$.devicetype": "Typ"}]
     # Create an instance of a converter
-    converter = jsontable.converter()
+    converter_device = jsontable.converter()
     # Set the paths you want to extract
-    converter.set_paths(paths)
+    converter_device.set_paths(paths)
     # Input a JSON to be interpreted
-    table = converter.convert_json(devices)
+    table = converter_device.convert_json(devices)
 
     for i in range(0, len(table)):
         print(table[i])
@@ -210,8 +219,8 @@ def main():
 def initialize():
     global wb
     print("Request configuration")
-    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/inventar_1.json")
-    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/devices_1.json")
+    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/"+FILENAME_CONFIG_INVENTAR)
+    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/"+FILENAME_CONFIG_DEVICES)
 
 
 # --------------------------------------------------------------------------
