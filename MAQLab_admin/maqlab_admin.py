@@ -7,6 +7,7 @@ import json
 import os
 import secrets
 from pydispatch import dispatcher
+import jsontable as jsontable
 
 MQTT = "mqtt"
 MQTT_RECEIVE_INVENTAR = "inventar"
@@ -14,6 +15,9 @@ MQTT_RECEIVE_DEVICES = "devices"
 py_filename_without_extension = ""
 py_filename = ""
 xl_filename = ""
+row_start = 2
+col_start = 2
+
 global wb
 global xb
 global client
@@ -51,11 +55,11 @@ def on_message(_client, userdata, msg):
     completed = True
     topic_received = msg.topic.lower()
     config_string = msg.payload.decode("utf-8")
-    if "devices.json" in topic_received:
+    if "devices_1.json" in topic_received:
         dispatcher.send(message=msg.payload.decode("utf-8"),
                         signal=MQTT_RECEIVE_DEVICES,
                         sender=MQTT)
-    if "inventar.json" in topic_received:
+    if "inventar_1.json" in topic_received:
         dispatcher.send(message=msg.payload.decode("utf-8"),
                         signal=MQTT_RECEIVE_INVENTAR,
                         sender=MQTT)
@@ -73,13 +77,34 @@ def on_mqtt_receive_inventar(message):
         book.sheets.add("Inventar", after="Devices")
     sht = book.sheets["Inventar"]
     sht.clear()
-    sht.range(5, 5).value = message
-    inventar = json.loads(message)  # this could raise exception and stop the script
-    inventar_numbers = list(inventar.keys())
-    inventar_numbers.sort()
-    # print(inventar_numbers)
-    # print(message)
 
+    inventar = json.loads(message)  # this could raise exception and stop the script
+    # inventar_numbers = list(inventar.keys())
+    # inventar_numbers.sort()
+    col = col_start
+    row = row_start
+
+    # Create a list of paths you want to extract
+    paths = [{"$.inventar_number": "Inventarnummer"},
+             {"$.device": "Gerät"},
+             {"$.serial": "Seriennummer"},
+             {"$.ipaddress": "IP-Adresse"},
+             {"$.port": "Port"}]
+    # Create an instance of a converter
+    converter = jsontable.converter()
+    # Set the paths you want to extract
+    converter.set_paths(paths)
+    # Input a JSON to be interpreted
+    table = converter.convert_json(inventar)
+
+    for i in range(0, len(table)):
+        print(table[i])
+        try:
+            sht.range(row + i, col).value = table[i]
+            if i == 0:
+                row += 1
+        except:
+            pass
 
 def on_mqtt_receive_devices(message):
     book = xw.Book(xl_filename)
@@ -88,8 +113,28 @@ def on_mqtt_receive_devices(message):
     except:
         book.sheets.add("Devices")
     sht = book.sheets["Devices"]
-    # print(message)
+    sht.clear()
+    devices = json.loads(message)  # this could raise exception and stop the script
+    col = col_start
+    row = row_start
+    # Create a list of paths you want to extract
+    paths = [{"$.device": "Gerät"},
+             {"$.devicetype": "Typ"}]
+    # Create an instance of a converter
+    converter = jsontable.converter()
+    # Set the paths you want to extract
+    converter.set_paths(paths)
+    # Input a JSON to be interpreted
+    table = converter.convert_json(devices)
 
+    for i in range(0, len(table)):
+        print(table[i])
+        try:
+            sht.range(row + i, col).value = table[i]
+            if i == 0:
+                row += 1
+        except:
+            pass
 
 # --------------------------------------------------------------------------
 #                                   M A I N
@@ -156,6 +201,7 @@ def main():
 
     global wb
     wb = xw.Book.caller()
+    # initialize()
 
 
 # --------------------------------------------------------------------------
@@ -164,10 +210,8 @@ def main():
 def initialize():
     global wb
     print("Request configuration")
-    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/inventar.json")
-    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/devices.json")
-
-
+    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/inventar_1.json")
+    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/devices_1.json")
 
 
 # --------------------------------------------------------------------------

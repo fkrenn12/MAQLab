@@ -1,0 +1,29 @@
+[
+    {
+      "inventar_number": "0653",
+      "device": "2400SM",
+      "serial": "1033388"
+    },
+    {
+      "inventar_number": "9xxx",
+      "device": "NTP-6531",
+      "serial": "none"
+    },
+    {
+      "inventar_number": "1747",
+      "device": "2831E",
+      "serial": "123C19219"
+    },
+    {
+      "inventar_number": "1748",
+      "device": "2831E",
+      "serial": "123C19213"
+    },
+    {
+      "inventar_number": "0523",
+      "device": "DE7035",
+      "serial": "12345678",
+      "ipaddress": "172.16.193.115",
+      "port": "6484"
+    }
+]
