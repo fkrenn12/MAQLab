@@ -88,11 +88,11 @@ def on_mqtt_receive_inventar(message):
     row = row_start
 
     # Create a list of paths you want to extract
-    paths = [{"$.inventar_number": "Inventarnummer"},
-             {"$.device": "Gerät"},
-             {"$.serial": "Seriennummer"},
-             {"$.ipaddress": "IP-Adresse"},
-             {"$.port": "Port"}]
+    paths = [{"$.inventar_number": "--- Inventarnummer ---"},
+             {"$.device": "--- Gerät ---"},
+             {"$.serial": "--- Seriennummer ---"},
+             {"$.ipaddress": "--- IP-Adresse ---"},
+             {"$.port": "--- Port ---"}]
     # Create an instance of a converter
     convert_inventar = jsontable.converter()
     # Set the paths you want to extract
@@ -111,9 +111,15 @@ def on_mqtt_receive_inventar(message):
                 # empty row
                 row += 1
             else:
+                pass
                 sht.range(row + i, col).expand("right").api.HorizontalAlignment = constants.HAlign.xlHAlignRight
         except:
             pass
+    # autofit all cells from A1 : AI100
+    sht.range('A1:AI100').autofit()
+    # das geht nicht !!
+    xw.Range('A1:AI100').api.HorizontalAlignment = constants.HAlign.xlHAlignLeft
+    sht.range("A1:AI100").api.HorizontalAlignment = constants.HAlign.xlHAlignLeft
 
 def on_mqtt_receive_devices(message):
     book = xw.Book(xl_filename)
