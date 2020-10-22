@@ -18,8 +18,10 @@ MQTT_RECEIVE_DEVICES = "devices"
 py_filename_without_extension = ""
 py_filename = ""
 xl_filename = ""
-row_start = 2
+row_start = 5
 col_start = 2
+COLOR_PROVIDER_TABLE_HEADER = 0x80C0ff
+COLOR_PROVIDER_TABLE_LINE_ALTER = 0xE3EEFF
 
 global wb
 global xb
@@ -27,6 +29,35 @@ global client
 global lock
 global config_string
 global session_id
+
+
+def print_json_into_excel_sheet(sht, _row_start, _col_start, path, jsons):
+    col = _col_start
+    row = _row_start
+
+    # Create an instance of a converter
+    convert_inventar = jsontable.converter()
+    # Set the paths you want to extract
+    convert_inventar.set_paths(path)
+    # Input a JSON to be interpreted
+    table = convert_inventar.convert_json(jsons)
+    # convert all None into "---"
+    for i in range(0, len(table)):
+        subtable = table[i]
+        for j in range(0, len(subtable)):
+            value = subtable[j]
+            if value is None or value == "none":
+                value = "*"
+            subtable[j] = value
+    # print(table)
+    # header
+    sht.range(row, col).value = table[0]
+    sht.range(row, col).expand("right").api.HorizontalAlignment = constants.HAlign.xlHAlignCenter
+    sht.range(row, col).expand("right").color = COLOR_PROVIDER_TABLE_HEADER
+    # table with data
+    sht.range(row + 2, col).value = table[1:]
+    sht.range("A1:Z100").autofit()
+    sht.range(row + 2, col).expand("table").api.HorizontalAlignment = constants.HAlign.xlHAlignRight
 
 
 # --------------------------------------------------------
@@ -80,46 +111,19 @@ def on_mqtt_receive_inventar(message):
         book.sheets.add("Inventar", after="Devices")
     sht = book.sheets["Inventar"]
     sht.clear()
-
-    inventar = json.loads(message)  # this could raise exception and stop the script
-    # inventar_numbers = list(inventar.keys())
-    # inventar_numbers.sort()
-    col = col_start
-    row = row_start
-
     # Create a list of paths you want to extract
-    paths = [{"$.inventar_number": "--- Inventarnummer ---"},
-             {"$.device": "--- Gerät ---"},
-             {"$.serial": "--- Seriennummer ---"},
-             {"$.ipaddress": "--- IP-Adresse ---"},
-             {"$.port": "--- Port ---"}]
-    # Create an instance of a converter
-    convert_inventar = jsontable.converter()
-    # Set the paths you want to extract
-    convert_inventar.set_paths(paths)
-    # Input a JSON to be interpreted
-    table = convert_inventar.convert_json(inventar)
+    path = [{"$.inventar_number": "Inventarnummer"},
+            {"$.device": "Gerät"},
+            {"$.serial": "Seriennummer"},
+            {"$.ipaddress": "IP-Adresse"},
+            {"$.port": "Port"}]
 
-    for i in range(0, len(table)):
-        print(table[i])
-        try:
-            sht.range(row + i, col).value = table[i]
-            # first entry is the header
-            # we use other format and insert an additional empty row
-            if i == 0:
-                sht.range(row + i, col).expand("right").api.HorizontalAlignment = constants.HAlign.xlHAlignCenter
-                # empty row
-                row += 1
-            else:
-                pass
-                sht.range(row + i, col).expand("right").api.HorizontalAlignment = constants.HAlign.xlHAlignRight
-        except:
-            pass
-    # autofit all cells from A1 : AI100
-    sht.range('A1:AI100').autofit()
-    # das geht nicht !!
-    xw.Range('A1:AI100').api.HorizontalAlignment = constants.HAlign.xlHAlignLeft
-    sht.range("A1:AI100").api.HorizontalAlignment = constants.HAlign.xlHAlignLeft
+    print_json_into_excel_sheet(sht=sht,
+                                _row_start=row_start,
+                                _col_start=col_start,
+                                path=path,
+                                jsons=json.loads(message))
+
 
 def on_mqtt_receive_devices(message):
     book = xw.Book(xl_filename)
@@ -129,27 +133,21 @@ def on_mqtt_receive_devices(message):
         book.sheets.add("Devices")
     sht = book.sheets["Devices"]
     sht.clear()
-    devices = json.loads(message)  # this could raise exception and stop the script
-    col = col_start
-    row = row_start
     # Create a list of paths you want to extract
-    paths = [{"$.device": "Gerät"},
-             {"$.devicetype": "Typ"}]
-    # Create an instance of a converter
-    converter_device = jsontable.converter()
-    # Set the paths you want to extract
-    converter_device.set_paths(paths)
-    # Input a JSON to be interpreted
-    table = converter_device.convert_json(devices)
+    path = [{"$.device": "Gerät"},
+            {"$.manufactorer": "Hersteller"},
+            {"$.cmd_idn": "SCPI Idn Zeichen"},
+            {"$.cmd_term": "SCPI Termination"},
+            {"$.classname": "Klassenname"},
+            {"$.interface": "Interface Type"},
+            {"$.baudrate": "Def. Baudrate"}
+            ]
+    print_json_into_excel_sheet(sht=sht,
+                                _row_start=row_start,
+                                _col_start=col_start,
+                                path=path,
+                                jsons=json.loads(message))
 
-    for i in range(0, len(table)):
-        print(table[i])
-        try:
-            sht.range(row + i, col).value = table[i]
-            if i == 0:
-                row += 1
-        except:
-            pass
 
 # --------------------------------------------------------------------------
 #                                   M A I N
@@ -225,8 +223,8 @@ def main():
 def initialize():
     global wb
     print("Request configuration")
-    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/"+FILENAME_CONFIG_INVENTAR)
-    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/"+FILENAME_CONFIG_DEVICES)
+    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/" + FILENAME_CONFIG_INVENTAR)
+    client.publish("maqlab/" + session_id + "/cmd/file/get", "/config/" + FILENAME_CONFIG_DEVICES)
 
 
 # --------------------------------------------------------------------------
