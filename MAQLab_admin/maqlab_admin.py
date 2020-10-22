@@ -10,8 +10,8 @@ import secrets
 from pydispatch import dispatcher
 import jsontable as jsontable
 
-FILENAME_CONFIG_DEVICES = "devices_1.json"
-FILENAME_CONFIG_INVENTAR = "inventar_1.json"
+FILENAME_CONFIG_DEVICES = "devices.json"
+FILENAME_CONFIG_INVENTAR = "inventar.json"
 MQTT = "mqtt"
 MQTT_RECEIVE_INVENTAR = "inventar"
 MQTT_RECEIVE_DEVICES = "devices"
@@ -108,7 +108,7 @@ def on_mqtt_receive_inventar(message):
     try:
         book.sheets["Inventar"]
     except:
-        book.sheets.add("Inventar", after="Devices")
+        book.sheets.add("Inventar", after="Geräte")
     sht = book.sheets["Inventar"]
     sht.clear()
     # Create a list of paths you want to extract
@@ -128,19 +128,20 @@ def on_mqtt_receive_inventar(message):
 def on_mqtt_receive_devices(message):
     book = xw.Book(xl_filename)
     try:
-        book.sheets["Devices"]
+        book.sheets["Geräte"]
     except:
-        book.sheets.add("Devices")
-    sht = book.sheets["Devices"]
+        book.sheets.add("Geräte")
+    sht = book.sheets["Geräte"]
     sht.clear()
     # Create a list of paths you want to extract
-    path = [{"$.device": "Gerät"},
+    path = [{"$.device": "Bezeichnung"},
+            {"$.devicetype": "Typ"},
             {"$.manufactorer": "Hersteller"},
-            {"$.cmd_idn": "SCPI Idn Zeichen"},
-            {"$.cmd_term": "SCPI Termination"},
+            {"$.cmd_idn": "SCPI Identify Befehl"},
+            {"$.cmd_term": "SCPI Endzeichen"},
             {"$.classname": "Klassenname"},
-            {"$.interface": "Interface Type"},
-            {"$.baudrate": "Def. Baudrate"}
+            {"$.interface": "Interface"},
+            {"$.baudrate": "Baudrate"}
             ]
     print_json_into_excel_sheet(sht=sht,
                                 _row_start=row_start,
@@ -232,7 +233,7 @@ def initialize():
 # --------------------------------------------------------------------------
 def upload():
     global wb
-
+    print("Sorry, Upload not yet implemented")
 
 # --------------------------------------------------------------------------
 main()

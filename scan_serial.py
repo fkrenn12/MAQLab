@@ -8,15 +8,14 @@ tout = 1000
 
 
 def scan_serial_devices(devices, comlist, comlock):
-    deviceidentifications = list(devices.keys())
     idstrings = []
     for d in devices:
-        if devices[d]["interface"] == "usb-vcom":
-            idstrings.append(devices[d]["cmd_idn"].encode("utf-8"))
-        # idstrings.append(devices[d]["cmd_idn"])
-    # idstrings.sort()
+        if d["interface"] == "usb-vcom":
+            idstring = d["cmd_idn"]
+            idstring = idstring.replace("<CR>", "\r")
+            idstring = idstring.replace("<LF>", "\n")
+            idstrings.append(idstring.encode("utf-8"))
     idstrings = list(set(idstrings))
-    # idstrings.sort()
 
     p = platform.platform()
     if "Windows" in p:
@@ -30,6 +29,7 @@ def scan_serial_devices(devices, comlist, comlock):
         # print("Start check com")
         for number in range(scan_start, scan_stop):
             try:
+                dev_found = None
                 # this is for windows
                 _com = "com" + str(number)
                 # print("NEW COM TESTING: " + _com)
@@ -63,13 +63,11 @@ def scan_serial_devices(devices, comlist, comlock):
                                 buff += c
                     # ----------- end of reading loop --------------------
                     if buff != b'':
-                        found = False
-                        for _d in deviceidentifications:
-                            # print(devices[d]["idn_string"].encode())
-                            if devices[_d]["idn_string"].encode() in buff:
-                                found = True
+                        for d in devices:
+                            if d["idn_string"] in buff.decode("utf-8"):
+                                dev_found = d
                                 break
-                        if found:
+                        if dev_found is not None:
                             break  # stop sending idstring because already found
                     # --------end of for loop writing idstrings ---------
                 if buff == b'':
@@ -78,15 +76,10 @@ def scan_serial_devices(devices, comlist, comlock):
                 # close serial port
                 ser.close()
                 del ser
-                # search for device and add it to comlist
-                for _d in deviceidentifications:
-                    # print(devices[d]["idn_string"].encode())
-                    if devices[_d]["idn_string"].encode() in buff:
-                        # search for inventarnumber of this device
-                        with comlock:
-                            comlist.append({devices[_d]["classname"]: _com})
-                            # print("Found " + devices[d]["classname"])
-                            break
+                if dev_found is not None:
+                    with comlock:
+                        comlist.append({dev_found["classname"]: _com})
+
             except:
                 continue
         time.sleep(0.5)

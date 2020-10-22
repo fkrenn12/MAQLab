@@ -3,6 +3,7 @@ import time
 import paho.mqtt.client as paho
 import threading
 import json
+import secrets
 
 from scan_serial import scan_serial_devices
 
@@ -20,6 +21,11 @@ comlist = []
 devlock = threading.Lock()
 comlock = threading.Lock()
 
+FILENAME_CONFIG_DEVICES = "devices.json"
+FILENAME_CONFIG_INVENTAR = "inventar.json"
+PATHNAME_CONFIG_DEVICES = "/config/" + FILENAME_CONFIG_DEVICES
+PATHNAME_CONFIG_INVENTAR = "/config/" + FILENAME_CONFIG_INVENTAR
+session_id = secrets.token_urlsafe(5)
 
 # --------------------------------------------------------
 # MQTT Broker callbacks
@@ -60,20 +66,26 @@ def on_message(_client, _userdata, _msg):
         return
 
     if "/rep/file/" in topic:
-        if "devices.json" in topic:
+        if FILENAME_CONFIG_DEVICES in topic:
             with devlock:
                 try:
+                    deviceidentifications = []
                     devices = json.loads(_msg.payload.decode("utf-8"))
-                    deviceidentifications = list(devices.keys())
+                    for i in devices:
+                        deviceidentifications.append(i["device"])
+                    # deviceidentifications = list(devices.keys())
                     print("DEVICE-IDENTIFICATIONS:" + str(deviceidentifications))
                 except:
                     print("Error in devices.json")
                     return
-        elif "inventar.json" in topic:
+        elif FILENAME_CONFIG_INVENTAR in topic:
             with devlock:
                 try:
+                    inventarnumbers = []
                     inventar = json.loads(_msg.payload.decode("utf-8"))
-                    inventarnumbers = list(inventar.keys())
+                    for i in inventar:
+                        inventarnumbers.append(i["inventar_number"])
+                    # inventarnumbers = list(inventar.keys())
                     print("INVENTARNUMBERS:" + str(inventarnumbers))
                 except:
                     print("Error in inventar.json")
@@ -109,9 +121,9 @@ if __name__ == "__main__":
     thread_mqttloop.start()
 
     time.sleep(1)
-    client.publish("maqlab/cmd/file/get", "/config/devices.json")
+    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
     time.sleep(0.05)
-    client.publish("maqlab/cmd/file/get", "/config/inventar.json")
+    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTAR)
 
     # wait for data from mqtt file server
     while True:
@@ -124,18 +136,18 @@ if __name__ == "__main__":
     thread_detect_serial.start()
 
     while True:
-        # --------------------------------------------------------------------------
-        # Die Comliste durchgehen und die entsprechende Deviceklasse erzeugen
-        # --------------------------------------------------------------------------
+        # ----------------------------------------------------------------------------------
+        # Stepping through the COM list and generate the device instance from the classname
+        # ----------------------------------------------------------------------------------
         with comlock:
             if len(comlist) > 0:
                 for com in comlist:
                     # print(com)
-                    for d in deviceidentifications:
+                    for dev in devices:
                         devobject = None
                         # print(d)
                         # print(devices[d]["classname"])
-                        dclassname = devices[d]["classname"]
+                        dclassname = dev["classname"]
                         if dclassname in com:
                             # generating a deviceclass from classname
                             devobject = globals()[dclassname](com[dclassname])
@@ -166,7 +178,7 @@ if __name__ == "__main__":
         time.sleep(0.02)
 
         # --------------------------------------------------------------------------
-        # Die bereits verbundenen Geräte durchgehen und execute aufrufen
+        # Step through connected devices and call the handlers
         # --------------------------------------------------------------------------
 
         if len(devlist) > 0:
