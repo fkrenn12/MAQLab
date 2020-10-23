@@ -74,7 +74,7 @@ def on_message(_client, _userdata, _msg):
                     for i in devices:
                         deviceidentifications.append(i["device"])
                     # deviceidentifications = list(devices.keys())
-                    print("DEVICE-IDENTIFICATIONS:" + str(deviceidentifications))
+                    print("Device-Identifiers:" + str(deviceidentifications))
                 except:
                     print("Error in devices.json")
                     return
@@ -86,7 +86,7 @@ def on_message(_client, _userdata, _msg):
                     for i in inventar:
                         inventarnumbers.append(i["inventar_number"])
                     # inventarnumbers = list(inventar.keys())
-                    print("INVENTARNUMBERS:" + str(inventarnumbers))
+                    print("Inventory numbers:" + str(inventarnumbers))
                 except:
                     print("Error in inventar.json")
                     return
@@ -156,15 +156,12 @@ if __name__ == "__main__":
                             # there are some devices not declared with a serialnumber
                             # so we have to use the random generated serial for the inventarnumber
                             inventarnumber = '0'
-                            for number in inventarnumbers:
-                                try:
-                                    serialnumber = inventar[str(number)]["serial"]
-                                except:
-                                    serialnumber = "0"
 
-                                if devobject.serialnumber == serialnumber:
-                                    inventarnumber = number
-                                    break
+                            if inventar is not None:
+                                for devi in inventar:
+                                    if devi["serial"] == devobject.serialnumber:
+                                        inventarnumber = devi["inventar_number"]
+                                        break
 
                             if inventarnumber == '0':
                                 inventarnumber = devobject.serialnumber
