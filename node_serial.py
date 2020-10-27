@@ -11,8 +11,8 @@ from Extensions.Manson_NTP6531 import NTP6531
 from Extensions.BKPrecision_2831E import BK2831E
 from Extensions.Keithley_SM2400 import SM2400
 
-inventar = None
-inventarnumbers = None
+inventory = None
+inventory_numbers = None
 devices = None
 deviceidentifications = None
 
@@ -22,9 +22,9 @@ devlock = threading.Lock()
 comlock = threading.Lock()
 
 FILENAME_CONFIG_DEVICES = "devices.json"
-FILENAME_CONFIG_INVENTAR = "inventar.json"
+FILENAME_CONFIG_INVENTORY = "inventory.json"
 PATHNAME_CONFIG_DEVICES = "/config/" + FILENAME_CONFIG_DEVICES
-PATHNAME_CONFIG_INVENTAR = "/config/" + FILENAME_CONFIG_INVENTAR
+PATHNAME_CONFIG_INVENTORY = "/config/" + FILENAME_CONFIG_INVENTORY
 session_id = secrets.token_urlsafe(5)
 
 # --------------------------------------------------------
@@ -35,11 +35,12 @@ def mqttloop(_client):
 
 
 def on_connect(_client, userdata, flags, rc):
-    # print("CONNACK received with code %d." % (rc))
-    _client.subscribe("maqlab/cmd/#", qos=0)
-    _client.subscribe("maqlab/+/cmd/#", qos=0)
-    _client.subscribe("maqlab/rep/file/#", qos=0)
-    _client.subscribe("maqlab/+/rep/file/#", qos=0)
+    if rc == 0:
+        print("Connected to MQTT-Broker.")
+        _client.subscribe("maqlab/cmd/#", qos=0)
+        _client.subscribe("maqlab/+/cmd/#", qos=0)
+        _client.subscribe("maqlab/rep/file/#", qos=0)
+        _client.subscribe("maqlab/+/rep/file/#", qos=0)
 
 def on_disconnect(_client, userdata, rc):
     if rc != 0:
@@ -52,8 +53,8 @@ def on_disconnect(_client, userdata, rc):
 def on_message(_client, _userdata, _msg):
     global devlist
     global devlock
-    global inventar
-    global inventarnumbers
+    global inventory
+    global inventory_numbers
     global devices
     global deviceidentifications
 
@@ -73,28 +74,26 @@ def on_message(_client, _userdata, _msg):
                     devices = json.loads(_msg.payload.decode("utf-8"))
                     for i in devices:
                         deviceidentifications.append(i["device"])
-                    # deviceidentifications = list(devices.keys())
-                    print("Device-Identifiers:" + str(deviceidentifications))
+                    # print("Device-Identifiers:" + str(deviceidentifications))
                 except:
                     print("Error in devices.json")
                     return
-        elif FILENAME_CONFIG_INVENTAR in topic:
+        elif FILENAME_CONFIG_INVENTORY in topic:
             with devlock:
                 try:
-                    inventarnumbers = []
-                    inventar = json.loads(_msg.payload.decode("utf-8"))
-                    for i in inventar:
-                        inventarnumbers.append(i["inventar_number"])
-                    # inventarnumbers = list(inventar.keys())
-                    print("Inventory numbers:" + str(inventarnumbers))
+                    inventory_numbers = []
+                    inventory = json.loads(_msg.payload.decode("utf-8"))
+                    for i in inventory:
+                        inventory_numbers.append(i["inventar_number"])
+                    # print("Inventory numbers:" + str(inventory_numbers))
                 except:
-                    print("Error in inventar.json")
+                    print("Error in inventory.json")
                     return
         return
 
     # loaded configuration must be done before any
     # messages can be distributed
-    if devices is None or inventar is None:
+    if devices is None or inventory is None:
         return
 
     # print(topic, _msg.payload)
@@ -109,7 +108,7 @@ def on_message(_client, _userdata, _msg):
 
 
 if __name__ == "__main__":
-    print("Started...")
+    print("MAQlab - serial node started.")
     client = paho.Client()
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
@@ -121,17 +120,19 @@ if __name__ == "__main__":
     thread_mqttloop.start()
 
     time.sleep(1)
+    print("Request configuration files...")
     client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
     time.sleep(0.05)
-    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTAR)
+    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTORY)
 
     # wait for data from mqtt file server
     while True:
         time.sleep(0.1)
         with devlock:
-            if devices is not None and inventar is not None:
+            if devices is not None and inventory is not None:
                 break
 
+    print("Configuration files received.")
     thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
     thread_detect_serial.start()
 
@@ -155,20 +156,20 @@ if __name__ == "__main__":
                             # search for inventarnumber of the device with spec serialnumber
                             # there are some devices not declared with a serialnumber
                             # so we have to use the random generated serial for the inventarnumber
-                            inventarnumber = '0'
+                            inventory_number = '0'
 
-                            if inventar is not None:
-                                for devi in inventar:
+                            if inventory is not None:
+                                for devi in inventory:
                                     if devi["serial"] == devobject.serialnumber:
-                                        inventarnumber = devi["inventar_number"]
+                                        inventory_number = devi["inventar_number"]
                                         break
 
-                            if inventarnumber == '0':
-                                inventarnumber = devobject.serialnumber
+                            if inventory_number == '0':
+                                inventory_number = devobject.serialnumber
 
                             with devlock:
                                 devlist.append(devobject)
-                                devobject.on_created(com[dclassname], inventarnumber)
+                                devobject.on_created(com[dclassname], inventory_number)
 
                 comlist.clear()
         # --------------------------------------------------------------------------

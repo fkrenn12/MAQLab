@@ -4,7 +4,7 @@ import threading
 
 class maqlab():
     def __init__(self):
-        print("INIT")
+        print("MAQlab - initialized.")
         pass
 
     def all(self):

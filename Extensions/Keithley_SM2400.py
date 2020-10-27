@@ -65,8 +65,8 @@ class SM2400(_SM2400.SM2400):
     def on_created(self, comport, inventarnumber):
         self.__comport = comport
         self.__inventarnumber = inventarnumber
-        print(self.devicetype + " " + self.model + " Inventory number: "
-              + str(inventarnumber) + " plugged into " + self.__comport)
+        print(self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Inventory number is: "
+              + str(inventarnumber))
 
     def on_destroyed(self):
         print(self.model + " removed from " + self.__comport)

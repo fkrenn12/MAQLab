@@ -22,6 +22,7 @@ def scan_serial_devices(devices, comlist, comlock):
         this_os = "Windows"
     else:
         this_os = "Linux"
+    print("Start scanning...")
     # -------------------------------------------------------------
     # LOOP
     # -------------------------------------------------------------

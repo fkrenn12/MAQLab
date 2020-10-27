@@ -3,7 +3,7 @@ from scan_tcp import scan_tcp_devices
 import json
 
 # TODO: loading the configurations should be done via mqtt also
-with open('config/inventar.json') as json_file:
+with open('config/inventory.json') as json_file:
     inventar = json.load(json_file)
     inventarnumbers = list(inventar.keys())
     # print("Inventarumbers:")
