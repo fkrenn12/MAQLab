@@ -27,6 +27,7 @@ PATHNAME_CONFIG_DEVICES = "/config/" + FILENAME_CONFIG_DEVICES
 PATHNAME_CONFIG_INVENTORY = "/config/" + FILENAME_CONFIG_INVENTORY
 session_id = secrets.token_urlsafe(5)
 
+
 # --------------------------------------------------------
 # MQTT Broker callbacks
 # --------------------------------------------------------
@@ -41,6 +42,7 @@ def on_connect(_client, userdata, flags, rc):
         _client.subscribe("maqlab/+/cmd/#", qos=0)
         _client.subscribe("maqlab/rep/file/#", qos=0)
         _client.subscribe("maqlab/+/rep/file/#", qos=0)
+
 
 def on_disconnect(_client, userdata, rc):
     if rc != 0:
