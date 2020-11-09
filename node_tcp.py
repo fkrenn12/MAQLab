@@ -54,6 +54,7 @@ deviceidentifications = None
 
 devlist = []
 iplist = []
+addresses = []
 devlock = threading.Lock()
 etherlock = threading.Lock()
 
@@ -178,11 +179,11 @@ if __name__ == "__main__":
             ip = invent["ipaddress"]
             port = int(invent["port"])
             addr = (ip, port)
-            iplist.append(addr)
+            addresses.append(addr)
         except:
             pass
     print(iplist)
-    thread_detect_ethernet = threading.Thread(target=scan_tcp_devices, args=(devices, iplist, etherlock,))
+    thread_detect_ethernet = threading.Thread(target=scan_tcp_devices, args=(devices, addresses, iplist, etherlock,))
     thread_detect_ethernet.start()
 
     while True:

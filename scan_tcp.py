@@ -1,10 +1,13 @@
 import socket
 import time
+
 BUFFER_SIZE = 128  # max msg size
 TIMEOUT_SECONDS = 10  # return error if we dont hear from supply within 10 sec
-def scan_tcp_devices(devices, iplist, etherlock):
 
+
+def scan_tcp_devices(devices, addresses, iplist, etherlock):
     idstrings = []
+    iplist = []
     for d in devices:
         if d["interface"] == "ethernet":
             idstring = d["cmd_idn"]
@@ -22,7 +25,7 @@ def scan_tcp_devices(devices, iplist, etherlock):
         this_os = "Linux"
     '''
     print("Start scanning...")
-    print("->" + str(iplist))
+    print("->" + str(addresses))
     # -------------------------------------------------------------
     # LOOP
     # -------------------------------------------------------------
@@ -30,9 +33,9 @@ def scan_tcp_devices(devices, iplist, etherlock):
         # print("Start check com")
         # time.sleep(1)
         # print("Scan ethernet ip...")
-        for addr in iplist:
+        for addr in addresses:
             try:
-                print("->>" + str(iplist))
+                print("->>" + str(addresses))
                 print(str(addr))
                 dev_found = None
                 # -------------------------
@@ -50,41 +53,30 @@ def scan_tcp_devices(devices, iplist, etherlock):
                     time.sleep(0.5)
                     try:
                         supplySocket.sendall(ids)
+                        rep = supplySocket.recv(BUFFER_SIZE).decode("UTF-8").rstrip()
                     except:
                         continue
-                    rep = supplySocket.recv(BUFFER_SIZE).decode("UTF-8").rstrip()
+
                     print(rep)
-                    # ---------  reading loop  ---------------------------
-                    tic = int(round(time.time() * 1000))
-                    buff = b''
-                    while (int(round(time.time() * 1000)) - tic) < tout:
-                        time.sleep(0.005)
-                        if supplySocket.in_waiting > 0:
-                            tic = int(round(time.time() * 1000))
-                            c = ser.read(1)
-                            if c != b'\n' and c != b'\r':
-                                buff += c
                     # ----------- end of reading loop --------------------
-                    if buff != b'':
+                    if rep != "":
                         for d in devices:
-                            if d["idn_string"] in buff.decode("utf-8"):
+                            if d["idn_string"] in rep:
                                 dev_found = d
                                 break
                         if dev_found is not None:
                             break  # stop sending idstring because already found
                     # --------end of for loop writing idstrings ---------
-                if buff == b'':
-                    continue  # next com port
+                if buff == "":
+                    continue  # next address
 
                 # close serial port
-                ser.close()
-                del ser
+                supplySocket.close()
+                del supplySocket
                 if dev_found is not None:
-                    with comlock:
-                        comlist.append({dev_found["classname"]: _com})
+                    with etherlock:
+                        iplist.append({dev_found["classname"]: addr})
 
             except:
                 continue
         time.sleep(0.5)
-
-
