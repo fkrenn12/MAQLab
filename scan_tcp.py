@@ -1,7 +1,9 @@
 import socket
 import time
-
+BUFFER_SIZE = 128  # max msg size
+TIMEOUT_SECONDS = 10  # return error if we dont hear from supply within 10 sec
 def scan_tcp_devices(devices, iplist, etherlock):
+
     idstrings = []
     for d in devices:
         if d["interface"] == "ethernet":
@@ -20,21 +22,25 @@ def scan_tcp_devices(devices, iplist, etherlock):
         this_os = "Linux"
     '''
     print("Start scanning...")
+    print("->" + str(iplist))
     # -------------------------------------------------------------
     # LOOP
     # -------------------------------------------------------------
     while True:
         # print("Start check com")
-        time.sleep(1)
+        # time.sleep(1)
         # print("Scan ethernet ip...")
-        for number in range(scan_start, scan_stop):
+        for addr in iplist:
             try:
+                print("->>" + str(iplist))
+                print(str(addr))
                 dev_found = None
-                # this is for windows
-                _com = "com" + str(number)
-                # print("NEW COM TESTING: " + _com)
-                ser = serial.Serial(_com, baudrate=9600)
-                ser.timeout = 1
+                # -------------------------
+                # opening socket connection
+                # -------------------------
+                supplySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # set up socket
+                supplySocket.connect(addr)  # connect socket
+                supplySocket.settimeout(TIMEOUT_SECONDS)
                 buff = b''
                 for ids in idstrings:
                     # the following sleep is necessary because a device
@@ -43,20 +49,17 @@ def scan_tcp_devices(devices, iplist, etherlock):
                     # so at first we try four times more - 0.5sec
                     time.sleep(0.5)
                     try:
-                        ser.flush()
-                        ser.flushInput()
-                        # print("SEND")
-                        # print(ids)
-                        ser.write(ids)
+                        supplySocket.sendall(ids)
                     except:
                         continue
-
+                    rep = supplySocket.recv(BUFFER_SIZE).decode("UTF-8").rstrip()
+                    print(rep)
                     # ---------  reading loop  ---------------------------
                     tic = int(round(time.time() * 1000))
                     buff = b''
                     while (int(round(time.time() * 1000)) - tic) < tout:
                         time.sleep(0.005)
-                        if ser.in_waiting > 0:
+                        if supplySocket.in_waiting > 0:
                             tic = int(round(time.time() * 1000))
                             c = ser.read(1)
                             if c != b'\n' and c != b'\r':

@@ -171,6 +171,17 @@ if __name__ == "__main__":
                 break
 
     print("Configuration files received.")
+    for invent in inventory:
+        print(invent)
+        try:
+            # addr = (invent["ipaddress"], invent["port]"])
+            ip = invent["ipaddress"]
+            port = int(invent["port"])
+            addr = (ip, port)
+            iplist.append(addr)
+        except:
+            pass
+    print(iplist)
     thread_detect_ethernet = threading.Thread(target=scan_tcp_devices, args=(devices, iplist, etherlock,))
     thread_detect_ethernet.start()
 

@@ -3,7 +3,7 @@ import paho.mqtt.client as mqtt
 import os
 import threading
 import datetime
-
+# TODO: RECONNECTING !!!!!
 # this is the path on the linux (debian 10) system
 home_dir = "/home/maqlab"
 host = "techfit.at"
