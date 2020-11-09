@@ -3,32 +3,38 @@ import paho.mqtt.client as mqtt
 import os
 import threading
 import datetime
-# TODO: RECONNECTING !!!!!
+
 # this is the path on the linux (debian 10) system
 home_dir = "/home/maqlab"
 host = "techfit.at"
 port = 1883
 username = "maqlab"
 password = "maqlab"
+connected = False
+last_message_receive = 0
 
 
 # -------------------------------------------------------------
 #   M Q T T - callback functions
 # -------------------------------------------------------------
-def mqtt_loop(_client):
-    while True:
-        time.sleep(0.05)
-        _client.loop()
-
-
 def on_connect(_client, userdata, flags, rc):
+    global connected
+    global last_message_receive
+    # global last_message_receive
+    # last_message_receive = time.time() * 1000
     if rc == 0:
+        last_message_receive = 0
+        connected = True
+        print("Connected")
         client.subscribe("maqlab/+/cmd/file/get/#", qos=0)
         client.subscribe("maqlab/+/cmd/file/store/#", qos=0)
+        client.subscribe("maqlab/ping/#", qos=0)
     pass
 
 
 def on_message(_client, userdata, msg):
+    global last_message_receive
+    last_message_receive = int(time.time() * 1000)
     try:
         # check topic
         if isinstance(msg.topic, bytes):
@@ -70,20 +76,49 @@ def on_message(_client, userdata, msg):
 
 
 client = mqtt.Client()
+# client.reconnect_delay_set(min_delay=1, max_delay=120)
 client.on_connect = on_connect
+# client.on_disconnect = on_disconnect
 client.on_message = on_message
 client.username_pw_set(username, password)
-client.connect(host, port)
 
-thread_mqttloop = threading.Thread(target=mqtt_loop, args=(client,))
-thread_mqttloop.start()
+# thread_mqttloop = threading.Thread(target=mqtt_loop, args=(client,))
+# thread_mqttloop.start()
 
 # -------------------------------------------------------------------------------
 #                           M A I N - L O O P
 # -------------------------------------------------------------------------------
+
+state = 0
 while True:
     try:
-        # yeaaa, there is nothing to do in the main loop
-        time.sleep(10)
-    except Exception:
-        break
+        client.connect(host=host, port=port, keepalive=5)
+        last_message_receive = 0
+    except:
+        # print("Exception - not connected")
+        continue
+
+    timer_2sec = int(time.time() * 1000)
+
+    while True:
+        # print(int(time.time() * 1000) - last_message_receive)
+        if int(time.time() * 1000) - timer_2sec >= 2000:
+            timer_2sec = int(time.time() * 1000)
+            # print("2sec")
+            if client.is_connected():
+                # print("CONN")
+                try:
+                    topic = "maqlab/ping/"
+                    payload = str(datetime.datetime.utcnow().timestamp())
+                    client.publish(topic=topic, payload=payload, retain=False)
+                    # print("Ping")
+                except:
+                    # print("DISCONNECT")
+                    client.disconnect()
+                    break
+
+        if last_message_receive > 0 and int(time.time() * 1000) - last_message_receive > 5000:
+            client.disconnect()
+            break
+
+        client.loop(0.05)

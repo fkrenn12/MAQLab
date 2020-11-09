@@ -176,9 +176,7 @@ if __name__ == "__main__":
         print(invent)
         try:
             # addr = (invent["ipaddress"], invent["port]"])
-            ip = invent["ipaddress"]
-            port = int(invent["port"])
-            addr = (ip, port)
+            addr = (invent["ipaddress"], int(invent["port"]))
             addresses.append(addr)
         except:
             pass
