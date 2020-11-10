@@ -4,13 +4,14 @@ import os
 import threading
 import datetime
 
+PING_INTERVAL_MS = 2000  # ping interval time in ms
+MQTT_TIMEOUT_MS = 5000  # no response timeout in ms
 # this is the path on the linux (debian 10) system
 home_dir = "/home/maqlab"
 host = "techfit.at"
 port = 1883
 username = "maqlab"
 password = "maqlab"
-connected = False
 last_message_receive = 0
 
 
@@ -18,14 +19,12 @@ last_message_receive = 0
 #   M Q T T - callback functions
 # -------------------------------------------------------------
 def on_connect(_client, userdata, flags, rc):
-    global connected
     global last_message_receive
-    # global last_message_receive
-    # last_message_receive = time.time() * 1000
     if rc == 0:
         last_message_receive = 0
-        connected = True
-        print("Connected")
+        # print("Connected")
+        client.subscribe("maqlab/cmd/file/get/#", qos=0)
+        client.subscribe("maqlab/cmd/file/store/#", qos=0)
         client.subscribe("maqlab/+/cmd/file/get/#", qos=0)
         client.subscribe("maqlab/+/cmd/file/store/#", qos=0)
         client.subscribe("maqlab/ping/#", qos=0)
@@ -55,7 +54,7 @@ def on_message(_client, userdata, msg):
             if not payload.startswith("/"):
                 payload = "/" + payload
             filepath = home_dir + payload
-            print(filepath)
+            # print(filepath)
             if os.path.exists(filepath):
                 try:
                     with open(filepath, mode='rb') as fp:
@@ -76,21 +75,15 @@ def on_message(_client, userdata, msg):
 
 
 client = mqtt.Client()
-# client.reconnect_delay_set(min_delay=1, max_delay=120)
 client.on_connect = on_connect
-# client.on_disconnect = on_disconnect
 client.on_message = on_message
 client.username_pw_set(username, password)
-
-# thread_mqttloop = threading.Thread(target=mqtt_loop, args=(client,))
-# thread_mqttloop.start()
 
 # -------------------------------------------------------------------------------
 #                           M A I N - L O O P
 # -------------------------------------------------------------------------------
-
-state = 0
 while True:
+    # first connection to mqtt broker
     try:
         client.connect(host=host, port=port, keepalive=5)
         last_message_receive = 0
@@ -98,11 +91,12 @@ while True:
         # print("Exception - not connected")
         continue
 
+    # initialize timer_2sec
     timer_2sec = int(time.time() * 1000)
 
     while True:
         # print(int(time.time() * 1000) - last_message_receive)
-        if int(time.time() * 1000) - timer_2sec >= 2000:
+        if int(time.time() * 1000) - timer_2sec >= PING_INTERVAL_MS:
             timer_2sec = int(time.time() * 1000)
             # print("2sec")
             if client.is_connected():
@@ -117,7 +111,7 @@ while True:
                     client.disconnect()
                     break
 
-        if last_message_receive > 0 and int(time.time() * 1000) - last_message_receive > 5000:
+        if last_message_receive > 0 and int(time.time() * 1000) - last_message_receive > MQTT_TIMEOUT_MS:
             client.disconnect()
             break
 
