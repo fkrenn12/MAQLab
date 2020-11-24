@@ -32,7 +32,8 @@ session_id = secrets.token_urlsafe(5)
 # MQTT Broker callbacks
 # --------------------------------------------------------
 def mqttloop(_client):
-    _client.loop_forever()
+    while True:
+        _client.loop()
 
 
 def on_connect(_client, userdata, flags, rc):
@@ -68,6 +69,7 @@ def on_message(_client, _userdata, _msg):
     else:
         return
 
+    # configuration file repeated
     if "/rep/file/" in topic:
         if FILENAME_CONFIG_DEVICES in topic:
             with devlock:
@@ -77,8 +79,9 @@ def on_message(_client, _userdata, _msg):
                     for i in devices:
                         deviceidentifications.append(i["device"])
                     # print("Device-Identifiers:" + str(deviceidentifications))
-                except:
+                except Exception as e:
                     print("Error in devices.json")
+                    print(e)
                     return
         elif FILENAME_CONFIG_INVENTORY in topic:
             with devlock:
@@ -88,8 +91,9 @@ def on_message(_client, _userdata, _msg):
                     for i in inventory:
                         inventory_numbers.append(i["inventar_number"])
                     # print("Inventory numbers:" + str(inventory_numbers))
-                except:
+                except Exception as e:
                     print("Error in inventory.json")
+                    print(e)
                     return
         return
 
@@ -122,17 +126,20 @@ if __name__ == "__main__":
     thread_mqttloop.start()
 
     time.sleep(1)
-    print("Request configuration files...")
+    print("Requesting configuration files...")
     client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
     time.sleep(0.05)
     client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTORY)
 
-    # wait for data from mqtt file server
+    # Waiting for data from mqtt file server
+    # First we need the configuration files
+    # Therefore we wait for it
     while True:
-        time.sleep(0.1)
+        time.sleep(1)
         with devlock:
             if devices is not None and inventory is not None:
                 break
+        print("Wait for configuration files...")
 
     print("Configuration files received.")
     thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
