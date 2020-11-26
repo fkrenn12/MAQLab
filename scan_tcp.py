@@ -2,12 +2,12 @@ import socket
 import time
 
 BUFFER_SIZE = 128  # max msg size
-TIMEOUT_SECONDS = 10  # return error if we dont hear from supply within 10 sec
+CONNECT_TIMEOUT_SECONDS = 0.5
 
 
 def scan_tcp_devices(devices, addresses, iplist, etherlock):
     idstrings = []
-    iplist = []
+    # iplist = []
     for d in devices:
         if d["interface"] == "ethernet":
             idstring = d["cmd_idn"]
@@ -15,8 +15,7 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
             idstring = idstring.replace("<LF>", "\n")
             idstrings.append(idstring.encode("utf-8"))
     idstrings = list(set(idstrings))
-    # TODO: bei TCP muss etwas anders vorgegangen werden!
-    #
+
     '''
     p = platform.platform()
     if "Windows" in p:
@@ -30,21 +29,22 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
     # LOOP
     # -------------------------------------------------------------
     while True:
-        # print("Start check com")
-        # time.sleep(1)
-        # print("Scan ethernet ip...")
+        # print("Scan network...")
+        # print("Scan ->>" + str(addresses))
         for addr in addresses:
             try:
-                print("->>" + str(addresses))
-                print(str(addr))
+                # print("->> " + str(addr))
                 dev_found = None
                 # -------------------------
                 # opening socket connection
                 # -------------------------
-                supplySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # set up socket
-                supplySocket.connect(addr)  # connect socket
-                supplySocket.settimeout(TIMEOUT_SECONDS)
-                buff = b''
+                scan_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # set up socket
+                # print("Socket: New Socket")
+                scan_socket.settimeout(CONNECT_TIMEOUT_SECONDS)
+                # print("Socket: Set Timeout")
+                scan_socket.connect(addr)  # connect socket
+                # print("Socket: Connected")
+
                 for ids in idstrings:
                     # the following sleep is necessary because a device
                     # which got a unknown command first needs time to recover
@@ -52,8 +52,8 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
                     # so at first we try four times more - 0.5sec
                     time.sleep(0.5)
                     try:
-                        supplySocket.sendall(ids)
-                        rep = supplySocket.recv(BUFFER_SIZE).decode("UTF-8").rstrip()
+                        scan_socket.sendall(ids)
+                        rep = scan_socket.recv(BUFFER_SIZE).decode("UTF-8").rstrip()
                     except:
                         continue
 
@@ -63,20 +63,26 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
                         for d in devices:
                             if d["idn_string"] in rep:
                                 dev_found = d
+                                # print("Found: " + d["idn_string"])
                                 break
                         if dev_found is not None:
                             break  # stop sending idstring because already found
                     # --------end of for loop writing idstrings ---------
-                if buff == "":
-                    continue  # next address
 
-                # close serial port
-                supplySocket.close()
-                del supplySocket
                 if dev_found is not None:
                     with etherlock:
-                        iplist.append({dev_found["classname"]: addr})
-
+                        if iplist.count({dev_found["classname"]: addr}) == 0:
+                            iplist.append({dev_found["classname"]: addr})
             except:
-                continue
-        time.sleep(0.5)
+                pass
+            finally:
+                # close connection
+                try:
+                    scan_socket.close()
+                    del scan_socket
+                    # print("Socket: Delete")
+                except:pass
+                # print("Socket: Close")
+
+
+        time.sleep(5)

@@ -46,6 +46,7 @@ from scan_tcp import scan_tcp_devices
 from Extensions.Manson_NTP6531 import NTP6531
 from Extensions.BKPrecision_2831E import BK2831E
 from Extensions.Keithley_SM2400 import SM2400
+from Extensions.Fluke_NORMA4000 import NORMA4000
 
 inventory = None
 inventory_numbers = None
@@ -114,8 +115,9 @@ def on_message(_client, _userdata, _msg):
                     for i in devices:
                         deviceidentifications.append(i["device"])
                     # print("Device-Identifiers:" + str(deviceidentifications))
-                except:
+                except Exception as e:
                     print("Error in devices.json")
+                    print(e)
                     return
         elif FILENAME_CONFIG_INVENTORY in topic:
             with devlock:
@@ -125,8 +127,9 @@ def on_message(_client, _userdata, _msg):
                     for i in inventory:
                         inventory_numbers.append(i["inventar_number"])
                     # print("Inventory numbers:" + str(inventory_numbers))
-                except:
+                except Exception as e:
                     print("Error in inventory.json")
+                    print(e)
                     return
         return
 

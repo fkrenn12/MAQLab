@@ -2,7 +2,7 @@ import serial
 import time
 import enum
 
-# Messung der Periode fehlt noch
+# TODO Messung der Periode fehlt noch
 
 EMPTY_BYTE_STRING = b''
 EMPTY_STRING = ""
@@ -34,7 +34,6 @@ class BK2831E:
     # Class Constructor
     # --------------------------------------------------
     def __init__(self, port, baudrate=BK2831E_DEFAULT_BAUDRATE):
-        # open serial connection
         # open serial connection
         try:
             self.__ser = serial.Serial(port, baudrate)

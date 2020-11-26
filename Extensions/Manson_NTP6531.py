@@ -101,5 +101,4 @@ class NTP6531(_NTP6531.NTP6531):
         self.__comport = ""
 
     def execute(self):
-
         pass

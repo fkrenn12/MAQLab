@@ -5,7 +5,7 @@ import socket
 class Delta:
     def __init__(self, ip, port=8462):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # set up socket
-        self.socket.connect(ip, port)  # connect socket
+        self.socket.connect((ip, port))  # connect socket
         self.socket.settimeout(10)
 
     def sendAndReceiveCommand(self, msg):
