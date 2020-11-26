@@ -135,9 +135,8 @@ class BK2831E:
             self.__model = EMPTY_BYTE_STRING
             self.__manufactorer = EMPTY_BYTE_STRING
             self.__serialnumber = EMPTY_BYTE_STRING
-        if self.__model == EMPTY_BYTE_STRING:
             print("ERR - NO RESPONSE")
-            raise
+
     # --------------------------------------------------
     def set_mode_vdc_auto_range(self, force=False):
         try:

@@ -30,7 +30,7 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
     # -------------------------------------------------------------
     while True:
         # print("Scan network...")
-        # print("Scan ->>" + str(addresses))
+        print("Scan ->>" + str(addresses))
         for addr in addresses:
             try:
                 # print("->> " + str(addr))

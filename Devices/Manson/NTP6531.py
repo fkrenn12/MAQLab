@@ -187,16 +187,14 @@ class NTP6531:
             self.__model = t[0].decode("utf-8")
             self.__manufactorer = "Manson"
             self.__serialnumber = str(9000 + random.randrange(999))
-            self.__devicetype = "DC-Powersupply"
+            self.__devicetype = "DC-Power Supply"
             self.__readline(TIMEOUT)  # read remaining chars
         except:
             self.__model = EMPTY_STRING
             self.__manufactorer = EMPTY_STRING
             self.__serialnumber = EMPTY_STRING
             self.__devicetype = EMPTY_STRING
-        if self.__model == EMPTY_STRING:
             print("ERR - NO RESPONSE")
-            raise
 
     # --------------------------------------------------
     def output(self, s):
@@ -226,7 +224,7 @@ class NTP6531:
         if (tic - self.__last_measure_tic) < DISPLAY_INTERVAL:
             return response
         try:
-            for i in range(1, 11):   # 10 times trying
+            for i in range(1, 11):  # 10 times trying
                 self.__ser.flushInput()
                 cmd = b'GETD\r'
                 self.__ser.write(cmd)
@@ -292,7 +290,7 @@ class NTP6531:
             v = float(v)
             v = self.__voltage_limiter(v)
             try:
-                for i in range(1, 11):   # 10 times trying
+                for i in range(1, 11):  # 10 times trying
                     self.__ser.flush()
                     self.__ser.flushInput()
                     cmd = "VOLT" + (str(int(v * 100)).zfill(4)) + "\r"

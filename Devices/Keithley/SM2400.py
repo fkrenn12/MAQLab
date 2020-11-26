@@ -174,9 +174,7 @@ class SM2400:
             self.__manufactorer = EMPTY_STRING
             self.__serialnumber = EMPTY_STRING
             self.__devicetype = EMPTY_STRING
-        if self.__model == EMPTY_STRING:
             print("ERR - NO RESPONSE")
-            raise
 
     def disable_human_security_mode(self):
         self.__voltage_high_limit_human_secure = SM2400_VOLTAGE_HIGH_LIMIT
