@@ -47,6 +47,7 @@ from Extensions.Manson_NTP6531 import NTP6531
 from Extensions.BKPrecision_2831E import BK2831E
 from Extensions.Keithley_SM2400 import SM2400
 from Extensions.Fluke_NORMA4000 import NORMA4000
+from Extensions.Delta_SM70AR24 import SM70AR24
 
 inventory = None
 inventory_numbers = None

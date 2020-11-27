@@ -5,8 +5,12 @@ import enum
 EMPTY_BYTE_STRING = b''
 EMPTY_STRING = ""
 MINIMUM_TIME_IN_MS_BETWEEN_COMMANDS = 100  # not defined yet but we use 100 to test it
-DEFAULT_PORT = 23
+DEFAULT_PORT = 8462
 BUFFER_SIZE = 1024  # max msg size
+SM70AR24_VOLTAGE_HIGH_LIMIT = 70.0
+SM70AR24_VOLTAGE_LOW_LIMIT = 0
+SM70AR24_CURRENT_HIGH_LIMIT = 24.0
+SM70AR24_CURRENT_LOW_LIMIT = 0
 
 
 # --------------------------------------------------
@@ -93,6 +97,18 @@ class SM70AR24:
             self.__manufactorer = EMPTY_BYTE_STRING
             self.__serialnumber = EMPTY_BYTE_STRING
             print("ERR - NO RESPONSE")
+
+    # --------------------------------------------------
+
+    def output_on(self):
+        cmd = "OUTPUT 1"
+        return bool(self.__send_command(cmd))
+
+    # --------------------------------------------------
+
+    def output_off(self):
+        cmd = "OUTPUT 0"
+        return bool(self.__send_command(cmd))
 
     # --------------------------------------------------
     def __del__(self):
