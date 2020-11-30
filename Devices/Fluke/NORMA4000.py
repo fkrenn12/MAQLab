@@ -16,7 +16,7 @@ class NORMA4000:
     # --------------------------------------------------
     def __init__(self, addr):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # set up socket
-        self.socket.settimeout(2)
+        self.socket.settimeout(10)
         self.socket.connect(addr)  # connect socket
 
         self.__idstring = EMPTY_STRING
@@ -51,7 +51,7 @@ class NORMA4000:
     def __send_and_receive_command(self, command):
         command = command + "\n"
         try:
-            self.socket.settimeout(0.5)
+            self.socket.settimeout(5)
             self.socket.sendall(command.encode("UTF-8"))
             return self.socket.recv(BUFFER_SIZE).decode("UTF-8").rstrip()
         except:
@@ -60,7 +60,7 @@ class NORMA4000:
     # set value without receiving a response
     def __send_command(self, command):
         try:
-            self.socket.settimeout(0.5)
+            self.socket.settimeout(5)
             command = command + "\n"
             self.socket.sendall(command.encode("UTF-8"))
             return True

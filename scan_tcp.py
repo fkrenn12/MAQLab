@@ -30,10 +30,10 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
     # -------------------------------------------------------------
     while True:
         # print("Scan network...")
-        print("Scan ->>" + str(addresses))
+        # print("Scan ->>" + str(addresses))
         for addr in addresses:
             try:
-                # print("->> " + str(addr))
+                print("->> " + str(addr))
                 dev_found = None
                 # -------------------------
                 # opening socket connection
@@ -70,6 +70,14 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
                     # --------end of for loop writing idstrings ---------
 
                 if dev_found is not None:
+                    # close connection
+                    try:
+                        scan_socket.close()
+                        del scan_socket
+                        # print("Socket: Delete")
+                    except:
+                        pass
+                    # print("Socket: Close")
                     with etherlock:
                         if iplist.count({dev_found["classname"]: addr}) == 0:
                             iplist.append({dev_found["classname"]: addr})
@@ -85,4 +93,4 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
                 # print("Socket: Close")
 
 
-        time.sleep(5)
+        time.sleep(10)
