@@ -56,11 +56,6 @@ class NTP6531:
         # ---------------------------
         # application limits
         # ---------------------------
-        self.__voltage_high_limit = voltage_high_limit
-        self.__current_high_limit = current_high_limit
-        # ---------------------------
-        # application limits
-        # ---------------------------
         self.__app_voltage_low_limit = voltage_low_limit
         self.__app_voltage_high_limit = voltage_high_limit
         self.__app_current_low_limit = current_low_limit
@@ -72,7 +67,7 @@ class NTP6531:
         self.id()
 
     # --------------------------------------------------
-    def set_current_limit(self, upper=NTP6531_CURRENT_HIGH_LIMIT, lower=NTP6531_CURRENT_LOW_LIMIT):
+    def set_app_current_limit(self, upper=NTP6531_CURRENT_HIGH_LIMIT, lower=NTP6531_CURRENT_LOW_LIMIT):
         if type(upper) is int or type(upper) is float and \
                 type(lower) is int or type(lower) is float:
 
@@ -85,7 +80,7 @@ class NTP6531:
             return
 
     # --------------------------------------------------
-    def set_voltage_limit(self, upper=NTP6531_VOLTAGE_HIGH_LIMIT, lower=NTP6531_VOLTAGE_LOW_LIMIT):
+    def set_app_voltage_limit(self, upper=NTP6531_VOLTAGE_HIGH_LIMIT, lower=NTP6531_VOLTAGE_LOW_LIMIT):
         if type(upper) is int or type(upper) is float and \
                 type(lower) is int or type(lower) is float:
             self.__app_voltage_high_limit = upper
@@ -365,7 +360,6 @@ class NTP6531:
     current = property(__get_current_display)
     current_as_string = property(__get_current_display_as_string)
     current_unit = property(__get_current_unit)
-
     serialnumber = property(__get_serialnumber)
     manufactorer = property(__get_manufactorer)
     devicetype = property(__get_devicetype)

@@ -38,23 +38,20 @@ class SM70AR24(_SM70AR24.SM70AR24):
             if int(value) == 0:
                 self.output_off()
                 client.publish(t["reply"], p["payload_accepted"])
-                return
             else:
                 self.output_on()
                 client.publish(t["reply"], p["payload_accepted"])
-                return
+            return
         elif command == "volt" or command == "volt:dc" or command == "vdc":
             # checking the value limits
             if _SM70AR24.SM70AR24_VOLTAGE_HIGH_LIMIT >= value >= _SM70AR24.SM70AR24_VOLTAGE_LOW_LIMIT:
-                # TODO
-                # self.apply_volt = value
+                self.apply_volt = value
                 client.publish(t["reply"], p["payload_accepted"])
                 return
         elif command == "curr" or command == "curr:dc" or command == "idc":
             # checking limits
             if _SM70AR24.SM70AR24_CURRENT_HIGH_LIMIT >= value >= _SM70AR24.SM70AR24_CURRENT_LOW_LIMIT:
-                # TODO
-                # self.apply_current = value
+                self.apply_current = value
                 client.publish(t["reply"], p["payload_accepted"])
                 return
         elif command == "volt?" or command == "volt:dc?" or command == "vdc?":

@@ -37,11 +37,10 @@ class NTP6531(_NTP6531.NTP6531):
             if int(value) == 0:
                 self.output_off()
                 client.publish(t["reply"], p["payload_accepted"])
-                return
             else:
                 self.output_on()
                 client.publish(t["reply"], p["payload_accepted"])
-                return
+            return
         elif command == "volt" or command == "volt:dc" or command == "vdc":
             # checking the value limits
             if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
