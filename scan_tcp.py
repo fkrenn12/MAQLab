@@ -33,7 +33,7 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
         # print("Scan ->>" + str(addresses))
         for addr in addresses:
             try:
-                print("->> " + str(addr))
+                # print("->> " + str(addr))
                 dev_found = None
                 # -------------------------
                 # opening socket connection
