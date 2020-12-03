@@ -15,6 +15,7 @@ SM70AR24_CURRENT_LOW_LIMIT = 0
 
 HUMAN_SECURE_MAX_VOLTAGE = 50
 VOLT_UNDEFINED_VALUE = -999999.99
+CURRENT_UNDEFINED_VALUE = -999999.99
 
 # --------------------------------------------------
 class SM70AR24:
@@ -256,7 +257,19 @@ class SM70AR24:
                     pass
         except:
             pass
+    # --------------------------------------------------
 
+    def __get_current_display(self):
+        try:
+            self.__current_display = float(self.__send_and_receive_command("MEAS:CURR?"))
+        except:
+            return CURRENT_UNDEFINED_VALUE
+        return self.__current_display
+        # --------------------------------------------------
+
+    def __get_current_display_as_string(self):
+        self.__get_current_display()
+        return "{:.6f}".format(self.__current_display) + " " + self.__get_current_unit()
     # --------------------------------------------------
 
     def __del__(self):
@@ -278,15 +291,25 @@ class SM70AR24:
     def __get_model(self):
         return self.__model
 
-        # --------------------------------------------------
+    # --------------------------------------------------
 
     def __get_volt_unit(self):
         return "V"
 
-        # --------------------------------------------------
+    # --------------------------------------------------
 
     def __get_current_unit(self):
         return "A"
+
+    # --------------------------------------------------
+
+    def __get_volt_undef_value(self):
+        return VOLT_UNDEFINED_VALUE
+
+    # --------------------------------------------------
+
+    def __get_current_undef_value(self):
+        return CURRENT_UNDEFINED_VALUE
 
     # ----------------------
     # Interface to the world
@@ -294,11 +317,15 @@ class SM70AR24:
     apply_volt = property(__get_volt, __set_volt)
     volt = property(__get_volt_display)
     volt_as_string = property(__get_volt_display_as_string)
-    # volt_unit = property(__get_volt_unit)
+    volt_unit = property(__get_volt_unit)
+    volt_undef_value = property(__get_volt_undef_value)
+    # -------------------------------------------------------------
     apply_current = property(__get_current, __set_current)
-    # current = property(__get_current_display)
-    # current_as_string = property(__get_current_display_as_string)
-    # current_unit = property(__get_current_unit)
+    current = property(__get_current_display)
+    current_as_string = property(__get_current_display_as_string)
+    current_unit = property(__get_current_unit)
+    current_undef_value = property(__get_current_undef_value)
+    # -------------------------------------------------------------
     serialnumber = property(__get_serialnumber)
     manufactorer = property(__get_manufactorer)
     devicetype = property(__get_devicetype)
