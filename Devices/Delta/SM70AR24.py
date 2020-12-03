@@ -14,7 +14,7 @@ SM70AR24_CURRENT_HIGH_LIMIT = 24.0
 SM70AR24_CURRENT_LOW_LIMIT = 0
 
 HUMAN_SECURE_MAX_VOLTAGE = 50
-
+VOLT_UNDEFINED_VALUE = -999999.99
 
 # --------------------------------------------------
 class SM70AR24:
@@ -38,6 +38,8 @@ class SM70AR24:
         self.__manufactorer = EMPTY_STRING
         self.__devicetype = EMPTY_STRING
         self.__last_command_time = int(round(time.time() * 1000))
+
+        self.__volt_display = VOLT_UNDEFINED_VALUE
 
         # self.__mode = Mode.NONE
         # ---------------------------
@@ -197,9 +199,9 @@ class SM70AR24:
     # --------------------------------------------------
     def __get_volt(self):
         try:
-            return self.__send_and_receive_command("SOUR:VOLT?")
+            return float(self.__send_and_receive_command("SOUR:VOLT?"))
         except:
-            return ""
+            return VOLT_UNDEFINED_VALUE
 
     # --------------------------------------------------
 
@@ -218,6 +220,18 @@ class SM70AR24:
         except:
             pass
 
+    # --------------------------------------------------
+    def __get_volt_display(self):
+        try:
+            self.__volt_display = float(self.__send_and_receive_command("MEAS:VOLT?"))
+        except:
+            return VOLT_UNDEFINED_VALUE
+        return self.__volt_display
+    # --------------------------------------------------
+
+    def __get_volt_display_as_string(self):
+        self.__get_volt_display()
+        return "{:.6f}".format(self.__volt_display) + " " + self.__get_volt_unit()
     # --------------------------------------------------
 
     def __get_current(self):
@@ -264,12 +278,22 @@ class SM70AR24:
     def __get_model(self):
         return self.__model
 
+        # --------------------------------------------------
+
+    def __get_volt_unit(self):
+        return "V"
+
+        # --------------------------------------------------
+
+    def __get_current_unit(self):
+        return "A"
+
     # ----------------------
     # Interface to the world
     # ----------------------
     apply_volt = property(__get_volt, __set_volt)
-    # volt = property(__get_volt_display)
-    # volt_as_string = property(__get_volt_display_as_string)
+    volt = property(__get_volt_display)
+    volt_as_string = property(__get_volt_display_as_string)
     # volt_unit = property(__get_volt_unit)
     apply_current = property(__get_current, __set_current)
     # current = property(__get_current_display)

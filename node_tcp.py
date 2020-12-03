@@ -117,6 +117,7 @@ def on_message(_client, _userdata, _msg):
                         deviceidentifications.append(i["device"])
                     # print("Device-Identifiers:" + str(deviceidentifications))
                 except Exception as e:
+                    print(devices)
                     print("Error in devices.json")
                     print(e)
                     return
@@ -129,6 +130,7 @@ def on_message(_client, _userdata, _msg):
                         inventory_numbers.append(i["inventar_number"])
                     # print("Inventory numbers:" + str(inventory_numbers))
                 except Exception as e:
+                    print(inventory)
                     print("Error in inventory.json")
                     print(e)
                     return

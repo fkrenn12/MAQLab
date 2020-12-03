@@ -55,8 +55,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
                 client.publish(t["reply"], p["payload_accepted"])
                 return
         elif command == "volt?" or command == "volt:dc?" or command == "vdc?":
-            # TODO
-            # client.publish(t["reply"], self.volt_as_string)
+            client.publish(t["reply"], self.volt_as_string)
             return
         elif command == "curr?" or command == "curr:dc?" or command == "idc?":
             # TODO

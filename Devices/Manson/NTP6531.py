@@ -247,7 +247,6 @@ class NTP6531:
     def __get_volt_display(self):
         self.__get_display()
         return self.__volt_display
-        pass
 
     # --------------------------------------------------
     def __get_volt_display_as_string(self):
