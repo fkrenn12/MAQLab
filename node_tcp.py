@@ -236,12 +236,13 @@ if __name__ == "__main__":
 
         if len(devlist) > 0:
             for dev in devlist:
-                if dev.connected():
-                    # print("Connected")
-                    dev.execute()
-                else:
-                    # print("NOT Connected")
-                    with devlock:
-                        dev.on_destroyed()
-                        devlist.remove(dev)
-                        del dev
+                with devlock:
+                    if dev.connected():
+                        # print("Connected")
+                        dev.execute()
+                    else:
+                        # print("NOT Connected")
+                        with devlock:
+                            dev.on_destroyed()
+                            devlist.remove(dev)
+                            del dev
