@@ -62,6 +62,9 @@ class SM70AR24:
         # ---------------------------
         self.__voltage_high_limit_human_secure = HUMAN_SECURE_MAX_VOLTAGE
         self.id()
+        self.__send_command("SYST:REM:CC REM")
+        time.sleep(1)
+        self.__send_command("SYST:REM:CV REM")
         # self.set_mode_vdc_auto_range()
 
     # --------------------------------------------------
@@ -210,7 +213,7 @@ class SM70AR24:
         # we only accept int or float
         try:
             # Voltage control: "REM" remote , "LOC" local from panel
-            self.__send_command("SYST:REM:CV REM")
+            # self.__send_command("SYST:REM:CV REM")
             if type(voltage_to_apply) is int or type(voltage_to_apply) is float:
                 voltage_to_apply = float(voltage_to_apply)
                 voltage_to_apply = self.__voltage_limiter(voltage_to_apply)
@@ -247,7 +250,7 @@ class SM70AR24:
         # we only accept int or float
         try:
             # Current control: "REM" remote , "LOC" local from panel
-            self.__send_command("SYST:REM:CC REM")
+            # self.__send_command("SYST:REM:CC REM")
             if type(current_to_apply) is int or type(current_to_apply) is float:
                 current_to_apply = float(current_to_apply)
                 current_to_apply = self.__voltage_limiter(current_to_apply)
