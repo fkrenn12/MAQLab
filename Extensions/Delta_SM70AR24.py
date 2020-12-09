@@ -58,15 +58,13 @@ class SM70AR24(_SM70AR24.SM70AR24):
             client.publish(t["reply"], self.volt_as_string)
             return
         elif command == "curr?" or command == "curr:dc?" or command == "idc?":
-            # TODO
-            # client.publish(t["reply"], self.current_as_string)
+            client.publish(t["reply"], self.current_as_string)
             return
         elif command == "power?" or command == "pow?" or command == "p?":
-            # TODO
-            # volt = self.volt
-            # curr = self.current
-            # power = volt * curr
-            # client.publish(t["reply"], "{:.6f}".format(power) + " WDC")
+            volt = self.volt
+            curr = self.current
+            power = volt * curr
+            client.publish(t["reply"], "{:.6f}".format(power) + " WDC")
             return
         elif command == "mode?":
             # TODO
@@ -96,7 +94,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
     def on_created(self, addr, inventarnumber):
         self.__addr = addr
         self.__inventarnumber = inventarnumber
-        print(self.devicetype + " " + self.model + " plugged into " + str(self.__addr) + ", Inventory number is: "
+        print(self.devicetype + " " + self.model + " plugged into " + str(self.__addr) + ", Accessnumber is: "
               + str(inventarnumber))
 
     def on_destroyed(self):

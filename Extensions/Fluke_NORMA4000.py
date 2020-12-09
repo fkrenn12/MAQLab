@@ -38,7 +38,7 @@ class NORMA4000(_NORMA4000.NORMA4000):
     def on_created(self, addr, inventarnumber):
         self.__addr = addr
         self.__inventarnumber = inventarnumber
-        print(self.devicetype + " " + self.model + " plugged into " + str(self.__addr) + ", Inventory number is: "
+        print(self.devicetype + " " + self.model + " plugged into " + str(self.__addr) + ", Accessnumber is: "
               + str(inventarnumber))
 
     def on_destroyed(self):

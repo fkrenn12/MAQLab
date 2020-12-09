@@ -117,7 +117,7 @@ class BK2831E(E2831.BK2831E):
     def on_created(self, comport, inventarnumber):
         self.__comport = comport
         self.__inventarnumber = inventarnumber
-        print(self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Inventory number is: "
+        print(self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Accessnumber is: "
               + str(inventarnumber))
 
     def on_destroyed(self):
