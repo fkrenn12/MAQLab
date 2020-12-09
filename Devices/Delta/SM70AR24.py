@@ -17,6 +17,7 @@ HUMAN_SECURE_MAX_VOLTAGE = 50
 VOLT_UNDEFINED_VALUE = -999999.99
 CURRENT_UNDEFINED_VALUE = -999999.99
 
+
 # --------------------------------------------------
 class SM70AR24:
     # --------------------------------------------------
@@ -183,7 +184,6 @@ class SM70AR24:
             print("ERR - NO RESPONSE")
 
     # --------------------------------------------------
-
     def output_on(self):
         cmd = "OUTPUT 1"
         try:
@@ -192,7 +192,6 @@ class SM70AR24:
             return False
 
     # --------------------------------------------------
-
     def output_off(self):
         cmd = "OUTPUT 0"
         try:
@@ -208,11 +207,13 @@ class SM70AR24:
             return VOLT_UNDEFINED_VALUE
 
     # --------------------------------------------------
-
     def __set_volt(self, voltage_to_apply):
         # we only accept int or float
         try:
             # Voltage control: "REM" remote , "LOC" local from panel
+            cv_status = self.__send_and_receive_command("SYST:REM:CV?")
+            if "LOC" in cv_status:
+                self.__send_command("SYST:REM:CV REM")
             # self.__send_command("SYST:REM:CV REM")
             if type(voltage_to_apply) is int or type(voltage_to_apply) is float:
                 voltage_to_apply = float(voltage_to_apply)
@@ -231,13 +232,13 @@ class SM70AR24:
         except:
             return VOLT_UNDEFINED_VALUE
         return self.__volt_display
-    # --------------------------------------------------
 
+    # --------------------------------------------------
     def __get_volt_display_as_string(self):
         self.__get_volt_display()
         return "{:.6f}".format(self.__volt_display) + " " + self.__get_volt_unit()
-    # --------------------------------------------------
 
+    # --------------------------------------------------
     def __get_current(self):
         try:
             return self.__send_and_receive_command("SOUR:CURR?")
@@ -245,11 +246,13 @@ class SM70AR24:
             return ""
 
     # --------------------------------------------------
-
     def __set_current(self, current_to_apply):
         # we only accept int or float
         try:
             # Current control: "REM" remote , "LOC" local from panel
+            cc_status = self.__send_and_receive_command("SYST:REM:CC?")
+            if "LOC" in cc_status:
+                self.__send_command("SYST:REM:CC REM")
             # self.__send_command("SYST:REM:CC REM")
             if type(current_to_apply) is int or type(current_to_apply) is float:
                 current_to_apply = float(current_to_apply)
@@ -260,6 +263,7 @@ class SM70AR24:
                     pass
         except:
             pass
+
     # --------------------------------------------------
 
     def __get_current_display(self):
@@ -273,8 +277,8 @@ class SM70AR24:
     def __get_current_display_as_string(self):
         self.__get_current_display()
         return "{:.6f}".format(self.__current_display) + " " + self.__get_current_unit()
-    # --------------------------------------------------
 
+    # --------------------------------------------------
     def __del__(self):
         self.socket.close()
 
@@ -295,22 +299,18 @@ class SM70AR24:
         return self.__model
 
     # --------------------------------------------------
-
     def __get_volt_unit(self):
         return "V"
 
     # --------------------------------------------------
-
     def __get_current_unit(self):
         return "A"
 
     # --------------------------------------------------
-
     def __get_volt_undef_value(self):
         return VOLT_UNDEFINED_VALUE
 
     # --------------------------------------------------
-
     def __get_current_undef_value(self):
         return CURRENT_UNDEFINED_VALUE
 
