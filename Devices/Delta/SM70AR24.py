@@ -2,7 +2,7 @@ import socket
 import time
 import enum
 
-SOCKET_TIMEOUT_SECONDS = 5
+SOCKET_TIMEOUT_SECONDS = 1
 EMPTY_BYTE_STRING = b''
 EMPTY_STRING = ""
 MINIMUM_TIME_IN_MS_BETWEEN_COMMANDS = 100  # not defined yet but we use 100 to test it
@@ -126,7 +126,10 @@ class SM70AR24:
         if self.socket is not None:
             rep = self.__send_and_receive_command("*idn?")
             if self.__serialnumber in rep:
+                print(rep)
                 return True
+        print("Timout")
+        print(rep)
         return False
 
     # --------------------------------------------------
