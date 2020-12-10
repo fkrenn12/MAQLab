@@ -291,7 +291,7 @@ class SM70AR24:
                 self.__send_command("SYST:REM:CC REM")
             if type(current_to_apply) is int or type(current_to_apply) is float:
                 current_to_apply = float(current_to_apply)
-                current_to_apply = self.__voltage_limiter(current_to_apply)
+                current_to_apply = self.__current_limiter(current_to_apply)
                 try:
                     self.__send_command("SOUR:CURR {0}".format(current_to_apply))
                 except:
