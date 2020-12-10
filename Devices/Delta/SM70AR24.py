@@ -134,11 +134,12 @@ class SM70AR24:
     # --------------------------------------------------
     def connected(self):
         if self.socket is not None:
-            rep = self.__send_and_receive_command("STAT:REG:A?")
-            if rep != "":
+            # rep = self.__send_and_receive_command("STAT:REG:A?")
+            rep = self.__send_and_receive_command("*idn?")
+            # if rep != "":
+            #    return True
+            if self.__serialnumber in rep:
                 return True
-            # if self.__serialnumber in rep:
-            #     return True
         return False
 
     # --------------------------------------------------
@@ -150,7 +151,7 @@ class SM70AR24:
             self.__last_command_time = int(round(time.time() * 1000))
             received = self.socket.recv(BUFFER_SIZE)
             if isinstance(received, bytes):
-                rec = received.decode("UTF-8").rstrip()
+                received = received.decode("UTF-8").rstrip()
             return received
         except:
             return ""
@@ -180,7 +181,6 @@ class SM70AR24:
     # --------------------------------------------------
     def id(self):
         try:
-            # TODO -----> Check it
             self.__idstring = self.__send_and_receive_command("*idn?")
             if len(self.__idstring) > 0:
                 t = self.__idstring.split(",")
