@@ -96,11 +96,11 @@ class SM70AR24:
         return self.__app_voltage_high_limit
 
     # --------------------------------------------------
-    def __set_volt_upper_limit(self, volt_max):
+    def __set_volt_upper_limit(self, volt):
         try:
-            volt_max = float(volt_max)
-            clip(volt_max, SM70AR24_VOLTAGE_LOW_LIMIT, SM70AR24_VOLTAGE_HIGH_LIMIT)
-            self.__app_voltage_high_limit = volt_max
+            volt = float(volt)
+            volt = clip(volt, SM70AR24_VOLTAGE_LOW_LIMIT, SM70AR24_VOLTAGE_HIGH_LIMIT)
+            self.__app_voltage_high_limit = volt
         except:
             pass
 
@@ -112,7 +112,7 @@ class SM70AR24:
     def __set_volt_lower_limit(self, volt_min):
         try:
             volt_min = float(volt_min)
-            clip(volt_min, SM70AR24_VOLTAGE_LOW_LIMIT, SM70AR24_VOLTAGE_HIGH_LIMIT)
+            volt_min = clip(volt_min, SM70AR24_VOLTAGE_LOW_LIMIT, SM70AR24_VOLTAGE_HIGH_LIMIT)
             self.__app_voltage_low_limit = volt_min
         except:
             pass
@@ -120,9 +120,9 @@ class SM70AR24:
     # --------------------------------------------------
     def __voltage_limiter(self, volt):
         # limits
-        clip(volt, self.__device_voltage_low_limit, self.__device_voltage_high_limit)
-        clip(volt, self.__app_voltage_low_limit, self.__app_voltage_high_limit)
-        clip(volt, -abs(self.__voltage_high_limit_human_secure), abs(self.__voltage_high_limit_human_secure))
+        volt = clip(volt, self.__device_voltage_low_limit, self.__device_voltage_high_limit)
+        volt = clip(volt, self.__app_voltage_low_limit, self.__app_voltage_high_limit)
+        volt = clip(volt, -abs(self.__voltage_high_limit_human_secure), abs(self.__voltage_high_limit_human_secure))
         return volt
 
     # --------------------------------------------------
@@ -133,7 +133,7 @@ class SM70AR24:
     def __set_current_upper_limit(self, current_max):
         try:
             current_max = float(current_max)
-            clip(current_max, SM70AR24_CURRENT_LOW_LIMIT, SM70AR24_CURRENT_HIGH_LIMIT)
+            current_max = clip(current_max, SM70AR24_CURRENT_LOW_LIMIT, SM70AR24_CURRENT_HIGH_LIMIT)
             self.__app_current_high_limit = current_max
         except:
             pass
@@ -146,7 +146,7 @@ class SM70AR24:
     def __set_current_lower_limit(self, current_min):
         try:
             current_min = float(current_min)
-            clip(current_min, SM70AR24_CURRENT_LOW_LIMIT, SM70AR24_CURRENT_HIGH_LIMIT)
+            current_min = clip(current_min, SM70AR24_CURRENT_LOW_LIMIT, SM70AR24_CURRENT_HIGH_LIMIT)
             self.__app_current_low_limit = current_min
         except:
             pass
@@ -154,8 +154,8 @@ class SM70AR24:
     # --------------------------------------------------
     def __current_limiter(self, current):
         # limits
-        clip(current, self.__device_current_low_limit, self.__device_current_high_limit)
-        clip(current, self.__app_current_low_limit, self.__app_current_high_limit)
+        current = clip(current, self.__device_current_low_limit, self.__device_current_high_limit)
+        current = clip(current, self.__app_current_low_limit, self.__app_current_high_limit)
         return current
 
     # --------------------------------------------------

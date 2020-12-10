@@ -43,7 +43,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
                 client.publish(t["reply"], p["payload_accepted"])
             return
         # ------------------------------------------------------------------------------------------------
-        # V O L T A G E - Handling
+        # V O L T A G E commands - Handling
         # ------------------------------------------------------------------------------------------------
         elif command == "volt?" or command == "volt:dc?" or command == "vdc?":
             client.publish(t["reply"], self.volt_as_string)
@@ -79,7 +79,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
                 client.publish(t["reply"], p["payload_accepted"])
                 return
         # ------------------------------------------------------------------------------------------------
-        # C U R R E N T - Handling
+        # C U R R E N T commands - Handling
         # ------------------------------------------------------------------------------------------------
         elif command == "curr" or command == "curr:dc" or command == "idc":
             # checking limits
