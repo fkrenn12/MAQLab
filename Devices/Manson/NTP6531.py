@@ -328,7 +328,39 @@ class NTP6531:
         return ""
 
     # --------------------------------------------------
+    def __get_applied(self):
+        response = EMPTY_BYTE_STRING
+        tic = int(round(time.time() * 1000))
+        #  check minimal call time interval
+        if (tic - self.__last_measure_tic) < DISPLAY_INTERVAL:
+            return response
+        try:
+            for i in range(1, 11):  # 10 times trying
+                self.__ser.flushInput()
+                cmd = b'GETS\r'
+                self.__ser.write(cmd)
+                response = self.__readline(TIMEOUT)
+                if len(response) > 0:
+                    self.__readline(TIMEOUT)  # OK kann noch gecheckt werden
+                    if len(response) > 0:
+                        break
+        except:
+            return EMPTY_BYTE_STRING
+
+        self.__last_measure_tic = int(round(time.time() * 1000))
+        if len(response) > 0:
+            res = response.split(b';')
+            try:
+                self.__volt_applied = float(res[0]) / 100.0
+                self.__current_applied = float(res[1]) / 1000.0
+            except:
+                pass
+
+        return response
+
+    # --------------------------------------------------
     def __get_volt(self):
+        self.__get_applied()
         return self.__volt_applied
 
     # --------------------------------------------------
@@ -354,6 +386,7 @@ class NTP6531:
 
     # --------------------------------------------------
     def __get_current(self):
+        self.__get_applied()
         return self.__current_applied
 
     def __set_current(self, c):
