@@ -1,6 +1,6 @@
 import random
 import time
-
+from numpy import clip
 import serial
 
 OK_BYTE_STRING = b'OK'
@@ -8,6 +8,8 @@ EMPTY_BYTE_STRING = b''
 EMPTY_STRING = ""
 
 HUMAN_SECURE_MAX_VOLTAGE = 50
+VOLT_UNDEFINED_VALUE = -999999.99
+CURRENT_UNDEFINED_VALUE = -999999.99
 
 TIMEOUT = 200  # serial read time in milliseconds of a line
 DISPLAY_INTERVAL = 100  # minimal interval between display readings in milliseconds
@@ -91,36 +93,21 @@ class NTP6531:
         else:
             return
 
-    # --------------------------------------------------
+        # --------------------------------------------------
+
     def __voltage_limiter(self, volt):
-        # upper limits
-        if volt > self.__device_voltage_high_limit:
-            volt = self.__device_voltage_high_limit
-        if volt > self.__app_voltage_high_limit:
-            volt = self.__app_voltage_high_limit
-        if volt > abs(self.__voltage_high_limit_human_secure):
-            volt = abs(self.__voltage_high_limit_human_secure)
-        # lower limit
-        if volt < self.__device_voltage_low_limit:
-            volt = self.__device_voltage_low_limit
-        if volt < self.__app_voltage_low_limit:
-            volt = self.__app_voltage_low_limit
-        if volt < -abs(self.__voltage_high_limit_human_secure):
-            volt = -abs(self.__voltage_high_limit_human_secure)
+        # limits
+        clip(volt, self.__device_voltage_low_limit, self.__device_voltage_high_limit)
+        clip(volt, self.__app_voltage_low_limit, self.__app_voltage_high_limit)
+        clip(volt, -abs(self.__voltage_high_limit_human_secure), abs(self.__voltage_high_limit_human_secure))
         return volt
 
-    # --------------------------------------------------
+        # --------------------------------------------------
+
     def __current_limiter(self, current):
-        # upper limits
-        if current > self.__device_current_high_limit:
-            current = self.__device_current_high_limit
-        if current > self.__app_current_high_limit:
-            current = self.__app_current_high_limit
-        # lower limit
-        if current < self.__device_current_low_limit:
-            current = self.__device_current_low_limit
-        if current < self.__app_current_low_limit:
-            current = self.__app_current_low_limit
+        # limits
+        clip(current, self.__device_current_low_limit, self.__device_current_high_limit)
+        clip(current, self.__app_current_low_limit, self.__app_current_high_limit)
         return current
 
     # --------------------------------------------------
@@ -345,6 +332,14 @@ class NTP6531:
     def __get_current_unit(self):
         return "A"
 
+    # --------------------------------------------------
+    def __get_volt_undef_value(self):
+        return VOLT_UNDEFINED_VALUE
+
+    # --------------------------------------------------
+    def __get_current_undef_value(self):
+        return CURRENT_UNDEFINED_VALUE
+
     def close(self):
         self.__ser.close()
 
@@ -355,10 +350,20 @@ class NTP6531:
     volt = property(__get_volt_display)
     volt_as_string = property(__get_volt_display_as_string)
     volt_unit = property(__get_volt_unit)
+    volt_undefined_value = property(__get_volt_undef_value)
+    # TODO
+    # volt_limit_max = property(__get_volt_max_limit, __set_volt_max_limit)
+    # volt_limit_min = property(__get_volt_min_limit, __set_volt_min_limit)
+    # ----------------------------------------------------------
     apply_current = property(__get_current, __set_current)
     current = property(__get_current_display)
     current_as_string = property(__get_current_display_as_string)
     current_unit = property(__get_current_unit)
+    current_undefined_value = property(__get_current_undef_value)
+    # TODO
+    # current_limit_max = property(__get_current_max_limit, __set_current_max_limit)
+    # current_limit_min = property(__get_current_min_limit, __set_current_min_limit)
+    # ----------------------------------------------------------
     serialnumber = property(__get_serialnumber)
     manufactorer = property(__get_manufactorer)
     devicetype = property(__get_devicetype)

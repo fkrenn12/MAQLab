@@ -1,6 +1,6 @@
 import socket
 import time
-import enum
+from numpy import clip
 
 SOCKET_TIMEOUT_SECONDS = 1
 EMPTY_BYTE_STRING = b''
@@ -63,11 +63,8 @@ class SM70AR24:
         # ---------------------------
         self.__voltage_high_limit_human_secure = HUMAN_SECURE_MAX_VOLTAGE
         self.id()
-        self.__send_command("SYST:REM:CC REM")
-        time.sleep(1)
-        self.__send_command("SYST:REM:CV REM")
-        # self.set_mode_vdc_auto_range()
 
+    '''
     # --------------------------------------------------
     def set_app_current_limit(self, upper=SM70AR24_CURRENT_HIGH_LIMIT, lower=SM70AR24_CURRENT_LOW_LIMIT):
         if type(upper) is int or type(upper) is float and \
@@ -92,37 +89,73 @@ class SM70AR24:
                 self.__app_voltage_low_limit = lower
         else:
             return
+    '''
+
+    # --------------------------------------------------
+    def __get_volt_upper_limit(self):
+        return self.__app_voltage_high_limit
+
+    # --------------------------------------------------
+    def __set_volt_upper_limit(self, volt_max):
+        try:
+            volt_max = float(volt_max)
+            clip(volt_max, SM70AR24_VOLTAGE_LOW_LIMIT, SM70AR24_VOLTAGE_HIGH_LIMIT)
+            self.__app_voltage_high_limit = volt_max
+        except:
+            pass
+
+    # --------------------------------------------------
+    def __get_volt_lower_limit(self):
+        return self.__app_voltage_low_limit
+
+    # --------------------------------------------------
+    def __set_volt_lower_limit(self, volt_min):
+        try:
+            volt_min = float(volt_min)
+            clip(volt_min, SM70AR24_VOLTAGE_LOW_LIMIT, SM70AR24_VOLTAGE_HIGH_LIMIT)
+            self.__app_voltage_low_limit = volt_min
+        except:
+            pass
 
     # --------------------------------------------------
     def __voltage_limiter(self, volt):
-        # upper limits
-        if volt > self.__device_voltage_high_limit:
-            volt = self.__device_voltage_high_limit
-        if volt > self.__app_voltage_high_limit:
-            volt = self.__app_voltage_high_limit
-        if volt > abs(self.__voltage_high_limit_human_secure):
-            volt = abs(self.__voltage_high_limit_human_secure)
-        # lower limit
-        if volt < self.__device_voltage_low_limit:
-            volt = self.__device_voltage_low_limit
-        if volt < self.__app_voltage_low_limit:
-            volt = self.__app_voltage_low_limit
-        if volt < -abs(self.__voltage_high_limit_human_secure):
-            volt = -abs(self.__voltage_high_limit_human_secure)
+        # limits
+        clip(volt, self.__device_voltage_low_limit, self.__device_voltage_high_limit)
+        clip(volt, self.__app_voltage_low_limit, self.__app_voltage_high_limit)
+        clip(volt, -abs(self.__voltage_high_limit_human_secure), abs(self.__voltage_high_limit_human_secure))
         return volt
 
     # --------------------------------------------------
+    def __get_current_upper_limit(self):
+        return self.__app_current_high_limit
+
+    # --------------------------------------------------
+    def __set_current_upper_limit(self, current_max):
+        try:
+            current_max = float(current_max)
+            clip(current_max, SM70AR24_CURRENT_LOW_LIMIT, SM70AR24_CURRENT_HIGH_LIMIT)
+            self.__app_current_high_limit = current_max
+        except:
+            pass
+
+    # --------------------------------------------------
+    def __get_current_lower_limit(self):
+        return self.__app_current_low_limit
+
+    # --------------------------------------------------
+    def __set_current_lower_limit(self, current_min):
+        try:
+            current_min = float(current_min)
+            clip(current_min, SM70AR24_CURRENT_LOW_LIMIT, SM70AR24_CURRENT_HIGH_LIMIT)
+            self.__app_current_low_limit = current_min
+        except:
+            pass
+
+    # --------------------------------------------------
     def __current_limiter(self, current):
-        # upper limits
-        if current > self.__device_current_high_limit:
-            current = self.__device_current_high_limit
-        if current > self.__app_current_high_limit:
-            current = self.__app_current_high_limit
-        # lower limit
-        if current < self.__device_current_low_limit:
-            current = self.__device_current_low_limit
-        if current < self.__app_current_low_limit:
-            current = self.__app_current_low_limit
+        # limits
+        clip(current, self.__device_current_low_limit, self.__device_current_high_limit)
+        clip(current, self.__app_current_low_limit, self.__app_current_high_limit)
         return current
 
     # --------------------------------------------------
@@ -155,6 +188,10 @@ class SM70AR24:
             return True
         except:
             return False
+
+    # --------------------------------------------------
+    def disable_human_safety_mode(self):
+        self.__voltage_high_limit_human_secure = SM70AR24_VOLTAGE_HIGH_LIMIT
 
     # --------------------------------------------------
     def __wait_minimal_command_interval(self, ms_interval):
@@ -214,7 +251,6 @@ class SM70AR24:
             cv_status = self.__send_and_receive_command("SYST:REM:CV?")
             if "LOC" in cv_status:
                 self.__send_command("SYST:REM:CV REM")
-            # self.__send_command("SYST:REM:CV REM")
             if type(voltage_to_apply) is int or type(voltage_to_apply) is float:
                 voltage_to_apply = float(voltage_to_apply)
                 voltage_to_apply = self.__voltage_limiter(voltage_to_apply)
@@ -253,7 +289,6 @@ class SM70AR24:
             cc_status = self.__send_and_receive_command("SYST:REM:CC?")
             if "LOC" in cc_status:
                 self.__send_command("SYST:REM:CC REM")
-            # self.__send_command("SYST:REM:CC REM")
             if type(current_to_apply) is int or type(current_to_apply) is float:
                 current_to_apply = float(current_to_apply)
                 current_to_apply = self.__voltage_limiter(current_to_apply)
@@ -321,13 +356,17 @@ class SM70AR24:
     volt = property(__get_volt_display)
     volt_as_string = property(__get_volt_display_as_string)
     volt_unit = property(__get_volt_unit)
-    volt_undef_value = property(__get_volt_undef_value)
+    volt_undefined_value = property(__get_volt_undef_value)
+    volt_limit_upper = property(__get_volt_upper_limit, __set_volt_upper_limit)
+    volt_limit_lower = property(__get_volt_lower_limit, __set_volt_lower_limit)
     # -------------------------------------------------------------
     apply_current = property(__get_current, __set_current)
     current = property(__get_current_display)
     current_as_string = property(__get_current_display_as_string)
     current_unit = property(__get_current_unit)
-    current_undef_value = property(__get_current_undef_value)
+    current_undefined_value = property(__get_current_undef_value)
+    current_limit_upper = property(__get_current_upper_limit, __set_current_upper_limit)
+    current_limit_lower = property(__get_current_lower_limit, __set_current_lower_limit)
     # -------------------------------------------------------------
     serialnumber = property(__get_serialnumber)
     manufactorer = property(__get_manufactorer)
