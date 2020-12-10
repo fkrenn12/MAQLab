@@ -8,5 +8,6 @@ topic_request = "?"
 topic_access_number = "accessnumber"
 payload_error = "ERROR"
 payload_accepted = "ACCEPT"
+payload_limited = "LIMITED"
 
 

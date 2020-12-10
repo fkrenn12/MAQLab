@@ -9,6 +9,7 @@ def validate_payload(payload):
     timestamp = str(datetime.datetime.utcnow())
     payload_error = s.payload_error + " " + timestamp
     payload_accepted = s.payload_accepted + " " + timestamp
+    payload_limited = s.payload_limited + " " + timestamp
     valid = True
     try:
         payload = payload.lower()
@@ -26,7 +27,11 @@ def validate_payload(payload):
             valid = False
     except:
         valid = False
-    return {"valid": valid, 'payload': payload, 'payload_error': payload_error, 'payload_accepted': payload_accepted}
+    return {"valid": valid,
+            'payload': payload,
+            'payload_error': payload_error,
+            'payload_accepted': payload_accepted,
+            'payload_limited': payload_limited}
 
 
 # --------------------------------------------------------

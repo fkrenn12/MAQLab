@@ -2,7 +2,7 @@
 from Devices.Delta import SM70AR24 as _SM70AR24
 from Extensions.shared import validate_topic
 from Extensions.shared import validate_payload
-from numpy import clip
+
 
 # --------------------------------------------------------
 class SM70AR24(_SM70AR24.SM70AR24):
@@ -48,6 +48,9 @@ class SM70AR24(_SM70AR24.SM70AR24):
         elif command == "volt?" or command == "volt:dc?" or command == "vdc?":
             client.publish(t["reply"], self.volt_as_string)
             return
+        elif command == "volt_applied?" or command == "applied:volt:dc?" or command == "applied_vdc?":
+            client.publish(t["reply"], str(self.apply_volt) + " VDC")
+            return
         elif command == "volt" or command == "volt:dc" or command == "vdc":
             # checking the value limits
             if _SM70AR24.SM70AR24_VOLTAGE_HIGH_LIMIT >= value >= _SM70AR24.SM70AR24_VOLTAGE_LOW_LIMIT:
@@ -87,6 +90,9 @@ class SM70AR24(_SM70AR24.SM70AR24):
                 self.apply_current = value
                 client.publish(t["reply"], p["payload_accepted"])
                 return
+        elif command == "curr_applied?" or command == "applied:curr:dc?" or command == "applied_idc?":
+            client.publish(t["reply"], str(self.apply_current) + " ADC")
+            return
         elif command == "curr?" or command == "curr:dc?" or command == "idc?":
             client.publish(t["reply"], self.current_as_string)
             return

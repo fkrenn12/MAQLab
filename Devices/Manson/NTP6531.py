@@ -69,6 +69,73 @@ class NTP6531:
         self.id()
 
     # --------------------------------------------------
+    def __get_volt_upper_limit(self):
+        return self.__app_voltage_high_limit
+
+    # --------------------------------------------------
+    def __set_volt_upper_limit(self, volt):
+        try:
+            volt = float(volt)
+            volt = clip(volt, NTP6531_VOLTAGE_LOW_LIMIT, NTP6531_VOLTAGE_HIGH_LIMIT)
+            self.__app_voltage_high_limit = volt
+        except:
+            pass
+
+    # --------------------------------------------------
+    def __get_volt_lower_limit(self):
+        return self.__app_voltage_low_limit
+
+    # --------------------------------------------------
+    def __set_volt_lower_limit(self, volt_min):
+        try:
+            volt_min = float(volt_min)
+            volt_min = clip(volt_min, NTP6531_VOLTAGE_LOW_LIMIT, NTP6531_VOLTAGE_HIGH_LIMIT)
+            self.__app_voltage_low_limit = volt_min
+        except:
+            pass
+
+    # --------------------------------------------------
+    def __voltage_limiter(self, volt):
+        # limits
+        volt = clip(volt, self.__device_voltage_low_limit, self.__device_voltage_high_limit)
+        volt = clip(volt, self.__app_voltage_low_limit, self.__app_voltage_high_limit)
+        volt = clip(volt, -abs(self.__voltage_high_limit_human_secure), abs(self.__voltage_high_limit_human_secure))
+        return volt
+
+    # --------------------------------------------------
+    def __get_current_upper_limit(self):
+        return self.__app_current_high_limit
+
+    # --------------------------------------------------
+    def __set_current_upper_limit(self, current_max):
+        try:
+            current_max = float(current_max)
+            current_max = clip(current_max, NTP6531_CURRENT_LOW_LIMIT, NTP6531_CURRENT_HIGH_LIMIT)
+            self.__app_current_high_limit = current_max
+        except:
+            pass
+
+    # --------------------------------------------------
+    def __get_current_lower_limit(self):
+        return self.__app_current_low_limit
+
+    # --------------------------------------------------
+    def __set_current_lower_limit(self, current_min):
+        try:
+            current_min = float(current_min)
+            current_min = clip(current_min, NTP6531_CURRENT_LOW_LIMIT, NTP6531_CURRENT_HIGH_LIMIT)
+            self.__app_current_low_limit = current_min
+        except:
+            pass
+
+    # --------------------------------------------------
+    def __current_limiter(self, curr):
+        # limits
+        curr = clip(curr, self.__device_current_low_limit, self.__device_current_high_limit)
+        curr = clip(curr, self.__app_current_low_limit, self.__app_current_high_limit)
+        return curr
+    '''
+    # --------------------------------------------------
     def set_app_current_limit(self, upper=NTP6531_CURRENT_HIGH_LIMIT, lower=NTP6531_CURRENT_LOW_LIMIT):
         if type(upper) is int or type(upper) is float and \
                 type(lower) is int or type(lower) is float:
@@ -109,8 +176,8 @@ class NTP6531:
         clip(current, self.__device_current_low_limit, self.__device_current_high_limit)
         clip(current, self.__app_current_low_limit, self.__app_current_high_limit)
         return current
-
     # --------------------------------------------------
+    '''
     def __readline(self, timeout):
         tout = timeout
         tic = int(round(time.time() * 1000))
@@ -238,7 +305,7 @@ class NTP6531:
     # --------------------------------------------------
     def __get_volt_display_as_string(self):
         self.__get_display()
-        return "{:.6f}".format(self.__volt_display) + " " + self.__get_volt_unit()
+        return "{:.6f}".format(self.__volt_display) + " " + self.__get_volt_unit() + "DC"
 
     # --------------------------------------------------
     def __get_current_display(self):
@@ -249,7 +316,7 @@ class NTP6531:
     # --------------------------------------------------
     def __get_current_display_as_string(self):
         self.__get_display()
-        return "{:.6f}".format(self.__current_display) + " " + self.__get_current_unit()
+        return "{:.6f}".format(self.__current_display) + " " + self.__get_current_unit() + "DC"
 
     # --------------------------------------------------
     def __get_display_mode(self):
@@ -351,18 +418,16 @@ class NTP6531:
     volt_as_string = property(__get_volt_display_as_string)
     volt_unit = property(__get_volt_unit)
     volt_undefined_value = property(__get_volt_undef_value)
-    # TODO
-    # volt_limit_max = property(__get_volt_max_limit, __set_volt_max_limit)
-    # volt_limit_min = property(__get_volt_min_limit, __set_volt_min_limit)
-    # ----------------------------------------------------------
+    volt_limit_upper = property(__get_volt_upper_limit, __set_volt_upper_limit)
+    volt_limit_lower = property(__get_volt_lower_limit, __set_volt_lower_limit)
+    # -------------------------------------------------------------
     apply_current = property(__get_current, __set_current)
     current = property(__get_current_display)
     current_as_string = property(__get_current_display_as_string)
     current_unit = property(__get_current_unit)
     current_undefined_value = property(__get_current_undef_value)
-    # TODO
-    # current_limit_max = property(__get_current_max_limit, __set_current_max_limit)
-    # current_limit_min = property(__get_current_min_limit, __set_current_min_limit)
+    current_limit_upper = property(__get_current_upper_limit, __set_current_upper_limit)
+    current_limit_lower = property(__get_current_lower_limit, __set_current_lower_limit)
     # ----------------------------------------------------------
     serialnumber = property(__get_serialnumber)
     manufactorer = property(__get_manufactorer)

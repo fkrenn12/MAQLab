@@ -250,7 +250,7 @@ class SM70AR24:
     # --------------------------------------------------
     def __get_volt_display_as_string(self):
         self.__get_volt_display()
-        return "{:.6f}".format(self.__volt_display) + " " + self.__get_volt_unit()
+        return "{:.6f}".format(self.__volt_display) + " " + self.__get_volt_unit() + "DC"
 
     # --------------------------------------------------
     def __get_current(self):
@@ -289,7 +289,7 @@ class SM70AR24:
 
     def __get_current_display_as_string(self):
         self.__get_current_display()
-        return "{:.6f}".format(self.__current_display) + " " + self.__get_current_unit()
+        return "{:.6f}".format(self.__current_display) + " " + self.__get_current_unit() + "DC"
 
     # --------------------------------------------------
     def __del__(self):

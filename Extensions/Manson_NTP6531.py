@@ -41,45 +41,84 @@ class NTP6531(_NTP6531.NTP6531):
                 self.output_on()
                 client.publish(t["reply"], p["payload_accepted"])
             return
+        # ------------------------------------------------------------------------------------------------
+        # V O L T A G E commands - Handling
+        # ------------------------------------------------------------------------------------------------
+        elif command == "volt?" or command == "volt:dc?" or command == "vdc?":
+            client.publish(t["reply"], self.volt_as_string)
+            return
+        elif command == "volt_applied?" or command == "applied:volt:dc?" or command == "applied_vdc?":
+            client.publish(t["reply"], str(self.apply_volt) + " VDC")
+            return
         elif command == "volt" or command == "volt:dc" or command == "vdc":
             # checking the value limits
             if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
                 self.apply_volt = value
                 client.publish(t["reply"], p["payload_accepted"])
                 return
+        elif command == "volt_max?" or command == "volt:max?" or command == "vmax?":
+            client.publish(t["reply"], str(_NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT) + " VDC")
+            return
+        elif command == "volt_min?" or command == "volt:min?" or command == "vmin?":
+            client.publish(t["reply"], str(_NTP6531.NTP6531_VOLTAGE_LOW_LIMIT) + " VDC")
+            return
+        elif command == "volt_limit_up?" or command == "volt:limit:up?" or command == "vup?":
+            client.publish(t["reply"], str(self.volt_limit_upper) + " VDC")
+            return
+        elif command == "volt_limit_up" or command == "volt:limit:up" or command == "vup":
+            # checking limits
+            if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
+                self.volt_limit_upper = value
+                client.publish(t["reply"], p["payload_accepted"])
+                return
+        elif command == "volt_limit_low?" or command == "volt:limit:low?" or command == "vlow?":
+            client.publish(t["reply"], str(self.volt_limit_lower) + " VDC")
+            return
+        elif command == "volt_limit_low" or command == "volt:limit:low" or command == "vlow":
+            # checking limits
+            if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
+                self.volt_limit_lower = value
+                client.publish(t["reply"], p["payload_accepted"])
+                return
+        # ------------------------------------------------------------------------------------------------
+        # C U R R E N T commands - Handling
+        # ------------------------------------------------------------------------------------------------
         elif command == "curr" or command == "curr:dc" or command == "idc":
             # checking limits
             if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= value >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
                 self.apply_current = value
                 client.publish(t["reply"], p["payload_accepted"])
                 return
-        elif command == "volt?" or command == "volt:dc?" or command == "vdc?":
-            client.publish(t["reply"], self.volt_as_string)
+        elif command == "curr_applied?" or command == "applied:curr:dc?" or command == "applied_idc?":
+            client.publish(t["reply"], str(self.apply_current) + " ADC")
             return
         elif command == "curr?" or command == "curr:dc?" or command == "idc?":
             client.publish(t["reply"], self.current_as_string)
             return
-        elif command == "power?" or command == "pow?" or command == "p?":
-            volt = self.volt
-            curr = self.current
-            power = volt * curr
-            client.publish(t["reply"], "{:.6f}".format(power) + " WDC")
-            return
-        elif command == "mode?":
-            client.publish(t["reply"], self.source_mode)
-            return
-        elif command == "volt_max?" or command == "volt:upper?" or command == "vmax?":
-            client.publish(t["reply"], str(_NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT) + " VDC")
-            return
-        elif command == "volt_min?" or command == "volt:lower?" or command == "vmin?":
-            client.publish(t["reply"], str(_NTP6531.NTP6531_VOLTAGE_LOW_LIMIT) + " VDC")
-            return
-        elif command == "curr_max?" or command == "curr:upper?" or command == "imax?":
+        elif command == "curr_max?" or command == "curr:max?" or command == "imax?":
             client.publish(t["reply"], str(_NTP6531.NTP6531_CURRENT_HIGH_LIMIT) + " ADC")
             return
-        elif command == "curr_min?" or command == "curr:lower?" or command == "imin?":
+        elif command == "curr_min?" or command == "curr:min?" or command == "imin?":
             client.publish(t["reply"], str(_NTP6531.NTP6531_CURRENT_LOW_LIMIT) + " ADC")
             return
+        elif command == "curr_limit_up?" or command == "curr:limit:up?" or command == "iup?":
+            client.publish(t["reply"], str(self.current_limit_upper) + " ADC")
+            return
+        elif command == "curr_limit_up" or command == "curr:limit:up" or command == "iup":
+            # checking limits
+            if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= value >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
+                self.current_limit_upper = value
+                client.publish(t["reply"], p["payload_accepted"])
+                return
+        elif command == "curr_limit_low?" or command == "curr:limit:low?" or command == "ilow?":
+            client.publish(t["reply"], str(self.current_limit_lower) + " ADC")
+            return
+        elif command == "curr_limit_low" or command == "curr:limit:low" or command == "ilow":
+            # checking limits
+            if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= value >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
+                self.current_limit_lower = value
+                client.publish(t["reply"], p["payload_accepted"])
+                return
         elif command == "?":
             client.publish(t["reply"] + "/manufactorer", self.manufactorer)
             client.publish(t["reply"] + "/devicetype", self.devicetype)
