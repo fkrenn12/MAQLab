@@ -148,7 +148,10 @@ class SM70AR24:
             self.socket.settimeout(SOCKET_TIMEOUT_SECONDS)
             self.socket.sendall(command.encode("UTF-8"))
             self.__last_command_time = int(round(time.time() * 1000))
-            return self.socket.recv(BUFFER_SIZE).decode("UTF-8").rstrip()
+            received = self.socket.recv(BUFFER_SIZE)
+            if isinstance(received, bytes):
+                rec = received.decode("UTF-8").rstrip()
+            return received
         except:
             return ""
 

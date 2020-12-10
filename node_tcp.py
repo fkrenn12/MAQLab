@@ -242,7 +242,6 @@ if __name__ == "__main__":
                         dev.execute()
                     else:
                         # print("NOT Connected")
-                        with devlock:
-                            dev.on_destroyed()
-                            devlist.remove(dev)
-                            del dev
+                        dev.on_destroyed()
+                        devlist.remove(dev)
+                        del dev
