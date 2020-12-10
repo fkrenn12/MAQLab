@@ -64,33 +64,6 @@ class SM70AR24:
         self.__voltage_high_limit_human_secure = HUMAN_SECURE_MAX_VOLTAGE
         self.id()
 
-    '''
-    # --------------------------------------------------
-    def set_app_current_limit(self, upper=SM70AR24_CURRENT_HIGH_LIMIT, lower=SM70AR24_CURRENT_LOW_LIMIT):
-        if type(upper) is int or type(upper) is float and \
-                type(lower) is int or type(lower) is float:
-
-            self.__app_current_high_limit = upper
-            if lower == SM70AR24_CURRENT_LOW_LIMIT and upper != SM70AR24_CURRENT_HIGH_LIMIT:
-                self.__app_current_low_limit = -upper
-            else:
-                self.__app_current_low_limit = lower
-        else:
-            return
-
-    # --------------------------------------------------
-    def set_app_voltage_limit(self, upper=SM70AR24_VOLTAGE_HIGH_LIMIT, lower=SM70AR24_VOLTAGE_LOW_LIMIT):
-        if type(upper) is int or type(upper) is float and \
-                type(lower) is int or type(lower) is float:
-            self.__app_voltage_high_limit = upper
-            if lower == SM70AR24_VOLTAGE_LOW_LIMIT and upper != SM70AR24_VOLTAGE_HIGH_LIMIT:
-                self.__app_voltage_low_limit = -upper
-            else:
-                self.__app_voltage_low_limit = lower
-        else:
-            return
-    '''
-
     # --------------------------------------------------
     def __get_volt_upper_limit(self):
         return self.__app_voltage_high_limit
@@ -161,9 +134,11 @@ class SM70AR24:
     # --------------------------------------------------
     def connected(self):
         if self.socket is not None:
-            rep = self.__send_and_receive_command("*idn?")
-            if self.__serialnumber in rep:
+            rep = self.__send_and_receive_command("STAT:REG:A?")
+            if rep != "":
                 return True
+            # if self.__serialnumber in rep:
+            #     return True
         return False
 
     # --------------------------------------------------
