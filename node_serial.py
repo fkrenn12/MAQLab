@@ -12,6 +12,7 @@ from Extensions.Manson_NTP6531 import NTP6531
 from Extensions.BKPrecision_2831E import BK2831E
 from Extensions.Keithley_SM2400 import SM2400
 
+client = paho.Client()
 inventory = None
 inventory_numbers = None
 devices = None
@@ -19,7 +20,6 @@ deviceidentifications = None
 
 devlist = []
 comlist = []
-devlock = threading.Lock()
 comlock = threading.Lock()
 
 FILENAME_CONFIG_DEVICES = "devices.json"
@@ -32,13 +32,6 @@ session_id = secrets.token_urlsafe(5)
 # --------------------------------------------------------
 # MQTT Broker callbacks
 # --------------------------------------------------------
-async def mqttloop(_client):
-    while True:
-        _client.loop()
-        await asyncio.sleep(0.1)
-        print("X")
-
-
 def on_connect(_client, userdata, flags, rc):
     if rc == 0:
         print("Connected to MQTT-Broker.")
@@ -58,7 +51,6 @@ def on_disconnect(_client, userdata, rc):
 
 def on_message(_client, _userdata, _msg):
     global devlist
-    global devlock
     global inventory
     global inventory_numbers
     global devices
@@ -75,31 +67,29 @@ def on_message(_client, _userdata, _msg):
     # configuration file repeated
     if "/rep/file/" in topic:
         if FILENAME_CONFIG_DEVICES in topic:
-            with devlock:
-                try:
-                    deviceidentifications = []
-                    devices = json.loads(_msg.payload.decode("utf-8"))
-                    for i in devices:
-                        deviceidentifications.append(i["device"])
-                    # print("Device-Identifiers:" + str(deviceidentifications))
-                except Exception as e:
-                    print(devices)
-                    print("Error in devices.json")
-                    print(e)
-                    return
+            try:
+                deviceidentifications = []
+                devices = json.loads(_msg.payload.decode("utf-8"))
+                for i in devices:
+                    deviceidentifications.append(i["device"])
+                # print("Device-Identifiers:" + str(deviceidentifications))
+            except Exception as e:
+                print(devices)
+                print("Error in devices.json")
+                print(e)
+                return
         elif FILENAME_CONFIG_INVENTORY in topic:
-            with devlock:
-                try:
-                    inventory_numbers = []
-                    inventory = json.loads(_msg.payload.decode("utf-8"))
-                    for i in inventory:
-                        inventory_numbers.append(i["inventar_number"])
-                    # print("Inventory numbers:" + str(inventory_numbers))
-                except Exception as e:
-                    print(inventory)
-                    print("Error in inventory.json")
-                    print(e)
-                    return
+            try:
+                inventory_numbers = []
+                inventory = json.loads(_msg.payload.decode("utf-8"))
+                for i in inventory:
+                    inventory_numbers.append(i["inventar_number"])
+                # print("Inventory numbers:" + str(inventory_numbers))
+            except Exception as e:
+                print(inventory)
+                print("Error in inventory.json")
+                print(e)
+                return
         return
 
     # loaded configuration must be done before any
@@ -108,58 +98,39 @@ def on_message(_client, _userdata, _msg):
         return
 
     # print(topic, _msg.payload)
-    with devlock:
-        if len(devlist) > 0:
-            # distribute message to all devices
-            for _dev in devlist:
-                try:
-                    _dev.mqttmessage(_client, _msg)
-                except:
-                    pass
-async def start():
-    await asyncio.create_task(mqttloop(client))
+
+    if len(devlist) > 0:
+        # distribute message to all devices
+        for _dev in devlist:
+            try:
+                _dev.mqttmessage(_client, _msg)
+            except:
+                pass
+
+
+async def main():
+    # create tasks
+    global client
+    task1 = loop.create_task(mainloop())
+    task2 = loop.create_task(mqttloop(client))
+    task3 = loop.create_task(connector())
+    # wait until tasks finished
+    await asyncio.wait([task1, task2])
+    # but will never finish in real !!!
+
+
+async def mqttloop(_client):
     while True:
-        await asyncio.sleep(1)
-        print ("X")
-
-if __name__ == "__main__":
-    print("MAQlab - serial node started.")
-    client = paho.Client()
-    client.on_connect = on_connect
-    client.on_disconnect = on_disconnect
-    client.on_message = on_message
-    client.username_pw_set("maqlab", "maqlab")
-    client.connect("techfit.at", 1883)
-    client.loop_start()
+        if _client is not None:
+            _client.loop(0.0001)
+        await asyncio.sleep(0.02)
+        # print("X")
 
 
-    # thread_mqttloop = threading.Thread(target=mqttloop, args=(client,))
-    # thread_mqttloop.start()
-
-    time.sleep(1)
-    print("Requesting configuration files...")
-    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
-    time.sleep(0.05)
-    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTORY)
-
-    # Waiting for data from mqtt file server
-    # First we need the configuration files
-    # Therefore we wait for it
+async def mainloop():
     while True:
-        time.sleep(1)
-        with devlock:
-            if devices is not None and inventory is not None:
-                break
-        print("Wait for configuration files...")
-
-    print("Configuration files received.")
-    thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
-    thread_detect_serial.start()
-    client.loop_stop()
-    # asyncio.create_task(mqttloop(client))
-    # asyncio.run(start())
-    while True:
-
+        # print("F")
+        await asyncio.sleep(0.01)
         # ----------------------------------------------------------------------------------
         # Stepping through the COM list and generate the device instance from the classname
         # ----------------------------------------------------------------------------------
@@ -190,27 +161,62 @@ if __name__ == "__main__":
                             if inventory_number == '0':
                                 inventory_number = devobject.serialnumber
 
-                            with devlock:
-                                devlist.append(devobject)
-                                devobject.on_created(com[dclassname], inventory_number)
+                            devlist.append(devobject)
+                            devobject.on_created(com[dclassname], inventory_number)
 
                 comlist.clear()
         # --------------------------------------------------------------------------
         # time.sleep(0.02)
-        client.loop(0.02)
+        # client.loop()
         # --------------------------------------------------------------------------
         # Step through connected devices and call the handlers
         # --------------------------------------------------------------------------
 
         if len(devlist) > 0:
             for dev in devlist:
-                with devlock:
-                    if dev.connected():
-                        # print("Connected")
-                        dev.execute()
-                    else:
-                        # print("NOT Connected")
-                        with devlock:
-                            dev.on_destroyed()
-                            devlist.remove(dev)
-                            del dev
+                if dev.connected():
+                    # print("Connected")
+                    dev.execute()
+                else:
+                    # print("NOT Connected")
+                    dev.on_destroyed()
+                    devlist.remove(dev)
+                    del dev
+
+
+async def connector():
+    global client
+    print("MAQlab - serial node started.")
+    client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
+    client.on_message = on_message
+    client.username_pw_set("maqlab", "maqlab")
+    client.connect("techfit.at", 1883)
+    while not client.is_connected():
+        await asyncio.sleep(0.05)
+    print("Requesting configuration files...")
+    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
+    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTORY)
+    # Waiting for data from mqtt file server
+    # First we need the configuration files
+    # Therefore we wait for it
+    while True:
+        await asyncio.sleep(0.5)
+        if devices is not None and inventory is not None:
+            break
+        print("Wait for configuration files...")
+    print("Configuration files received.")
+    loop_detect_serial = asyncio.get_event_loop()
+    task = loop_detect_serial.create_task(scan_serial_devices(devices, comlist, comlock))
+    await asyncio.wait([task])
+    # thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
+    # thread_detect_serial.start()
+
+
+if __name__ == "__main__":
+    # Declare event loop
+    loop = asyncio.get_event_loop()
+    # Run the code until completing all task
+    loop.run_until_complete(main())
+    # Close the loop
+    loop.close()

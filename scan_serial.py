@@ -1,13 +1,14 @@
 import serial
 import time
 import platform
+import asyncio
 
 scan_start = 2
 scan_stop = 20
 tout = 1000
 
 
-def scan_serial_devices(devices, comlist, comlock):
+async def scan_serial_devices(devices, comlist, comlock):
     idstrings = []
     for d in devices:
         if d["interface"] == "usb-vcom":
@@ -42,7 +43,7 @@ def scan_serial_devices(devices, comlist, comlock):
                     # which got a unknown command first needs time to recover
                     # internal for a new command. BK2831E needs 0.05sec,
                     # so at first we try four times more - 0.5sec
-                    time.sleep(0.5)
+                    await asyncio.sleep(0.5)
                     try:
                         ser.flush()
                         ser.flushInput()
@@ -56,7 +57,7 @@ def scan_serial_devices(devices, comlist, comlock):
                     tic = int(round(time.time() * 1000))
                     buff = b''
                     while (int(round(time.time() * 1000)) - tic) < tout:
-                        time.sleep(0.005)
+                        await asyncio.sleep(0.005)
                         if ser.in_waiting > 0:
                             tic = int(round(time.time() * 1000))
                             c = ser.read(1)
@@ -83,4 +84,5 @@ def scan_serial_devices(devices, comlist, comlock):
 
             except:
                 continue
-        time.sleep(0.5)
+        # time.sleep(0.5)
+        await asyncio.sleep(0.5)
