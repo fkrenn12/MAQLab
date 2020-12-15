@@ -4,6 +4,7 @@ import paho.mqtt.client as paho
 import threading
 import json
 import secrets
+import asyncio
 
 from scan_serial import scan_serial_devices
 
@@ -31,9 +32,11 @@ session_id = secrets.token_urlsafe(5)
 # --------------------------------------------------------
 # MQTT Broker callbacks
 # --------------------------------------------------------
-def mqttloop(_client):
+async def mqttloop(_client):
     while True:
         _client.loop()
+        await asyncio.sleep(0.1)
+        print("X")
 
 
 def on_connect(_client, userdata, flags, rc):
@@ -113,7 +116,11 @@ def on_message(_client, _userdata, _msg):
                     _dev.mqttmessage(_client, _msg)
                 except:
                     pass
-
+async def start():
+    await asyncio.create_task(mqttloop(client))
+    while True:
+        await asyncio.sleep(1)
+        print ("X")
 
 if __name__ == "__main__":
     print("MAQlab - serial node started.")
@@ -123,9 +130,11 @@ if __name__ == "__main__":
     client.on_message = on_message
     client.username_pw_set("maqlab", "maqlab")
     client.connect("techfit.at", 1883)
+    client.loop_start()
 
-    thread_mqttloop = threading.Thread(target=mqttloop, args=(client,))
-    thread_mqttloop.start()
+
+    # thread_mqttloop = threading.Thread(target=mqttloop, args=(client,))
+    # thread_mqttloop.start()
 
     time.sleep(1)
     print("Requesting configuration files...")
@@ -146,8 +155,11 @@ if __name__ == "__main__":
     print("Configuration files received.")
     thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
     thread_detect_serial.start()
-
+    client.loop_stop()
+    # asyncio.create_task(mqttloop(client))
+    # asyncio.run(start())
     while True:
+
         # ----------------------------------------------------------------------------------
         # Stepping through the COM list and generate the device instance from the classname
         # ----------------------------------------------------------------------------------
@@ -184,8 +196,8 @@ if __name__ == "__main__":
 
                 comlist.clear()
         # --------------------------------------------------------------------------
-        time.sleep(0.02)
-
+        # time.sleep(0.02)
+        client.loop(0.02)
         # --------------------------------------------------------------------------
         # Step through connected devices and call the handlers
         # --------------------------------------------------------------------------

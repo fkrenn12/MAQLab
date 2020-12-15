@@ -153,7 +153,7 @@ def on_message(_client, _userdata, _msg):
 
 
 if __name__ == "__main__":
-    print("MAQlab - serial node started.")
+    print("MAQlab - tcp node started.")
     client = paho.Client()
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
