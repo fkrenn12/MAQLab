@@ -1,14 +1,14 @@
 import serial
 import time
+import datetime
 import platform
 import asyncio
-
 scan_start = 2
 scan_stop = 20
 tout = 1000
 
 
-async def scan_serial_devices(devices, comlist, comlock):
+async def scan_serial_devices(devices, comlist):
     idstrings = []
     for d in devices:
         if d["interface"] == "usb-vcom":
@@ -23,7 +23,8 @@ async def scan_serial_devices(devices, comlist, comlock):
         this_os = "Windows"
     else:
         this_os = "Linux"
-    print("Start scanning...")
+
+    print(str(datetime.datetime.now()) + "  :" + "Start scanning...")
     # -------------------------------------------------------------
     # LOOP
     # -------------------------------------------------------------
@@ -79,8 +80,7 @@ async def scan_serial_devices(devices, comlist, comlock):
                 ser.close()
                 del ser
                 if dev_found is not None:
-                    with comlock:
-                        comlist.append({dev_found["classname"]: _com})
+                    comlist.append({dev_found["classname"]: _com})
 
             except:
                 continue

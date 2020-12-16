@@ -1,3 +1,4 @@
+import datetime
 # --------------------------------------------------------
 from Devices.Manson import NTP6531 as _NTP6531
 from Extensions.shared import validate_topic
@@ -131,11 +132,11 @@ class NTP6531(_NTP6531.NTP6531):
     def on_created(self, comport, inventarnumber):
         self.__comport = comport
         self.__inventarnumber = inventarnumber
-        print(self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Accessnumber is: "
+        print(str(datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Accessnumber is: "
               + str(inventarnumber))
 
     def on_destroyed(self):
-        print(self.model + " removed from " + self.__comport)
+        print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)
         self.__comport = ""
 
     def execute(self):

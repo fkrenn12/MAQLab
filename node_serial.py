@@ -1,26 +1,20 @@
-import platform
-import time
-import paho.mqtt.client as paho
-import threading
+import asyncio
+import datetime
 import json
 import secrets
-import asyncio
+
+import paho.mqtt.client as paho
 
 from scan_serial import scan_serial_devices
-
-from Extensions.Manson_NTP6531 import NTP6531
-from Extensions.BKPrecision_2831E import BK2831E
-from Extensions.Keithley_SM2400 import SM2400
 
 client = paho.Client()
 inventory = None
 inventory_numbers = None
-devices = None
+devices = []
 deviceidentifications = None
 
 devlist = []
 comlist = []
-comlock = threading.Lock()
 
 FILENAME_CONFIG_DEVICES = "devices.json"
 FILENAME_CONFIG_INVENTORY = "inventory.json"
@@ -34,7 +28,7 @@ session_id = secrets.token_urlsafe(5)
 # --------------------------------------------------------
 def on_connect(_client, userdata, flags, rc):
     if rc == 0:
-        print("Connected to MQTT-Broker.")
+        print(str(datetime.datetime.now()) + "  :" + "Connected to MQTT-Broker.")
         _client.subscribe("maqlab/cmd/#", qos=0)
         _client.subscribe("maqlab/+/cmd/#", qos=0)
         _client.subscribe("maqlab/rep/file/#", qos=0)
@@ -43,7 +37,7 @@ def on_connect(_client, userdata, flags, rc):
 
 def on_disconnect(_client, userdata, rc):
     if rc != 0:
-        print("Unexpected disconnection.")
+        print(str(datetime.datetime.now()) + "  :" + "Unexpected disconnection.")
     # server.stop()
     # server.start()
     _client.reconnect()
@@ -75,7 +69,7 @@ def on_message(_client, _userdata, _msg):
                 # print("Device-Identifiers:" + str(deviceidentifications))
             except Exception as e:
                 print(devices)
-                print("Error in devices.json")
+                print(str(datetime.datetime.now()) + "  :" + "Error in devices.json")
                 print(e)
                 return
         elif FILENAME_CONFIG_INVENTORY in topic:
@@ -87,7 +81,7 @@ def on_message(_client, _userdata, _msg):
                 # print("Inventory numbers:" + str(inventory_numbers))
             except Exception as e:
                 print(inventory)
-                print("Error in inventory.json")
+                print(str(datetime.datetime.now()) + "  :" + "Error in inventory.json")
                 print(e)
                 return
         return
@@ -108,17 +102,6 @@ def on_message(_client, _userdata, _msg):
                 pass
 
 
-async def main():
-    # create tasks
-    global client
-    task1 = loop.create_task(mainloop())
-    task2 = loop.create_task(mqttloop(client))
-    task3 = loop.create_task(connector())
-    # wait until tasks finished
-    await asyncio.wait([task1, task2])
-    # but will never finish in real !!!
-
-
 async def mqttloop(_client):
     while True:
         if _client is not None:
@@ -127,44 +110,43 @@ async def mqttloop(_client):
         # print("X")
 
 
-async def mainloop():
+async def executionloop():
     while True:
         # print("F")
         await asyncio.sleep(0.01)
         # ----------------------------------------------------------------------------------
         # Stepping through the COM list and generate the device instance from the classname
         # ----------------------------------------------------------------------------------
-        with comlock:
-            if len(comlist) > 0:
-                for com in comlist:
-                    # print(com)
-                    for dev in devices:
-                        devobject = None
-                        # print(d)
-                        # print(devices[d]["classname"])
-                        dclassname = dev["classname"]
-                        if dclassname in com:
-                            # generating a deviceclass from classname
-                            devobject = globals()[dclassname](com[dclassname])
-                        if devobject is not None:
-                            # search for inventarnumber of the device with spec serialnumber
-                            # there are some devices not declared with a serialnumber
-                            # so we have to use the random generated serial for the inventarnumber
-                            inventory_number = '0'
+        if len(comlist) > 0:
+            for com in comlist:
+                # print(com)
+                for dev in devices:
+                    devobject = None
+                    # print(d)
+                    # print(devices[d]["classname"])
+                    dclassname = dev["classname"]
+                    if dclassname in com:
+                        # generating a deviceclass from classname
+                        devobject = globals()[dclassname](com[dclassname])
+                    if devobject is not None:
+                        # search for inventarnumber of the device with spec serialnumber
+                        # there are some devices not declared with a serialnumber
+                        # so we have to use the random generated serial for the inventarnumber
+                        inventory_number = '0'
 
-                            if inventory is not None:
-                                for devi in inventory:
-                                    if devi["serial"] == devobject.serialnumber:
-                                        inventory_number = devi["inventar_number"]
-                                        break
+                        if inventory is not None:
+                            for devi in inventory:
+                                if devi["serial"] == devobject.serialnumber:
+                                    inventory_number = devi["inventar_number"]
+                                    break
 
-                            if inventory_number == '0':
-                                inventory_number = devobject.serialnumber
+                        if inventory_number == '0':
+                            inventory_number = devobject.serialnumber
 
-                            devlist.append(devobject)
-                            devobject.on_created(com[dclassname], inventory_number)
+                        devlist.append(devobject)
+                        devobject.on_created(com[dclassname], inventory_number)
 
-                comlist.clear()
+            comlist.clear()
         # --------------------------------------------------------------------------
         # time.sleep(0.02)
         # client.loop()
@@ -184,9 +166,9 @@ async def mainloop():
                     del dev
 
 
-async def connector():
+async def connector(event_config_readed):
     global client
-    print("MAQlab - serial node started.")
+    print(str(datetime.datetime.now()) + "  :" + "MAQlab - serial node started.")
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
@@ -194,7 +176,7 @@ async def connector():
     client.connect("techfit.at", 1883)
     while not client.is_connected():
         await asyncio.sleep(0.05)
-    print("Requesting configuration files...")
+    print(str(datetime.datetime.now()) + "  :" + "Requesting configuration files...")
     client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
     client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTORY)
     # Waiting for data from mqtt file server
@@ -202,15 +184,25 @@ async def connector():
     # Therefore we wait for it
     while True:
         await asyncio.sleep(0.5)
-        if devices is not None and inventory is not None:
+        if len(devices) > 0 and inventory is not None:
             break
-        print("Wait for configuration files...")
-    print("Configuration files received.")
-    loop_detect_serial = asyncio.get_event_loop()
-    task = loop_detect_serial.create_task(scan_serial_devices(devices, comlist, comlock))
-    await asyncio.wait([task])
-    # thread_detect_serial = threading.Thread(target=scan_serial_devices, args=(devices, comlist, comlock,))
-    # thread_detect_serial.start()
+        print(str(datetime.datetime.now()) + "  :" + "Wait for configuration files...")
+    print(str(datetime.datetime.now()) + "  :" + "Configuration files received.")
+    event_config_readed.set()
+
+
+async def main():
+    event_config_readed = asyncio.Event()
+    # create tasks
+    global client
+    task1 = loop.create_task(executionloop())
+    task2 = loop.create_task(mqttloop(client))
+    task3 = loop.create_task(connector(event_config_readed))
+    await event_config_readed.wait()
+    task4 = loop.create_task(scan_serial_devices(devices, comlist))
+    # wait until tasks finished
+    await asyncio.wait([task1, task2, task3, task4])
+    # but will never finish in real !!!
 
 
 if __name__ == "__main__":

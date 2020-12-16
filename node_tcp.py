@@ -1,53 +1,15 @@
-'''
-
 import threading
 from scan_tcp import scan_tcp_devices
 import json
 
-# TODO: loading the configurations should be done via mqtt also
-with open('config/inventory.json') as json_file:
-    inventar = json.load(json_file)
-    inventarnumbers = list(inventar.keys())
-    # print("Inventarumbers:")
-    # print(inventarnumbers)
-
-with open('config/devices.json') as json_file:
-    devices = json.load(json_file)
-    deviceidentifications = list(devices.keys())
-    print("Devices:")
-    print(devices)
-    print("Deviceidentifications:")
-    print(deviceidentifications)
-    ld = []
-    for d in devices:
-        ld.append(devices[d]["cmd_idn"])
-        # print(devices[d]["cmd_idn"])
-    ld = set(ld)
-    # print(ld)
-
-devlist = []
-iplist = []
-devlock = threading.Lock()
-etherlock = threading.Lock()
-
-thread_detect_ethernet = threading.Thread(target=scan_tcp_devices, args=(devices, iplist, etherlock,))
-thread_detect_ethernet.start()
-'''
-
-import platform
-import time
-import paho.mqtt.client as paho
-import threading
 import json
 import secrets
+import threading
+import time
+
+import paho.mqtt.client as paho
 
 from scan_tcp import scan_tcp_devices
-
-from Extensions.Manson_NTP6531 import NTP6531
-from Extensions.BKPrecision_2831E import BK2831E
-from Extensions.Keithley_SM2400 import SM2400
-from Extensions.Fluke_NORMA4000 import NORMA4000
-from Extensions.Delta_SM70AR24 import SM70AR24
 
 inventory = None
 inventory_numbers = None
@@ -57,8 +19,6 @@ deviceidentifications = None
 devlist = []
 iplist = []
 addresses = []
-devlock = threading.Lock()
-etherlock = threading.Lock()
 
 FILENAME_CONFIG_DEVICES = "devices.json"
 FILENAME_CONFIG_INVENTORY = "inventory.json"
