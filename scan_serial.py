@@ -24,7 +24,7 @@ async def scan_serial_devices(devices, comlist):
     else:
         this_os = "Linux"
 
-    print(str(datetime.datetime.now()) + "  :" + "Start scanning...")
+    print(str(datetime.datetime.now()) + "  :" + "Start serial scanning...")
     # -------------------------------------------------------------
     # LOOP
     # -------------------------------------------------------------
@@ -62,10 +62,12 @@ async def scan_serial_devices(devices, comlist):
                         if ser.in_waiting > 0:
                             tic = int(round(time.time() * 1000))
                             c = ser.read(1)
+                            # print (c)
                             if c != b'\n' and c != b'\r':
                                 buff += c
                     # ----------- end of reading loop --------------------
                     if buff != b'':
+                        # print(buff)
                         for d in devices:
                             if d["idn_string"] in buff.decode("utf-8"):
                                 dev_found = d

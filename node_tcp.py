@@ -11,6 +11,13 @@ import paho.mqtt.client as paho
 
 from scan_tcp import scan_tcp_devices
 
+from Extensions.Manson_NTP6531 import NTP6531
+from Extensions.BKPrecision_2831E import BK2831E
+from Extensions.Keithley_SM2400 import SM2400
+from Extensions.Delta_SM70AR24 import SM70AR24
+from Extensions.Fluke_NORMA4000 import NORMA4000
+
+
 inventory = None
 inventory_numbers = None
 devices = None
@@ -19,6 +26,9 @@ deviceidentifications = None
 devlist = []
 iplist = []
 addresses = []
+devlock = threading.Lock()
+etherlock = threading.Lock()
+
 
 FILENAME_CONFIG_DEVICES = "devices.json"
 FILENAME_CONFIG_INVENTORY = "inventory.json"
@@ -133,9 +143,9 @@ if __name__ == "__main__":
     # wait for data from mqtt file server
     while True:
         time.sleep(0.1)
-        with devlock:
-            if devices is not None and inventory is not None:
-                break
+        # with devlock:
+        if devices is not None and inventory is not None:
+            break
 
     print("Configuration files received.")
     for invent in inventory:

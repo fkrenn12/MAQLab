@@ -1,11 +1,13 @@
 import socket
 import time
+import asyncio
+import datetime
 
 BUFFER_SIZE = 128  # max msg size
 CONNECT_TIMEOUT_SECONDS = 0.5
 
 
-def scan_tcp_devices(devices, addresses, iplist, etherlock):
+async def scan_tcp_devices(devices, addresses, iplist):
     idstrings = []
     # iplist = []
     for d in devices:
@@ -23,8 +25,8 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
     else:
         this_os = "Linux"
     '''
-    print("Start scanning...")
-    print("->" + str(addresses))
+    print(str(datetime.datetime.now()) + "  :" + "Start TCP scanning...")
+    # print("->" + str(addresses))
     # -------------------------------------------------------------
     # LOOP
     # -------------------------------------------------------------
@@ -35,29 +37,71 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
             try:
                 # print("->> " + str(addr))
                 dev_found = None
+                # -------------------------------------
+                # close and  delete socket if existing
+                # -------------------------------------
+                try:
+                    scan_socket
+                    try:
+                        scan_socket.close()
+                    except:
+                        pass
+                    del scan_socket
+                except:
+                    pass
                 # -------------------------
                 # opening socket connection
                 # -------------------------
                 scan_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # set up socket
-                # print("Socket: New Socket")
-                scan_socket.settimeout(CONNECT_TIMEOUT_SECONDS)
-                # print("Socket: Set Timeout")
-                scan_socket.connect(addr)  # connect socket
-                # print("Socket: Connected")
+                scan_socket.setblocking(False)
+                timeout_counter = 0
+                while True:
+                    try:
+                        scan_socket.connect(addr)  # connect socket
+                        break
+                    except:
+                        await asyncio.sleep(0.2)
+                        # print(str(datetime.datetime.now()) + ":")
+                        timeout_counter += 1
+                    if timeout_counter > 5:
+                        raise
+
+                print(str(datetime.datetime.now()) + "Socket: Connected")
 
                 for ids in idstrings:
                     # the following sleep is necessary because a device
                     # which got a unknown command first needs time to recover
                     # internal for a new command. BK2831E needs 0.05sec,
                     # so at first we try four times more - 0.5sec
-                    time.sleep(0.5)
-                    try:
-                        scan_socket.sendall(ids)
-                        rep = scan_socket.recv(BUFFER_SIZE).decode("UTF-8").rstrip()
-                    except:
-                        continue
-
-                    print(rep)
+                    # time.sleep(0.5)
+                    await asyncio.sleep(0.5)
+                    # ------------------------------
+                    # sending the identifier command
+                    # ------------------------------
+                    timeout_counter = 0
+                    while True:
+                        try:
+                            scan_socket.sendall(ids)
+                            break
+                        except:
+                            await asyncio.sleep(0.1)
+                            timeout_counter += 1
+                        if timeout_counter > 10:
+                            raise
+                    # -----------------------------------
+                    # reply from the identifier command
+                    # -----------------------------------
+                    timeout_counter = 0
+                    while True:
+                        try:
+                            rep = scan_socket.recv(BUFFER_SIZE).decode("UTF-8").rstrip()
+                            break
+                        except:
+                            await asyncio.sleep(0.1)
+                            timeout_counter += 1
+                        if timeout_counter > 10:
+                            raise
+                    # print(rep)
                     # ----------- end of reading loop --------------------
                     if rep != "":
                         for d in devices:
@@ -67,8 +111,11 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
                                 break
                         if dev_found is not None:
                             break  # stop sending idstring because already found
-                    # --------end of for loop writing idstrings ---------
 
+                # --------end of for loop writing idstrings ---------
+
+                scan_socket.setblocking(True)
+                scan_socket.settimeout(0.5)
                 if dev_found is not None:
                     # close connection
                     try:
@@ -78,9 +125,9 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
                     except:
                         pass
                     # print("Socket: Close")
-                    with etherlock:
-                        if iplist.count({dev_found["classname"]: addr}) == 0:
-                            iplist.append({dev_found["classname"]: addr})
+                    # with etherlock:
+                    if iplist.count({dev_found["classname"]: addr}) == 0:
+                        iplist.append({dev_found["classname"]: addr})
             except:
                 pass
             finally:
@@ -91,6 +138,5 @@ def scan_tcp_devices(devices, addresses, iplist, etherlock):
                     # print("Socket: Delete")
                 except:pass
                 # print("Socket: Close")
+        await asyncio.sleep(0.5)
 
-
-        time.sleep(10)
