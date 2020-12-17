@@ -53,7 +53,8 @@ async def scan_tcp_devices(devices, addresses, iplist):
                 # opening socket connection
                 # -------------------------
                 scan_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # set up socket
-                scan_socket.setblocking(False)
+                scan_socket.setblocking(True)
+                scan_socket.settimeout(0.1)
                 timeout_counter = 0
                 while True:
                     try:
@@ -66,7 +67,7 @@ async def scan_tcp_devices(devices, addresses, iplist):
                     if timeout_counter > 5:
                         raise
 
-                print(str(datetime.datetime.now()) + "Socket: Connected")
+                # print(str(datetime.datetime.now()) + "Socket: Connected")
 
                 for ids in idstrings:
                     # the following sleep is necessary because a device
