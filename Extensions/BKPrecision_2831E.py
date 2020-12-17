@@ -3,6 +3,7 @@ from Devices.BKPrecision import E2831
 from Extensions.shared import validate_topic
 from Extensions.shared import validate_payload
 import math
+import datetime
 
 
 # --------------------------------------------------------
@@ -34,7 +35,7 @@ class BK2831E(E2831.BK2831E):
 
         command = t["cmd"]
         value = p["payload"]
-        
+
         if command == "volt:dc?" or command == "vdc?":
             self.set_mode_vdc_auto_range()
             self.measure()
@@ -117,11 +118,12 @@ class BK2831E(E2831.BK2831E):
     def on_created(self, comport, inventarnumber):
         self.__comport = comport
         self.__inventarnumber = inventarnumber
-        print(self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Accessnumber is: "
+        print(str(
+            datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Accessnumber is: "
               + str(inventarnumber))
 
     def on_destroyed(self):
-        print(self.model + " removed from " + self.__comport)
+        print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)
         self.__comport = ""
 
     def execute(self):

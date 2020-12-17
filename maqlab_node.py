@@ -45,6 +45,9 @@ def on_connect(_client, userdata, flags, rc):
         _client.subscribe("maqlab/+/rep/file/#", qos=0)
 
 
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
 def on_disconnect(_client, userdata, rc):
     if rc != 0:
         print(str(datetime.datetime.now()) + "  :" + "Unexpected disconnection.")
@@ -53,6 +56,9 @@ def on_disconnect(_client, userdata, rc):
     _client.reconnect()
 
 
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
 def on_message(_client, _userdata, _msg):
     global devlist
     global inventory
@@ -119,6 +125,9 @@ async def mqttloop(_client):
         await asyncio.sleep(0.05)
 
 
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
 async def tcp_generate_classes():
     while True:
         # ----------------------------------------------------------------------------------
@@ -160,6 +169,9 @@ async def tcp_generate_classes():
             pass
 
 
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
 async def serial_generate_classes():
     while True:
         await asyncio.sleep(0.2)
@@ -201,6 +213,9 @@ async def serial_generate_classes():
             pass
 
 
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
 async def execution_loop():
     # --------------------------------------------------------------------------
     # Step through connected devices and call the handlers
@@ -219,6 +234,9 @@ async def execution_loop():
                     del dev
 
 
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
 async def connector(event_config_readed):
     global client
     global idstrings
@@ -267,6 +285,9 @@ async def connector(event_config_readed):
     event_config_readed.set()
 
 
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
 async def main():
     event_config_readed = asyncio.Event()
     # create tasks
@@ -274,18 +295,42 @@ async def main():
     task1 = loop.create_task(mqttloop(client))
     task2 = loop.create_task(connector(event_config_readed))
     await event_config_readed.wait()
-    task3 = loop.create_task(serial_generate_classes())
-    task4 = loop.create_task(tcp_generate_classes())
-    task5 = loop.create_task(scan_serial_devices(devices, comlist))
-    task6 = loop.create_task(scan_tcp_devices(devices, addresses, iplist))
+
+    if serial_scan == "y":
+        task3 = loop.create_task(serial_generate_classes())
+        task5 = loop.create_task(scan_serial_devices(devices, comlist))
+
+    if tcp_scan == "y":
+        task4 = loop.create_task(tcp_generate_classes())
+        task6 = loop.create_task(scan_tcp_devices(devices, addresses, iplist))
+
     task7 = loop.create_task(execution_loop())
     # wait until all tasks finished
-    # await asyncio.wait([task1, task2, task3, task5, task7])
-    await asyncio.wait([task1, task2, task3, task4, task5, task6, task7])
+    await asyncio.wait([task1])
     # but will never happen in real !!!
 
 
 if __name__ == "__main__":
+    print("\n")
+    serial_scan = input("If you need serial scan, press enter or any key with enter, other wise 'n' :")
+    if serial_scan != 'n':
+        serial_scan = 'y'
+
+    tcp_scan = input("If you need tcp scan, press enter or any key with enter, other wise 'n' :")
+    if tcp_scan != 'n':
+        tcp_scan = 'y'
+
+    if serial_scan == 'y':
+        print("\nSerial scan: YES")
+    else:
+        print("\nSerial scan: NO")
+
+    if tcp_scan == 'y':
+        print("TCP scan: YES")
+    else:
+        print("TCP scan: NO")
+
+    print("\n")
     # Declare event loop
     loop = asyncio.get_event_loop()
     # Run the code until completing all task

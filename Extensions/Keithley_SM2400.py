@@ -2,6 +2,7 @@
 from Devices.Keithley import SM2400 as _SM2400
 from Extensions.shared import validate_topic
 from Extensions.shared import validate_payload
+import datetime
 
 
 # --------------------------------------------------------
@@ -65,11 +66,12 @@ class SM2400(_SM2400.SM2400):
     def on_created(self, comport, inventarnumber):
         self.__comport = comport
         self.__inventarnumber = inventarnumber
-        print(self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Inventory number is: "
+        print(str(
+            datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Inventory number is: "
               + str(inventarnumber))
 
     def on_destroyed(self):
-        print(self.model + " removed from " + self.__comport)
+        print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)
         self.__comport = ""
 
     def execute(self):

@@ -3,6 +3,8 @@ from Devices.Fluke import NORMA4000 as _NORMA4000
 from Extensions.shared import validate_topic
 from Extensions.shared import validate_payload
 
+import datetime
+
 
 # --------------------------------------------------------
 class NORMA4000(_NORMA4000.NORMA4000):
@@ -38,11 +40,12 @@ class NORMA4000(_NORMA4000.NORMA4000):
     def on_created(self, addr, inventarnumber):
         self.__addr = addr
         self.__inventarnumber = inventarnumber
-        print(self.devicetype + " " + self.model + " plugged into " + str(self.__addr) + ", Accessnumber is: "
+        print(str(datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into " + str(
+            self.__addr) + ", Accessnumber is: "
               + str(inventarnumber))
 
     def on_destroyed(self):
-        print(self.model + " removed from " + str(self.__addr))
+        print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + str(self.__addr))
         self.__addr = ("0", 0)
 
     def execute(self):

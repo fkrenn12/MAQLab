@@ -9,6 +9,7 @@ tout = 1000
 
 
 async def scan_serial_devices(devices, comlist):
+    # TODO  idstrings can be managed different better
     idstrings = []
     for d in devices:
         if d["interface"] == "usb-vcom":
@@ -35,7 +36,6 @@ async def scan_serial_devices(devices, comlist):
                 dev_found = None
                 # this is for windows
                 _com = "com" + str(number)
-                # print("NEW COM TESTING: " + _com)
                 ser = serial.Serial(_com, baudrate=9600)
                 ser.timeout = 1
                 buff = b''
@@ -48,8 +48,6 @@ async def scan_serial_devices(devices, comlist):
                     try:
                         ser.flush()
                         ser.flushInput()
-                        # print("SEND")
-                        # print(ids)
                         ser.write(ids)
                     except:
                         continue
@@ -62,7 +60,6 @@ async def scan_serial_devices(devices, comlist):
                         if ser.in_waiting > 0:
                             tic = int(round(time.time() * 1000))
                             c = ser.read(1)
-                            # print (c)
                             if c != b'\n' and c != b'\r':
                                 buff += c
                     # ----------- end of reading loop --------------------
@@ -86,5 +83,4 @@ async def scan_serial_devices(devices, comlist):
 
             except:
                 continue
-        # time.sleep(0.5)
         await asyncio.sleep(0.5)

@@ -8,6 +8,7 @@ CONNECT_TIMEOUT_SECONDS = 0.5
 
 
 async def scan_tcp_devices(devices, addresses, iplist):
+    # TODO  idstrings can be managed different better
     idstrings = []
     # iplist = []
     for d in devices:

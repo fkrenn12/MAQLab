@@ -2,6 +2,7 @@
 from Devices.Delta import SM70AR24 as _SM70AR24
 from Extensions.shared import validate_topic
 from Extensions.shared import validate_payload
+import datetime
 
 
 # --------------------------------------------------------
@@ -145,11 +146,12 @@ class SM70AR24(_SM70AR24.SM70AR24):
     def on_created(self, addr, inventarnumber):
         self.__addr = addr
         self.__inventarnumber = inventarnumber
-        print(self.devicetype + " " + self.model + " plugged into " + str(self.__addr) + ", Accessnumber is: "
+        print(str(datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into " + str(
+            self.__addr) + ", Accessnumber is: "
               + str(inventarnumber))
 
     def on_destroyed(self):
-        print(self.model + " removed from " + str(self.__addr))
+        print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + str(self.__addr))
         self.__addr = ("0", 0)
 
     def execute(self):
