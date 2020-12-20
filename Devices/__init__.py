@@ -2,9 +2,10 @@ import time
 import paho.mqtt.client as paho
 import threading
 
+
 class maqlab():
     def __init__(self):
-        # print("MAQlab - initialized.")
+        print("MAQlab - initialized.")
         pass
 
     def all(self):
