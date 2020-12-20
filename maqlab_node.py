@@ -240,49 +240,63 @@ async def execution_loop():
 async def connector(event_config_readed):
     global client
     global idstrings
+
     print(str(datetime.datetime.now()) + "  :" + "MAQlab - N O D E started")
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
     client.username_pw_set("maqlab", "maqlab")
-    client.connect("techfit.at", 1883)
-    while not client.is_connected():
-        await asyncio.sleep(0.05)
-    print(str(datetime.datetime.now()) + "  :" + "Requesting configuration files...")
-    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
-    client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTORY)
-    # Waiting for data from mqtt file server
-    # First we need the configuration files
-    # Therefore we wait for it
+
     while True:
-        await asyncio.sleep(0.2)
-        if len(devices) > 0 and inventory is not None:
-            break
-        print(str(datetime.datetime.now()) + "  :" + "Wait for configuration files...")
+        while True:
+            try:
+                client.connect("techfit.at", 1883)
+                break
+            except:
+                pass
 
-    print(str(datetime.datetime.now()) + "  :" + "Configuration files received.")
+        while not client.is_connected():
+            await asyncio.sleep(0.05)
+        print(str(datetime.datetime.now()) + "  :" + "Requesting configuration files...")
+        client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
+        client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTORY)
+        # Waiting for data from mqtt file server
+        # First we need the configuration files
+        # Therefore we wait for it
+        while True:
+            await asyncio.sleep(0.2)
+            if len(devices) > 0 and inventory is not None:
+                break
+            print(str(datetime.datetime.now()) + "  :" + "Wait for configuration files...")
 
-    idstrings_ethernet = list()
-    idstrings_serial = list()
-    for d in devices:
-        idstring = d["cmd_idn"]
-        idstring = idstring.replace("<CR>", "\r")
-        idstring = idstring.replace("<LF>", "\n")
-        if d["interface"] == "ethernet":
-            idstrings_ethernet.append(idstring.encode("utf-8"))
-        elif d["interface"] == "usb-vcom":
-            idstrings_serial.append(idstring.encode("utf-8"))
+        print(str(datetime.datetime.now()) + "  :" + "Configuration files received.")
 
-    idstrings = {"ethernet": list(set(idstrings_ethernet)), "serial": list(set(idstrings_serial))}
-    for invent in inventory:
-        # print(invent)
-        try:
-            # addr = (invent["ipaddress"], invent["port]"])
-            addr = (invent["ipaddress"], int(invent["port"]))
-            addresses.append(addr)
-        except:
-            pass
-    event_config_readed.set()
+        idstrings_ethernet = list()
+        idstrings_serial = list()
+        for d in devices:
+            idstring = d["cmd_idn"]
+            idstring = idstring.replace("<CR>", "\r")
+            idstring = idstring.replace("<LF>", "\n")
+            if d["interface"] == "ethernet":
+                idstrings_ethernet.append(idstring.encode("utf-8"))
+            elif d["interface"] == "usb-vcom":
+                idstrings_serial.append(idstring.encode("utf-8"))
+
+        idstrings = {"ethernet": list(set(idstrings_ethernet)), "serial": list(set(idstrings_serial))}
+        for invent in inventory:
+            # print(invent)
+            try:
+                # addr = (invent["ipaddress"], invent["port]"])
+                addr = (invent["ipaddress"], int(invent["port"]))
+                addresses.append(addr)
+            except:
+                pass
+        event_config_readed.set()
+        while client.is_connected():
+            await asyncio.sleep(1)
+        client.disconnect()
+        print(str(datetime.datetime.now()) + "  :" + "MAQlab - N O D E stopped")
+        print(str(datetime.datetime.now()) + "  :" + "MAQlab - N O D E Restarted")
 
 
 # ------------------------------------------------------------------------------
@@ -290,6 +304,7 @@ async def connector(event_config_readed):
 # ------------------------------------------------------------------------------
 async def main():
     event_config_readed = asyncio.Event()
+    event_connection_lost = asyncio.Event()
     # create tasks
     global client
     task1 = loop.create_task(mqttloop(client))
