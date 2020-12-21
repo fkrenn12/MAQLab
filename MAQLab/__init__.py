@@ -4,6 +4,8 @@ import datetime
 import queue
 import threading
 
+class MAQLabError(Exception):
+    pass
 
 class MQTT:
     class Msg:
@@ -30,10 +32,20 @@ class MQTT:
                 print(str(datetime.datetime.now()) + "  :MQTT - connecting...attempt#" + str(attemptions))
                 time.sleep(1)
                 attemptions += 1
+
+            self.__load_connected_devices()
+            '''
             self.__msg = MQTT.Msg(topic="cmd/?")
-            self.__detected_devices = self.send_and_receive_burst(self.__msg, burst_timout=0.5)
+            try:
+                self.__detected_devices = self.send_and_receive_burst(self.__msg, burst_timout=0.5)
+            except Exception as e:
+                print(e)
+                print("Could not receive the list of detected devices")
+                raise e
+            '''
             print(str(datetime.datetime.now()) + "  :" + "MQTT - ready")
-        except:
+        except Exception as e:
+            print(e)
             print(
                 str(datetime.datetime.now()) + "  :" + "MAQlab - Connection Error! Are you connected to the internet?")
 
@@ -82,16 +94,36 @@ class MQTT:
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
+    def __flush(self, block=False, timeout=0):
+        while True:
+            try:
+                if self.__q_out.empty():
+                    return
+                else:
+                    self.__q_out.get(block=block, timeout=timeout)
+            except:
+                return
+
+    # ------------------------------------------------------------------------------
+    #
+    # ------------------------------------------------------------------------------
     def __send(self, msg):
-        self.__flush()
-        self.__client.publish("maqlab/" + self.__session_id + "/" + msg.topic, msg.payload)
+        try:
+            self.__flush()
+            self.__client.publish("maqlab/" + self.__session_id + "/" + msg.topic, msg.payload)
+        except:
+            raise MAQLabError("Send error")
 
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
     def send(self, msg):
         with self.__lock:
-            self.send(msg)
+            try:
+                self.send(msg)
+            except Exception as e:
+                raise e
+
 
     # ------------------------------------------------------------------------------
     #
@@ -99,29 +131,40 @@ class MQTT:
     def __receive(self, block=True, timeout=1.0):
         try:
             rec_msg = self.__q_out.get(block=block, timeout=timeout)
+            if isinstance(rec_msg,bytes):
+                rec_msg = rec_msg.decode("utf-8")
             if isinstance(rec_msg, str):
                 rec_msg_splitted = rec_msg.split("|")
                 msg = MQTT.Msg(topic=rec_msg_splitted[0], payload=rec_msg_splitted[1])
                 return msg
-            return MQTT.Msg("ERROR", "DATA_TYPE")
+            else:
+                raise
         except:
-            return MQTT.Msg("ERROR", "NO_RESPONSE")
+            # return MQTT.Msg("ERROR", "TIMEOUT")
+            raise MAQLabError("Timeout error")
 
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
     def receive(self, block=True, timeout=1.0):
         with self.__lock:
-            return self.__receive(block, timeout)
+            try:
+                return self.__receive(block, timeout)
+            except Exception as e:
+                raise e
+
 
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
     def send_and_receive(self, msg, block=True, timeout=1.0):
         with self.__lock:
-            self.__flush()
-            self.__send(msg)
-            return self.__receive(block, timeout)
+            try:
+                self.__flush()
+                self.__send(msg)
+                return self.__receive(block, timeout)
+            except Exception as e:
+                raise e
 
     # ------------------------------------------------------------------------------
     #
@@ -130,28 +173,22 @@ class MQTT:
         _timeout = timeout
         msg_list = list()
         with self.__lock:
-            self.__send(msg)
-            while True:
-                try:
-                    msg_received = self.__q_out.get(block=block, timeout=_timeout)
-                    # print(msg_received)
-                    _timeout = burst_timout
-                    msg_list.append(msg_received)
-                except:
-                    return msg_list
-
-    # ------------------------------------------------------------------------------
-    #
-    # ------------------------------------------------------------------------------
-    def __flush(self, block=False, timeout=1):
-        while True:
             try:
-                if not self.__q_out.empty():
-                    self.__q_out.get(block=block, timeout=timeout)
-                else:
-                    break
-            except:
-                break
+                self.__send(msg)
+                while True:
+                    try:
+                        msg_received = self.__q_out.get(block=block, timeout=_timeout)
+                        # print(msg_received)
+                        _timeout = burst_timout
+                        msg_list.append(msg_received)
+                    except:
+                        if len(msg_list) == 0:
+                            raise MAQLabError("Empty data")
+                        return msg_list
+            except Exception as e:
+                raise e
+
+
 
     # ------------------------------------------------------------------------------
     #
@@ -160,8 +197,26 @@ class MQTT:
         print("Ja das sind die Geräte1")
         print("Ja das sind die Geräte2")
 
+    # ------------------------------------------------------------------------------
+    #
+    # ------------------------------------------------------------------------------
+    def __load_connected_devices(self):
+        msg = MQTT.Msg(topic="cmd/?")
+        try:
+            self.__detected_devices = self.send_and_receive_burst(msg, burst_timout=0.5)
+        except:
+            pass
+
+    # ------------------------------------------------------------------------------
+    #
+    # ------------------------------------------------------------------------------
     def connected_devices(self):
-        return self.__detected_devices
+        with self.__lock:
+            try:
+                return self.__detected_devices
+            except:
+                raise MAQLabError("MAQLab could not load the list of detected devices")
+
 
     def __str__(self):
         return self.__session_id

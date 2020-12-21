@@ -241,7 +241,7 @@ async def connector(event_config_readed):
     global client
     global idstrings
 
-    print(str(datetime.datetime.now()) + "  :" + "MAQlab - N O D E started")
+    print(str(datetime.datetime.now()) + "  :" + "M A Q L A B  - Node started")
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
@@ -295,8 +295,8 @@ async def connector(event_config_readed):
         while client.is_connected():
             await asyncio.sleep(1)
         client.disconnect()
-        print(str(datetime.datetime.now()) + "  :" + "MAQlab - N O D E stopped")
-        print(str(datetime.datetime.now()) + "  :" + "MAQlab - N O D E Restarted")
+        print(str(datetime.datetime.now()) + "  :" + "M A Q L A B  - Node stopped")
+        print(str(datetime.datetime.now()) + "  :" + "M A Q L A B  - Node Restarted")
 
 
 # ------------------------------------------------------------------------------
@@ -324,7 +324,9 @@ async def main():
     await asyncio.wait([task1])
     # but will never happen in real !!!
 
-
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("\n")
     serial_scan = input("If you need serial scan, press enter or any key with enter, other wise 'n' :")

@@ -134,50 +134,8 @@ class NTP6531:
         curr = clip(curr, self.__device_current_low_limit, self.__device_current_high_limit)
         curr = clip(curr, self.__app_current_low_limit, self.__app_current_high_limit)
         return curr
-    '''
-    # --------------------------------------------------
-    def set_app_current_limit(self, upper=NTP6531_CURRENT_HIGH_LIMIT, lower=NTP6531_CURRENT_LOW_LIMIT):
-        if type(upper) is int or type(upper) is float and \
-                type(lower) is int or type(lower) is float:
-
-            self.__app_current_high_limit = upper
-            if lower == NTP6531_CURRENT_LOW_LIMIT and upper != NTP6531_CURRENT_HIGH_LIMIT:
-                self.__app_current_low_limit = -upper
-            else:
-                self.__app_current_low_limit = lower
-        else:
-            return
 
     # --------------------------------------------------
-    def set_app_voltage_limit(self, upper=NTP6531_VOLTAGE_HIGH_LIMIT, lower=NTP6531_VOLTAGE_LOW_LIMIT):
-        if type(upper) is int or type(upper) is float and \
-                type(lower) is int or type(lower) is float:
-            self.__app_voltage_high_limit = upper
-            if lower == NTP6531_VOLTAGE_LOW_LIMIT and upper != NTP6531_VOLTAGE_HIGH_LIMIT:
-                self.__app_voltage_low_limit = -upper
-            else:
-                self.__app_voltage_low_limit = lower
-        else:
-            return
-
-        # --------------------------------------------------
-
-    def __voltage_limiter(self, volt):
-        # limits
-        clip(volt, self.__device_voltage_low_limit, self.__device_voltage_high_limit)
-        clip(volt, self.__app_voltage_low_limit, self.__app_voltage_high_limit)
-        clip(volt, -abs(self.__voltage_high_limit_human_secure), abs(self.__voltage_high_limit_human_secure))
-        return volt
-
-        # --------------------------------------------------
-
-    def __current_limiter(self, current):
-        # limits
-        clip(current, self.__device_current_low_limit, self.__device_current_high_limit)
-        clip(current, self.__app_current_low_limit, self.__app_current_high_limit)
-        return current
-    # --------------------------------------------------
-    '''
     def __readline(self, timeout):
         tout = timeout
         tic = int(round(time.time() * 1000))

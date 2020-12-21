@@ -36,7 +36,7 @@ async def scan_serial_devices(devices, comlist):
                 dev_found = None
                 # this is for windows
                 _com = "com" + str(number)
-                ser = serial.Serial(_com, baudrate=9600)
+                ser = serial.Serial(_com, baudrate=9600, timeout=1)
                 ser.timeout = 1
                 buff = b''
                 for ids in idstrings:

@@ -1,5 +1,6 @@
 import MAQLab
 import time
+import datetime
 
 
 class msg:
@@ -9,32 +10,45 @@ class msg:
 
 print(MAQLab.mqtt)
 print(MAQLab.mqtt.connected_devices())
+
 m = msg()
-# rec = MAQLab.mqtt.send_and_receive_burst(m, burst_timout=1)
-# print(rec)
+m.topic = "cmd/1287/output"
+m.payload = 1
+if "ACCEPT" in MAQLab.mqtt.send_and_receive(m).payload:
+    print("OUTPUT ON")
+
 
 while True:
-    msg.topic = "cmd/1287/vdc?"
-    msg.payload = ""
+    m.topic = "cmd/1287/vdc?"
+    m.payload = ""
     rec = MAQLab.mqtt.send_and_receive(m)
     print(rec.topic, rec.payload)
 
-    for volt in range(0, 8):
-
+    for volt in range(5, 8):
         print("Set to: " + str(volt / 2.0))
-        msg.topic = "cmd/9418/vdc"
-        msg.payload = str(volt / 2.0)
-        rec = MAQLab.mqtt.send_and_receive(m, timeout=2)
+        m.topic = "cmd/9418/vdc"
+        m.payload = str(volt / 2.0)
+        rec = MAQLab.mqtt.send_and_receive(m)
         print(rec.topic, rec.payload)
 
-        time.sleep(0.5)
-        msg.topic = "cmd/9418/vdc?"
-        rec = MAQLab.mqtt.send_and_receive(m, timeout=2)
-        print(rec.topic, rec.payload)
-        msg.topic = "cmd/9418/idc?"
-        rec = MAQLab.mqtt.send_and_receive(m, timeout=2)
+        time.sleep(1)
+        while True:
+
+            m.topic = "cmd/9418/vdc?"
+            try:
+                rec = MAQLab.mqtt.send_and_receive(m)
+                # print(str(datetime.datetime.now()) + ":" + str(rec.topic), str(rec.payload))
+            except:
+                print(str(datetime.datetime.now()) + ": NO RESPONSE")
+
+            m.topic = "cmd/1287/vdc?"
+            try:
+                rec = MAQLab.mqtt.send_and_receive(m)
+                # print(str(datetime.datetime.now()) + ":" + str(rec.topic), str(rec.payload))
+            except:
+                print(str(datetime.datetime.now()) + ": NO RESPONSE")
+
+        m.topic = "cmd/9418/idc?"
+        rec = MAQLab.mqtt.send_and_receive(m)
         print(rec.topic, rec.payload)
 
-print(float(MAQLab.mqtt))
-print(int(MAQLab.mqtt))
-print(str(MAQLab.mqtt))
