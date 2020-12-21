@@ -30,8 +30,8 @@ class MQTT:
                 print(str(datetime.datetime.now()) + "  :MQTT - connecting...attempt#" + str(attemptions))
                 time.sleep(1)
                 attemptions += 1
-            msg = MQTT.Msg(topic="cmd/?")
-            self.__detected_devices = self.send_and_receive_burst(msg, burst_timout=0.5)
+            self.__msg = MQTT.Msg(topic="cmd/?")
+            self.__detected_devices = self.send_and_receive_burst(self.__msg, burst_timout=0.5)
             print(str(datetime.datetime.now()) + "  :" + "MQTT - ready")
         except:
             print(
@@ -103,9 +103,9 @@ class MQTT:
                 rec_msg_splitted = rec_msg.split("|")
                 msg = MQTT.Msg(topic=rec_msg_splitted[0], payload=rec_msg_splitted[1])
                 return msg
-            return None
+            return MQTT.Msg("ERROR", "DATA_TYPE")
         except:
-            return None
+            return MQTT.Msg("ERROR", "NO_RESPONSE")
 
     # ------------------------------------------------------------------------------
     #

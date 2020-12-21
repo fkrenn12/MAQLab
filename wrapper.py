@@ -20,18 +20,19 @@ while True:
     print(rec.topic, rec.payload)
 
     for volt in range(0, 8):
+
         print("Set to: " + str(volt / 2.0))
-        msg.topic = "cmd/9574/vdc"
+        msg.topic = "cmd/9418/vdc"
         msg.payload = str(volt / 2.0)
-        rec = MAQLab.mqtt.send_and_receive(m)
+        rec = MAQLab.mqtt.send_and_receive(m, timeout=2)
         print(rec.topic, rec.payload)
 
-        time.sleep(4)
-        msg.topic = "cmd/9574/vdc?"
-        rec = MAQLab.mqtt.send_and_receive(m)
+        time.sleep(0.5)
+        msg.topic = "cmd/9418/vdc?"
+        rec = MAQLab.mqtt.send_and_receive(m, timeout=2)
         print(rec.topic, rec.payload)
-        msg.topic = "cmd/9574/idc?"
-        rec = MAQLab.mqtt.send_and_receive(m)
+        msg.topic = "cmd/9418/idc?"
+        rec = MAQLab.mqtt.send_and_receive(m, timeout=2)
         print(rec.topic, rec.payload)
 
 print(float(MAQLab.mqtt))
