@@ -11,8 +11,9 @@ HUMAN_SECURE_MAX_VOLTAGE = 50
 VOLT_UNDEFINED_VALUE = -999999.99
 CURRENT_UNDEFINED_VALUE = -999999.99
 
-TIMEOUT = 200  # serial read time in milliseconds of a line
-DISPLAY_INTERVAL = 100  # minimal interval between display readings in milliseconds
+TIMEOUT = 200  # serial read timeout in milliseconds of a line
+DISPLAY_INTERVAL = 200  # minimal interval between display readings in milliseconds
+COMMAND_RESPONSE_TIME_MS = 100
 NTP6531_DEFAULT_BAUDRATE = 9600
 NTP6531_VOLTAGE_HIGH_LIMIT = 36.0
 NTP6531_VOLTAGE_LOW_LIMIT = 1.0
@@ -36,8 +37,7 @@ class NTP6531:
         try:
             self.__ser = serial.Serial(port, baudrate)
         except:
-            print("ERR - COULD NOT CONNECT")
-            raise
+            raise Exception("Serial Port - COULD NOT CONNECT")
         self.__serialnumber = EMPTY_BYTE_STRING
         self.__model = EMPTY_BYTE_STRING
         self.__manufactorer = EMPTY_BYTE_STRING
@@ -79,7 +79,7 @@ class NTP6531:
             volt = clip(volt, NTP6531_VOLTAGE_LOW_LIMIT, NTP6531_VOLTAGE_HIGH_LIMIT)
             self.__app_voltage_high_limit = volt
         except:
-            pass
+            raise
 
     # --------------------------------------------------
     def __get_volt_lower_limit(self):
@@ -92,7 +92,7 @@ class NTP6531:
             volt_min = clip(volt_min, NTP6531_VOLTAGE_LOW_LIMIT, NTP6531_VOLTAGE_HIGH_LIMIT)
             self.__app_voltage_low_limit = volt_min
         except:
-            pass
+            raise
 
     # --------------------------------------------------
     def __voltage_limiter(self, volt):
@@ -113,7 +113,7 @@ class NTP6531:
             current_max = clip(current_max, NTP6531_CURRENT_LOW_LIMIT, NTP6531_CURRENT_HIGH_LIMIT)
             self.__app_current_high_limit = current_max
         except:
-            pass
+            raise
 
     # --------------------------------------------------
     def __get_current_lower_limit(self):
@@ -126,7 +126,7 @@ class NTP6531:
             current_min = clip(current_min, NTP6531_CURRENT_LOW_LIMIT, NTP6531_CURRENT_HIGH_LIMIT)
             self.__app_current_low_limit = current_min
         except:
-            pass
+            raise
 
     # --------------------------------------------------
     def __current_limiter(self, curr):
@@ -141,16 +141,22 @@ class NTP6531:
         tic = int(round(time.time() * 1000))
         buff = EMPTY_BYTE_STRING
         try:
-            while (int(round(time.time() * 1000)) - tic) < tout:
+            # while (int(round(time.time() * 1000)) - tic) < tout:
+            while True:
                 if self.__ser.in_waiting > 0:
                     c = self.__ser.read(1)
                     if c != b'\r':
                         buff += c
+                        print(buff)
                     else:
+                        print("ms:" + str((int(round(time.time() * 1000)) - tic)))
                         return buff
+            print("Timeout")
+            # while True:
+            #    time.sleep(1)
+            # raise Exception("Timeout")
         except:
-            pass
-        return EMPTY_BYTE_STRING
+            raise
 
     # --------------------------------------------------
     def __send_command(self, cmd):
@@ -161,6 +167,39 @@ class NTP6531:
                     self.__ser.flushInput()
                     self.__ser.write(cmd)
                     response = self.__readline(TIMEOUT)
+                    print(str(cmd), str(response))
+                    if response == OK_BYTE_STRING:
+                        return True
+                return False
+            except:
+                return False
+
+    # --------------------------------------------------
+    def __send_command_and_receive_ok(self, cmd):
+        if type(cmd) is bytes:
+            try:
+                for i in range(1, 11):  # 10 times trying
+                    self.__ser.flush()
+                    self.__ser.flushInput()
+                    self.__ser.write(cmd)
+                    response = self.__readline(TIMEOUT)
+                    print(str(cmd), str(response))
+                    if response == OK_BYTE_STRING:
+                        return True
+                return False
+            except:
+                return False
+
+    # --------------------------------------------------
+    def __send_command_and_receive_replay_and_ok(self, cmd):
+        if type(cmd) is bytes:
+            try:
+                for i in range(1, 11):  # 10 times trying
+                    self.__ser.flush()
+                    self.__ser.flushInput()
+                    self.__ser.write(cmd)
+                    response = self.__readline(TIMEOUT)
+                    print(str(cmd), str(response))
                     if response == OK_BYTE_STRING:
                         return True
                 return False
@@ -184,18 +223,33 @@ class NTP6531:
         try:
             idstring = EMPTY_BYTE_STRING
             for i in range(1, 11):  # 10 times trying
+                print("Attempt#" + str(i))
+                self.__ser.reset_input_buffer()
+                self.__ser.reset_output_buffer()
                 self.__ser.flush()
-                self.__ser.flushInput()
                 self.__ser.write(b'GMOD\r')
-                idstring = self.__readline(TIMEOUT)
+                time.sleep(COMMAND_RESPONSE_TIME_MS / 1000.0)
+                self.__ser.timeout = 0.05
+                try:
+                    idstring = self.__ser.read_until(b'\r')
+                    print(idstring)
+                    if b'\r' not in idstring:
+                        raise Exception
+                except:
+                    continue
+
+                # idstring = self.__readline(TIMEOUT)
                 if len(idstring) > 0:
                     break
+
             t = idstring.split(b'\r')
             self.__model = t[0].decode("utf-8")
             self.__manufactorer = "Manson"
             self.__serialnumber = str(9000 + random.randrange(999))
             self.__devicetype = "DC-Power Supply"
-            self.__readline(TIMEOUT)  # read remaining chars
+            # self.__readline(TIMEOUT)  # read remaining chars
+            self.__ser.read()
+            self.__ser.reset_input_buffer()
         except:
             self.__model = EMPTY_STRING
             self.__manufactorer = EMPTY_STRING
@@ -227,19 +281,39 @@ class NTP6531:
     def __get_display(self):
         response = EMPTY_BYTE_STRING
         tic = int(round(time.time() * 1000))
-        #  check minimal call time interval
-        if (tic - self.__last_measure_tic) < DISPLAY_INTERVAL:
-            return response
+        # check minimal call time interval
+        # and wait until reached
+        while (tic - self.__last_measure_tic) < DISPLAY_INTERVAL:
+            tic = int(round(time.time() * 1000))
+            time.sleep(0.05)
+
         try:
             for i in range(1, 11):  # 10 times trying
-                self.__ser.flushInput()
-                cmd = b'GETD\r'
+                if i > 1:
+                    print(str(tic - self.__last_measure_tic) + " Attempt#" + str(i))
+                # self.__ser.flushInput()
+                self.__ser.reset_input_buffer()
+                self.__ser.reset_output_buffer()
+                self.__ser.flush()
+                cmd = b'GETD\r\n'
                 self.__ser.write(cmd)
-                response = self.__readline(TIMEOUT)
-                if len(response) > 0:
-                    self.__readline(TIMEOUT)  # OK kann noch gecheckt werden
-                    if len(response) > 0:
+                time.sleep(COMMAND_RESPONSE_TIME_MS / 1000.0)
+                self.__ser.timeout = 0.05
+                try:
+                    response = self.__ser.read_until(b'\r')
+                    if b'\r' not in response:
+                        raise Exception
+                except:
+                    continue
+                try:
+                    ok = self.__ser.read_until(b'\r')
+                    # print(ok)
+                    if ok == b"OK\r":
                         break
+                    else:
+                        raise Exception
+                except:
+                    continue
         except:
             return EMPTY_BYTE_STRING
 

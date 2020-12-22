@@ -30,7 +30,7 @@ class NTP6531(_NTP6531.NTP6531):
         if not t["matching"]:
             return
 
-        print(self.model + " " + t["topic"] + " " + str(p["payload"]))
+        # print(self.model + " " + t["topic"] + " " + str(p["payload"]))
 
         command = t["cmd"]
         value = p["payload"]

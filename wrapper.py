@@ -26,7 +26,7 @@ while True:
 
     for volt in range(5, 8):
         print("Set to: " + str(volt / 2.0))
-        m.topic = "cmd/9418/vdc"
+        m.topic = "cmd/9040/vdc"
         m.payload = str(volt / 2.0)
         rec = MAQLab.mqtt.send_and_receive(m)
         print(rec.topic, rec.payload)
@@ -34,21 +34,21 @@ while True:
         time.sleep(1)
         while True:
 
-            m.topic = "cmd/9418/vdc?"
+            m.topic = "cmd/9040/vdc?"
             try:
-                rec = MAQLab.mqtt.send_and_receive(m)
+                rec = MAQLab.mqtt.send_and_receive(m, timeout=2)
                 # print(str(datetime.datetime.now()) + ":" + str(rec.topic), str(rec.payload))
             except:
-                print(str(datetime.datetime.now()) + ": NO RESPONSE")
+                print(str(datetime.datetime.now()) + ": NTP-6531 NO RESPONSE")
 
             m.topic = "cmd/1287/vdc?"
             try:
                 rec = MAQLab.mqtt.send_and_receive(m)
                 # print(str(datetime.datetime.now()) + ":" + str(rec.topic), str(rec.payload))
             except:
-                print(str(datetime.datetime.now()) + ": NO RESPONSE")
+                print(str(datetime.datetime.now()) + ": DELTA NO RESPONSE")
 
-        m.topic = "cmd/9418/idc?"
+        m.topic = "cmd/9040/idc?"
         rec = MAQLab.mqtt.send_and_receive(m)
         print(rec.topic, rec.payload)
 

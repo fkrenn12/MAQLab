@@ -4,8 +4,10 @@ import datetime
 import queue
 import threading
 
+
 class MAQLabError(Exception):
     pass
+
 
 class MQTT:
     class Msg:
@@ -124,14 +126,13 @@ class MQTT:
             except Exception as e:
                 raise e
 
-
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
     def __receive(self, block=True, timeout=1.0):
         try:
             rec_msg = self.__q_out.get(block=block, timeout=timeout)
-            if isinstance(rec_msg,bytes):
+            if isinstance(rec_msg, bytes):
                 rec_msg = rec_msg.decode("utf-8")
             if isinstance(rec_msg, str):
                 rec_msg_splitted = rec_msg.split("|")
@@ -152,7 +153,6 @@ class MQTT:
                 return self.__receive(block, timeout)
             except Exception as e:
                 raise e
-
 
     # ------------------------------------------------------------------------------
     #
@@ -188,8 +188,6 @@ class MQTT:
             except Exception as e:
                 raise e
 
-
-
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
@@ -216,7 +214,6 @@ class MQTT:
                 return self.__detected_devices
             except:
                 raise MAQLabError("MAQLab could not load the list of detected devices")
-
 
     def __str__(self):
         return self.__session_id
