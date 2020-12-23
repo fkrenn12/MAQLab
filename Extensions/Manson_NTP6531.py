@@ -10,10 +10,10 @@ class NTP6531(_NTP6531.NTP6531):
     def __init__(self, _port, _baudrate=9600):
         super().__init__(_port, _baudrate)
         self.__comport = ""
-        self.__inventarnumber = "0"
+        self.__invent_number = "0"
 
     def mqttmessage(self, client, msg):
-        t = validate_topic(msg.topic, self.__inventarnumber, self.model)
+        t = validate_topic(msg.topic, self.__invent_number, self.model)
         p = validate_payload(msg.payload)
 
         if not t["valid"]:
@@ -24,7 +24,7 @@ class NTP6531(_NTP6531.NTP6531):
             return
 
         if t["cmd"] == "accessnumber":
-            client.publish(t["reply"], str(self.__inventarnumber))
+            client.publish(t["reply"], str(self.__invent_number))
             return
 
         if not t["matching"]:
@@ -129,11 +129,11 @@ class NTP6531(_NTP6531.NTP6531):
 
         client.publish(t["reply"], p["payload_error"])
 
-    def on_created(self, comport, inventarnumber):
+    def on_created(self, comport, invent_number):
         self.__comport = comport
-        self.__inventarnumber = inventarnumber
+        self.__invent_number = invent_number
         print(str(datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Accessnumber is: "
-              + str(inventarnumber))
+              + str(invent_number))
 
     def on_destroyed(self):
         print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)

@@ -2,6 +2,7 @@ import MAQLab
 import time
 import datetime
 
+access = 9835
 
 class msg:
     topic = "cmd/?"
@@ -26,7 +27,7 @@ while True:
 
     for volt in range(5, 8):
         print("Set to: " + str(volt / 2.0))
-        m.topic = "cmd/9040/vdc"
+        m.topic = "cmd/" + str(access) + "/vdc"
         m.payload = str(volt / 2.0)
         rec = MAQLab.mqtt.send_and_receive(m)
         print(rec.topic, rec.payload)
@@ -34,9 +35,9 @@ while True:
         time.sleep(1)
         while True:
 
-            m.topic = "cmd/9040/vdc?"
+            m.topic = "cmd/" + str(access) + "/vdc?"
             try:
-                rec = MAQLab.mqtt.send_and_receive(m, timeout=2)
+                rec = MAQLab.mqtt.send_and_receive(m, timeout=1)
                 # print(str(datetime.datetime.now()) + ":" + str(rec.topic), str(rec.payload))
             except:
                 print(str(datetime.datetime.now()) + ": NTP-6531 NO RESPONSE")
@@ -48,7 +49,7 @@ while True:
             except:
                 print(str(datetime.datetime.now()) + ": DELTA NO RESPONSE")
 
-        m.topic = "cmd/9040/idc?"
+        m.topic = "cmd/" + str(access) + "/idc?"
         rec = MAQLab.mqtt.send_and_receive(m)
         print(rec.topic, rec.payload)
 

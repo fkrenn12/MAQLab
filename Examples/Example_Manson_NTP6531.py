@@ -9,7 +9,7 @@ import datetime
 # ---------------------------------------------------
 # be sure to make proper COM port settings
 # ---------------------------------------------------
-VCOMport = "com4"  # -> change to your needs
+VCOMport = "com5"  # -> change to your needs
 
 
 class Portmanager:
@@ -81,24 +81,40 @@ class VoltageSource:
     def on(self):
         self.__dev.output_on()
 
+    def off(self):
+        self.__dev.output_off()
+
+    def power(self):
+        return self.__dev.power
+
     def close(self):
         self.__dev.close()
 
     volt = property(__get_volt, __set_volt)
 
 
-u1 = VoltageSource("NTP6531", "com4")
-u1.on()
-u1.volt = 2
+u1 = VoltageSource("NTP6531", "com5")
+
+while True:
+    u1.on()
+    for v in range(1,10):
+        print("Set to: " +str(v))
+        u1.volt = v
+        time.sleep(0.2)
+        print(u1.volt)
+        print(u1.power())
+    u1.off()
+    time.sleep(1)
+
 
 time.sleep(2)
-v1 = Voltmeter("NTP6531", "com4")
+v1 = Voltmeter("NTP6531", "com5")
 print(str(datetime.datetime.now()) + " " + str(v1.volt))
-v3 = Voltmeter("NTP6531", "com4")
+v3 = Voltmeter("NTP6531", "com5")
 print(str(datetime.datetime.now()) + " " + str(v3.volt))
 time.sleep(5)
 
-u2 = VoltageSource("NTP6531", "com4")
+u2 = VoltageSource("NTP6531", "com5")
 u2.volt = 1
 time.sleep(5)
 print(u2.volt)

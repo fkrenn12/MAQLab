@@ -31,7 +31,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
         if not t["matching"]:
             return
 
-        print(self.model + " " + t["topic"] + " " + str(p["payload"]))
+        # print(self.model + " " + t["topic"] + " " + str(p["payload"]))
 
         command = t["cmd"]
         value = p["payload"]
