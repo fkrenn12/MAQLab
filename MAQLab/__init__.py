@@ -219,4 +219,4 @@ class MQTT:
         return self.__session_id
 
 
-mqtt = MQTT(host="techfit.at", port=1883, user="maqlab", password="maqlab", session_id="s01")
+mqtt = MQTT(host="techfit.at", port=1883, user="maqlab", password="maqlab", session_id="s02")

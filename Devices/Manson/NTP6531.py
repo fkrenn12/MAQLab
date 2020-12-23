@@ -192,10 +192,10 @@ class NTP6531:
                     except:
                         # next try to execute the command
                         continue
-                    if (time.time() - start_wait) > 0.0:
-                        print(str(datetime.datetime.now()) + " " + str(time.time() - start_wait))
+                    # if (time.time() - start_wait) > 0.0:
+                    #    print(str(datetime.datetime.now()) + " " + str(time.time() - start_wait))
                     return reply.decode("utf-8")
-                print("Serial Timeout")
+                # print("Serial Timeout")
                 raise Exception("Serial receive Timeout Error")
             except:
                 raise

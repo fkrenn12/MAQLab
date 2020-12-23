@@ -32,9 +32,9 @@ while True:
         rec = MAQLab.mqtt.send_and_receive(m)
         print(rec.topic, rec.payload)
 
-        time.sleep(1)
-        while True:
 
+        while True:
+            time.sleep(0.1)
             m.topic = "cmd/" + str(access) + "/vdc?"
             try:
                 rec = MAQLab.mqtt.send_and_receive(m, timeout=1)

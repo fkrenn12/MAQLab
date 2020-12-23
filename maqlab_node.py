@@ -66,41 +66,43 @@ def on_message(_client, _userdata, _msg):
     global devices
     global deviceidentifications
 
-    # check topic
-    if isinstance(_msg.topic, bytes):
+    try:
         topic = _msg.topic.decode("utf-8")
-    elif isinstance(_msg.topic, str):
-        topic = _msg.topic
-    else:
-        return
+    except:
+        pass
+    topic = _msg.topic
 
-    # configuration file repeated
-    if "/rep/file/" in topic:
-        if FILENAME_CONFIG_DEVICES in topic:
-            try:
-                deviceidentifications = []
-                devices = json.loads(_msg.payload.decode("utf-8"))
-                for i in devices:
-                    deviceidentifications.append(i["device"])
-                # print("Device-Identifiers:" + str(deviceidentifications))
-            except Exception as e:
-                print(devices)
-                print(str(datetime.datetime.now()) + "  :" + "Error in devices.json")
-                print(e)
-                return
-        elif FILENAME_CONFIG_INVENTORY in topic:
-            try:
-                inventory_numbers = []
-                inventory = json.loads(_msg.payload.decode("utf-8"))
-                for i in inventory:
-                    inventory_numbers.append(i["inventar_number"])
-                # print("Inventory numbers:" + str(inventory_numbers))
-            except Exception as e:
-                print(inventory)
-                print(str(datetime.datetime.now()) + "  :" + "Error in inventory.json")
-                print(e)
-                return
-        return
+
+    try:
+        # configuration file repeated
+        if "/rep/file/" in topic:
+            if FILENAME_CONFIG_DEVICES in topic:
+                try:
+                    devices = json.loads(_msg.payload.decode("utf-8"))
+                    deviceidentifications = list()
+                    for i in devices:
+                        deviceidentifications.append(i["device"])
+                    # print("Device-Identifiers:" + str(deviceidentifications))
+                except Exception as e:
+                    # print(devices)
+                    print(str(datetime.datetime.now()) + "  :" + "Error in devices.json")
+                    # print(e)
+                    return
+            elif FILENAME_CONFIG_INVENTORY in topic:
+                try:
+                    inventory = json.loads(_msg.payload.decode("utf-8"))
+                    inventory_numbers = list()
+                    for i in inventory:
+                        inventory_numbers.append(i["inventar_number"])
+                    # print("Inventory numbers:" + str(inventory_numbers))
+                except Exception as e:
+                    # print(inventory)
+                    print(str(datetime.datetime.now()) + "  :" + "Error in inventory.json")
+                    # print(e)
+                    return
+            return
+    except:
+        raise
 
     # loaded configuration must be done before any
     # messages can be distributed
@@ -117,12 +119,16 @@ def on_message(_client, _userdata, _msg):
             except:
                 pass
 
-
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
 async def mqttloop(_client):
     while True:
-        if _client is not None:
-            _client.loop(0.0001)
-        await asyncio.sleep(0.05)
+        try:
+            _client.loop(0.001)
+        except:
+            pass
+        await asyncio.sleep(0.01)
 
 
 # ------------------------------------------------------------------------------
