@@ -2,7 +2,7 @@ import MAQLab
 import time
 import datetime
 
-access = 9835
+access =  9835
 
 class msg:
     topic = "cmd/?"
