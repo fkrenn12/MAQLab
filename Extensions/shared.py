@@ -10,6 +10,7 @@ def validate_payload(payload):
     payload_error = s.payload_error + " " + timestamp
     payload_accepted = s.payload_accepted + " " + timestamp
     payload_limited = s.payload_limited + " " + timestamp
+    payload_command_error = s.payload_command_error + " " + timestamp
     valid = True
     try:
         payload = payload.lower()
@@ -31,6 +32,7 @@ def validate_payload(payload):
             'payload': payload,
             'payload_error': payload_error,
             'payload_accepted': payload_accepted,
+            'payload_command_error': payload_command_error,
             'payload_limited': payload_limited}
 
 

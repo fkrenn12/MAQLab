@@ -165,7 +165,6 @@ class NTP6531:
                     self.__ser.flush()
                     self.__ser.write(cmd)
                     # note time to calculate timeout later
-
                     start_wait = time.time()
                     # loop until first char is in the buffer
                     while self.__ser.in_waiting == 0:
@@ -196,7 +195,7 @@ class NTP6531:
                     #    print(str(datetime.datetime.now()) + " " + str(time.time() - start_wait))
                     return reply.decode("utf-8")
                 # print("Serial Timeout")
-                raise Exception("Serial receive Timeout Error")
+                raise Exception("NTP6531 - Receive Timeout Error")
             except:
                 raise
         except:

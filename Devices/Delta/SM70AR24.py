@@ -15,6 +15,7 @@ SM70AR24_CURRENT_LOW_LIMIT = 0
 
 HUMAN_SECURE_MAX_VOLTAGE = 50
 
+
 # --------------------------------------------------
 class SM70AR24:
     # --------------------------------------------------
@@ -147,13 +148,19 @@ class SM70AR24:
             return False
 
     # --------------------------------------------------
+    # set value and receiving a response
+    # --------------------------------------------------
     def __send_and_receive_command(self, command):
         command = command + "\n"
         try:
             self.socket.settimeout(SOCKET_TIMEOUT_SECONDS)
-            self.socket.sendall(command.encode("UTF-8"))
-            self.__last_command_time = int(round(time.time() * 1000))
-            received = self.socket.recv(BUFFER_SIZE)
+            try:
+                self.__last_command_time = int(round(time.time() * 1000))
+                self.socket.sendall(command.encode("UTF-8"))
+                received = self.socket.recv(BUFFER_SIZE)
+            except:
+                raise Exception("SM70AR24 - Receive Timeout Error")
+
             try:
                 received = received.decode("UTF-8").rstrip()
             except:
@@ -164,13 +171,19 @@ class SM70AR24:
 
     # --------------------------------------------------
     # set value without receiving a response
+    # --------------------------------------------------
     def __send_command(self, command):
         # self.__wait_minimal_command_interval(100)
         try:
             self.socket.settimeout(SOCKET_TIMEOUT_SECONDS)
             command = command + "\n"
-            self.socket.sendall(command.encode("UTF-8"))
-            self.__last_command_time = int(round(time.time() * 1000))
+
+            try:
+                self.__last_command_time = int(round(time.time() * 1000))
+                self.socket.sendall(command.encode("UTF-8"))
+            except:
+                raise Exception("SM70AR24 - Send Timeout Error")
+
             return True
         except:
             raise
@@ -252,7 +265,6 @@ class SM70AR24:
         except:
             raise
 
-
     # --------------------------------------------------
     def __get_volt_display_as_string(self):
         try:
@@ -299,7 +311,6 @@ class SM70AR24:
 
     def __get_current_display_as_string(self):
         return "{:.6f}".format(self.__get_current_display()) + " " + self.__get_current_unit() + "DC"
-
 
     # --------------------------------------------------
     def __get_power_display(self):
@@ -375,4 +386,3 @@ class SM70AR24:
     manufactorer = property(__get_manufactorer)
     devicetype = property(__get_devicetype)
     model = property(__get_model)
-

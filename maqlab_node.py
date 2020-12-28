@@ -26,6 +26,12 @@ comlist = []
 iplist = []
 addresses = []
 
+MQTT_HOST = "techfit.at"
+MQTT_PORT = 1883
+MQTT_USER = "maqlab"
+MQTT_PASSWORD = "maqlab"
+MQTT_ROOT = "maqlab/"
+
 FILENAME_CONFIG_DEVICES = "devices.json"
 FILENAME_CONFIG_INVENTORY = "inventory.json"
 PATHNAME_CONFIG_DEVICES = "/config/" + FILENAME_CONFIG_DEVICES
@@ -38,10 +44,9 @@ session_id = secrets.token_urlsafe(5)
 # --------------------------------------------------------
 def on_connect(_client, userdata, flags, rc):
     if rc == 0:
-        print(str(datetime.datetime.now()) + "  :" + "Connected to MQTT-Broker.")
-        _client.subscribe("maqlab/cmd/#", qos=0)
+        print(str(datetime.datetime.now()) + "  :" + "Connected to MQTT-Broker")
         _client.subscribe("maqlab/+/cmd/#", qos=0)
-        _client.subscribe("maqlab/rep/file/#", qos=0)
+        _client.subscribe("maqlab/+/+/cmd/#", qos=0)
         _client.subscribe("maqlab/+/rep/file/#", qos=0)
 
 
@@ -50,10 +55,11 @@ def on_connect(_client, userdata, flags, rc):
 # ------------------------------------------------------------------------------
 def on_disconnect(_client, userdata, rc):
     if rc != 0:
-        print(str(datetime.datetime.now()) + "  :" + "Unexpected disconnection.")
-    # server.stop()
-    # server.start()
-    _client.reconnect()
+        print(str(datetime.datetime.now()) + "  :" + "Disconnected from MQTT-Broker")
+    try:
+        _client.disconnect()
+    except:
+        pass
 
 
 # ------------------------------------------------------------------------------
@@ -71,7 +77,6 @@ def on_message(_client, _userdata, _msg):
     except:
         pass
     topic = _msg.topic
-
 
     try:
         # configuration file repeated
@@ -100,9 +105,8 @@ def on_message(_client, _userdata, _msg):
                     print(str(datetime.datetime.now()) + "  :" + "Error in inventory.json")
                     # print(e)
                     return
-            return
     except:
-        raise
+        pass
 
     # loaded configuration must be done before any
     # messages can be distributed
@@ -110,14 +114,14 @@ def on_message(_client, _userdata, _msg):
         return
 
     # print(topic, _msg.payload)
-
-    if len(devlist) > 0:
-        # distribute message to all devices
-        for _dev in devlist:
-            try:
+    try:
+        if len(devlist) > 0:
+            # distribute message to all devices
+            for _dev in devlist:
                 _dev.mqttmessage(_client, _msg)
-            except:
-                pass
+    except:
+        pass
+
 
 # ------------------------------------------------------------------------------
 #
@@ -251,21 +255,24 @@ async def connector(event_config_readed):
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
-    client.username_pw_set("maqlab", "maqlab")
+    client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
 
     while True:
+        # we are looping the connect
+        # because we also need DNS
         while True:
             try:
-                client.connect("techfit.at", 1883)
+                client.connect(MQTT_HOST, MQTT_PORT)
                 break
             except:
-                pass
+                print(str(datetime.datetime.now()) + "  :" + "Probably not connected to the Internet")
+                await asyncio.sleep(5)
 
         while not client.is_connected():
             await asyncio.sleep(0.05)
-        print(str(datetime.datetime.now()) + "  :" + "Requesting configuration files...")
-        client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
-        client.publish("maqlab/" + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTORY)
+        print(str(datetime.datetime.now()) + "  :" + "Requesting configuration files")
+        client.publish(MQTT_ROOT + session_id + "/cmd/file/get", PATHNAME_CONFIG_DEVICES)
+        client.publish(MQTT_ROOT + session_id + "/cmd/file/get", PATHNAME_CONFIG_INVENTORY)
         # Waiting for data from mqtt file server
         # First we need the configuration files
         # Therefore we wait for it
@@ -273,9 +280,9 @@ async def connector(event_config_readed):
             await asyncio.sleep(0.2)
             if len(devices) > 0 and inventory is not None:
                 break
-            print(str(datetime.datetime.now()) + "  :" + "Wait for configuration files...")
+            print(str(datetime.datetime.now()) + "  :" + "Waiting for configuration files")
 
-        print(str(datetime.datetime.now()) + "  :" + "Configuration files received.")
+        print(str(datetime.datetime.now()) + "  :" + "Configuration files received")
 
         idstrings_ethernet = list()
         idstrings_serial = list()
@@ -298,11 +305,18 @@ async def connector(event_config_readed):
             except:
                 pass
         event_config_readed.set()
-        while client.is_connected():
-            await asyncio.sleep(1)
+
+        # continue checking the connection in a loop
+        try:
+            while client.is_connected():
+                await asyncio.sleep(1)
+        except:
+            pass
+        # disconnection detected
+        # we are forcing to disconnect from our side
+        # as a second action, to get sure to be disconnected
         client.disconnect()
-        print(str(datetime.datetime.now()) + "  :" + "M A Q L A B  - Node stopped")
-        print(str(datetime.datetime.now()) + "  :" + "M A Q L A B  - Node Restarted")
+
 
 
 # ------------------------------------------------------------------------------
@@ -329,6 +343,7 @@ async def main():
     # wait until all tasks finished
     await asyncio.wait([task1])
     # but will never happen in real !!!
+
 
 # ------------------------------------------------------------------------------
 #
