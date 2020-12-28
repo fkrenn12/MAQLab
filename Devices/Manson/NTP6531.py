@@ -35,7 +35,8 @@ class NTP6531:
         try:
             self.__ser = serial.Serial(port, baudrate)
         except:
-            raise Exception("Serial Port - COULD NOT CONNECT")
+            raise Exception("Serial Port " + str(port) + " - COULD NOT CONNECT")
+
         self.__serialnumber = EMPTY_BYTE_STRING
         self.__model = EMPTY_BYTE_STRING
         self.__manufactorer = EMPTY_BYTE_STRING

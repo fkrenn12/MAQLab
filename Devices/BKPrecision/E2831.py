@@ -39,8 +39,8 @@ class BK2831E:
             self.__ser = serial.Serial(port, baudrate)
             self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
         except:
-            print("ERR - COULD NOT CONNECT")
-            raise
+            raise Exception("Serial Port " + str(port) + " - COULD NOT CONNECT")
+
         self.__idstring = EMPTY_STRING
         self.__serialnumber = EMPTY_STRING
         self.__model = EMPTY_STRING
@@ -79,13 +79,18 @@ class BK2831E:
 
     # --------------------------------------------------
     def __send_command(self, cmd):
+
         self.__wait_minimal_command_interval(MINIMUM_TIME_IN_MS_BETWEEN_COMMANDS)
-        if not isinstance(cmd, bytes):
-            return False
-        if len(cmd) <= 0:
-            return False
+
         try:
-            cmd = cmd.decode("utf-8")
+            cmd = cmd.encode("utf-8")
+        except:
+            pass
+
+        if len(cmd) <= 0:
+            raise Exception
+
+        try:
             # print(cmd)
             tout = RECEIVE_LINE_TIMEOUT
             buff = EMPTY_BYTE_STRING
@@ -104,12 +109,9 @@ class BK2831E:
                 if (int(round(time.time() * 1000)) - tic) < tout:
                     continue
                 else:
-                    # print("TIMOUR")
-                    return False
+                    raise Exception("E2831 - Receive Timeout Error")
         except:
-            return False
-        # print("OK")
-        return True
+            raise
 
     # --------------------------------------------------
     def id(self):
@@ -135,7 +137,7 @@ class BK2831E:
             self.__model = EMPTY_BYTE_STRING
             self.__manufactorer = EMPTY_BYTE_STRING
             self.__serialnumber = EMPTY_BYTE_STRING
-            print("ERR - NO RESPONSE")
+            raise
 
     # --------------------------------------------------
     def set_mode_vdc_auto_range(self, force=False):
@@ -145,10 +147,10 @@ class BK2831E:
                 self.__send_command(b'func volt:DC\n')
                 self.__send_command(b':volt:dc:rang:auto ON\n')
                 self.__mode = Mode.VOLT_METER_DC
-            return True
+            return
         except:
             self.__mode = Mode.NONE
-            return False
+            raise
 
     # --------------------------------------------------
     def set_mode_vac_auto_range(self, force=False):
@@ -158,10 +160,10 @@ class BK2831E:
                 self.__send_command(b'func volt:AC\n')
                 self.__send_command(b':volt:ac:rang:auto ON\n')
                 self.__mode = Mode.VOLT_METER_AC
-            return True
+            return
         except:
             self.__mode = Mode.NONE
-            return False
+            raise
 
     # --------------------------------------------------
     def set_mode_idc_range_200mA(self, force=False):
@@ -172,10 +174,10 @@ class BK2831E:
                 self.__send_command(b'func curr:dc\n')
                 self.__send_command(b':curr:dc:rang 0.2\n')
                 self.__mode = Mode.AMPERE_METER_DC
-            return True
+            return
         except:
             self.__mode = Mode.NONE
-            return False
+            raise
 
     # --------------------------------------------------
     def set_mode_iac_range_200mA(self, force=False):
@@ -186,10 +188,10 @@ class BK2831E:
                 #self.__send_command(b':curr:ac:rang:auto OFF\n')
                 self.__send_command(b':curr:ac:rang 0.2\n')
                 self.__mode = Mode.AMPERE_METER_AC
-            return True
+            return
         except:
             self.__mode = Mode.NONE
-            return False
+            raise
 
     # --------------------------------------------------
     def set_mode_idc_range_20A(self, force=False):
@@ -200,10 +202,10 @@ class BK2831E:
                 #self.__send_command(b':curr:dc:rang:auto OFF\n')
                 self.__send_command(b':curr:dc:rang 20\n')
                 self.__mode = Mode.AMPERE_METER_DC
-            return True
+            return
         except:
             self.__mode = Mode.NONE
-            return False
+            raise
 
     # --------------------------------------------------
     def set_mode_iac_range_20A(self, force=False):
@@ -214,10 +216,10 @@ class BK2831E:
                 #self.__send_command(b':curr:ac:rang:auto OFF\n')
                 self.__send_command(b':curr:ac:rang 20\n')
                 self.__mode = Mode.AMPERE_METER_AC
-            return True
+            return
         except:
             self.__mode = Mode.NONE
-            return False
+            raise
 
     # --------------------------------------------------
     def set_mode_resistance_auto_range(self, force=False):
@@ -228,10 +230,10 @@ class BK2831E:
                 self.__send_command(b'func res\n')
                 self.__send_command(b':res:rang:auto ON\n')
                 self.__mode = Mode.RESISTANCE
-                return True
+                return
         except:
             self.__mode = Mode.NONE
-            return False
+            raise
 
     # --------------------------------------------------
     def set_mode_frequency_auto_range(self, force=False):
@@ -240,10 +242,10 @@ class BK2831E:
                 self.__ser.timeout = 2 * RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func freq\n')
                 self.__mode = Mode.FREQUENCE
-                return True
+                return
         except:
             self.__mode = Mode.NONE
-            return False
+            raise
 
     # --------------------------------------------------
     def measure(self):
@@ -254,10 +256,11 @@ class BK2831E:
             try:
                 value = float(res)
             except:
-                value = OVERFLOW_ERROR
+                raise Exception("E2831 - VALUE ERROR")
             self.__ser.flush()
         except:
-            return
+            raise
+
         if self.__mode == Mode.VOLT_METER_DC:
             self.__last_voltage = value
             self.__last_voltage_unit = "VDC"
