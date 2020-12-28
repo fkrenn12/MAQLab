@@ -43,14 +43,19 @@ def validate_topic(topic, serial_number, model):
     command = ""
     matching = False
     reply_topic = ""
-
-    if isinstance(topic, bytes):
+    try:
         topic = topic.decode("utf-8")
+    except:
+        pass
 
-    topic = topic.lower()
-    topic_splitted = topic.split("/")
+    try:
+        topic = topic.lower()
+        topic_splitted = topic.split("/")
+    except:
+        raise
+
     split_count = len(topic_splitted)
-    if 3 <= split_count < 6 and topic_splitted[0] == s.topic_root:
+    if 3 <= split_count < 7 and topic_splitted[0] == s.topic_root:
         try:
             index_of_cmd = topic_splitted.index(s.topic_cmd)
             reply_topic = topic.replace(s.topic_cmd, s.topic_reply)

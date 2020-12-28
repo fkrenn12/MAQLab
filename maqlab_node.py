@@ -36,7 +36,7 @@ FILENAME_CONFIG_DEVICES = "devices.json"
 FILENAME_CONFIG_INVENTORY = "inventory.json"
 PATHNAME_CONFIG_DEVICES = "/config/" + FILENAME_CONFIG_DEVICES
 PATHNAME_CONFIG_INVENTORY = "/config/" + FILENAME_CONFIG_INVENTORY
-session_id = secrets.token_urlsafe(5)
+session_id = secrets.token_urlsafe(3)
 
 
 # --------------------------------------------------------
@@ -316,7 +316,6 @@ async def connector(event_config_readed):
         # we are forcing to disconnect from our side
         # as a second action, to get sure to be disconnected
         client.disconnect()
-
 
 
 # ------------------------------------------------------------------------------
