@@ -64,22 +64,27 @@ class BK2831E(E2831.BK2831E):
                 self.set_mode_iac_range_20A()
                 self.measure()
                 client.publish(t["reply"], self.current_as_string)
+                return
             elif command == "curr:ac:low?":
                 self.set_mode_iac_range_200mA()
                 self.measure()
                 client.publish(t["reply"], self.current_as_string)
+                return
             elif command == "curr:dc:low?":
                 self.set_mode_idc_range_200mA()
                 self.measure()
                 client.publish(t["reply"], self.current_as_string)
+                return
             elif command == "freq?" or command == "f?":
                 self.set_mode_frequency_auto_range()
                 self.measure()
                 client.publish(t["reply"], self.frequence_as_string)
+                return
             elif command == "res?" or command == "r?":
                 self.set_mode_resistance_auto_range()
                 self.measure()
                 client.publish(t["reply"], self.resistance_as_string)
+                return
             elif command == "volt:rms?" or command == "vrms?":
                 self.set_mode_vdc_auto_range()
                 self.measure()
@@ -89,6 +94,7 @@ class BK2831E(E2831.BK2831E):
                 vac = self.volt
                 vrms = math.sqrt(math.pow(vac, 2) + math.pow(vdc, 2))
                 client.publish(t["reply"], "{:.6f}".format(vrms) + " VRMS")
+                return
             elif command == "curr:rms?" or command == "irms?":
                 self.set_mode_idc_range_20A()
                 self.measure()
@@ -98,6 +104,7 @@ class BK2831E(E2831.BK2831E):
                 iac = self.current
                 irms = math.sqrt(math.pow(iac, 2) + math.pow(idc, 2))
                 client.publish(t["reply"], "{:.6f}".format(irms) + " ARMS")
+                return
             elif command == "pow:dc?" or command == "p:dc?" or command == "power:dc?":
                 self.set_mode_vdc_auto_range()
                 self.measure()
@@ -107,6 +114,7 @@ class BK2831E(E2831.BK2831E):
                 idc = self.current
                 power = vdc * idc
                 client.publish(t["reply"], "{:.6f}".format(power) + " WDC")
+                return
             elif command == "pow:ac?" or command == "p:ac?" or command == "power:ac?":
                 self.set_mode_vac_auto_range()
                 self.measure()
@@ -116,11 +124,15 @@ class BK2831E(E2831.BK2831E):
                 iac = self.current
                 power = vac * iac
                 client.publish(t["reply"], "{:.6f}".format(power) + " WAC")
+                return
             elif command == "?":
                 client.publish(t["reply"] + "/manufactorer", self.manufactorer)
                 client.publish(t["reply"] + "/devicetype", self.devicetype)
                 client.publish(t["reply"] + "/model", self.model)
                 client.publish(t["reply"] + "/serialnumber", str(self.serialnumber))
+                return
+            elif command == "echo?" or command == "ping?":
+                client.publish(t["reply"], str(datetime.datetime.utcnow()))
                 return
             raise Exception("Command invalid")
 

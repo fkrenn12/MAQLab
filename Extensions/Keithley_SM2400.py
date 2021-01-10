@@ -61,7 +61,11 @@ class SM2400(_SM2400.SM2400):
             client.publish(t["reply"] + "/model", self.model)
             client.publish(t["reply"] + "/serialnumber", str(self.serialnumber))
             return
+        elif command == "echo?" or command == "ping?":
+            client.publish(t["reply"], str(datetime.datetime.utcnow()))
+            return
         return
+
 
     def on_created(self, comport, inventarnumber):
         self.__comport = comport

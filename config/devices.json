@@ -8,7 +8,8 @@
       "idn_string": "NTP6531",
       "classname": "NTP6531",
       "interface": "usb-vcom",
-      "baudrate": "9600"
+      "baudrate": "9600",
+      "operating_modes": ["dc_voltsource","dc_currentsource","dc_voltmeter","dc_amperemeter"]
     },
     {
       "device": "2400SM",
@@ -19,7 +20,8 @@
       "idn_string": "KEITHLEY",
       "classname": "SM2400",
       "interface": "usb-vcom",
-      "baudrate": "9600"
+      "baudrate": "9600",
+      "operating_modes": ["dc_voltmeter","dc_amperemeter"]
     },
     {
       "device": "2831E",
@@ -30,7 +32,9 @@
       "idn_string": "2831E",
       "classname": "BK2831E",
       "interface": "usb-vcom",
-      "baudrate": "9600"
+      "baudrate": "9600",
+      "operating_modes": ["dc_voltmeter","dc_amperemeter","ac_voltmeter","ac_amperemeter",
+                          "ohmmeter","frequencemeter","dc_wattmeter","ac_wattmeter"]
     },
     {
       "device": "DE7035",
@@ -40,6 +44,7 @@
       "cmd_term": "<LF>",
       "idn_string": "PS7035",
       "classname": "zegei",
-      "interface": "ethernet"
+      "interface": "ethernet",
+      "operating_modes": ["dc_voltsource","dc_currentsource","dc_voltmeter","dc_amperemeter"]
     }
 ]

@@ -129,12 +129,19 @@ class NTP6531(_NTP6531.NTP6531):
                     self.current_limit_lower = value
                     client.publish(t["reply"], p["payload_accepted"])
                     return
+            # ------------------------------------------------------------------------------------------------
+            # O T H E R commands - Handling
+            # ------------------------------------------------------------------------------------------------
             elif command == "?":
                 client.publish(t["reply"] + "/manufactorer", self.manufactorer)
                 client.publish(t["reply"] + "/devicetype", self.devicetype)
                 client.publish(t["reply"] + "/model", self.model)
                 client.publish(t["reply"] + "/serialnumber", str(self.serialnumber))
                 return
+            elif command == "echo?" or command == "ping?":
+                client.publish(t["reply"], str(datetime.datetime.utcnow()))
+                return
+
             raise Exception("Command invalid")
 
         except Exception as e:

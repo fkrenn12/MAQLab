@@ -148,6 +148,9 @@ class SM70AR24(_SM70AR24.SM70AR24):
                 client.publish(t["reply"] + "/model", self.model)
                 client.publish(t["reply"] + "/serialnumber", str(self.serialnumber))
                 return
+            elif command == "echo?" or command == "ping?":
+                client.publish(t["reply"], str(datetime.datetime.utcnow()))
+                return
 
             raise Exception("Command invalid")
 
