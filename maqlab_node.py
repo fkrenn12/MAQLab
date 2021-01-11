@@ -349,11 +349,11 @@ async def main():
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("\n")
-    serial_scan = input("If you need serial scan, press enter or any key with enter, other wise 'n' :")
+    serial_scan = input("For serial scan, press enter or any key with enter, other wise 'n' :")
     if serial_scan != 'n':
         serial_scan = 'y'
 
-    tcp_scan = input("If you need tcp scan, press enter or any key with enter, other wise 'n' :")
+    tcp_scan = input("For tcp scan, press enter or any key with enter, other wise 'n' :")
     if tcp_scan != 'n':
         tcp_scan = 'y'
 

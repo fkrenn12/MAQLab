@@ -11,7 +11,6 @@ def validate_payload(payload):
     payload_accepted = s.payload_accepted + " " + timestamp
     payload_limited = s.payload_limited + " " + timestamp
     payload_command_error = s.payload_command_error + " " + timestamp
-    valid = True
     try:
         payload = payload.lower()
         if isinstance(payload, bytes):
@@ -25,11 +24,10 @@ def validate_payload(payload):
         try:
             payload = float(payload)
         except:
-            valid = False
+            raise
     except:
-        valid = False
-    return {"valid": valid,
-            'payload': payload,
+        raise
+    return {'payload': payload,
             'payload_error': payload_error,
             'payload_accepted': payload_accepted,
             'payload_command_error': payload_command_error,
@@ -69,7 +67,7 @@ def validate_topic(topic, serial_number, model):
                 command = command.replace(" ", "")
                 if topic_splitted[index_of_cmd + 1] == str(serial_number):
                     matching = True
-            return {'valid': True, "topic": topic, 'cmd': command, 'matching': matching, 'reply': reply_topic}
+            return {"topic": topic, 'cmd': command, 'matching': matching, 'reply': reply_topic}
         except:
-            pass
-    return {'valid': False}
+            raise
+    raise Exception

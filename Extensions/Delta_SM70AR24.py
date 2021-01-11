@@ -14,13 +14,15 @@ class SM70AR24(_SM70AR24.SM70AR24):
         self.__inventarnumber = "0"
 
     def mqttmessage(self, client, msg):
-        t = validate_topic(msg.topic, self.__inventarnumber, self.model)
-        p = validate_payload(msg.payload)
-
-        if not t["valid"]:
+        try:
+            t = validate_topic(msg.topic, self.__inventarnumber, self.model)
+        except:
+            # we cannot handle the topic which made an exception
             return
 
-        if not p["valid"]:
+        try:
+            p = validate_payload(msg.payload)
+        except:
             client.publish(t["reply"], p["payload_error"])
             return
 

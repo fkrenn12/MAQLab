@@ -25,7 +25,7 @@ async def scan_serial_devices(devices, comlist):
     else:
         this_os = "Linux"
 
-    print(str(datetime.datetime.now()) + "  :" + "Start serial scanning...")
+    print(str(datetime.datetime.now()) + "  :" + "Start scanning SERIAL Ports... ")
     # -------------------------------------------------------------
     # LOOP
     # -------------------------------------------------------------

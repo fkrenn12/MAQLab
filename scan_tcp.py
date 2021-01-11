@@ -26,7 +26,7 @@ async def scan_tcp_devices(devices, addresses, iplist):
     else:
         this_os = "Linux"
     '''
-    print(str(datetime.datetime.now()) + "  :" + "Start TCP scanning...")
+    print(str(datetime.datetime.now()) + "  :" + "Start scanning TCP Ports...")
     # print("->" + str(addresses))
     # -------------------------------------------------------------
     # LOOP
