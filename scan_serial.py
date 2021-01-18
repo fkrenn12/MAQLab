@@ -4,7 +4,7 @@ import datetime
 import platform
 import asyncio
 scan_start = 3
-scan_stop = 20
+scan_stop = 9
 tout = 1000
 
 

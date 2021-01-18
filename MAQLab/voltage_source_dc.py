@@ -1,19 +1,23 @@
-import time
-from MAQLab.instrument import instrument
 import MAQLab
 from MAQLab import MqttMsg as msg
+from MAQLab.instrument import instrument
 
 
-class Voltmeter(instrument):
+class Foo(float):
+    def __new__(cls, value, extra):
+        return float.__new__(cls)
 
-    def __init__(self, access=0, type="DC", mode="single", phase=1):
-        super().__init__(access)
+    def __init__(self, value, extra):
+        float.__init__(value)
+        self.extra = extra
+
+
+class SupplyVDC(float):
+    def __init__(self, access=0):
+        super().__init__()
         self.__accessnumber = access
-        self.__type = type
-        self.__mode = mode
-        self.__phase = phase
         try:
-            self.__command = "v" + type.lower() + str(phase) + "?"
+            self.__command = "vdc"
         except:
             raise
 

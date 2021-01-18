@@ -5,10 +5,19 @@ import queue
 import threading
 
 
+class MqttMsg:
+    def __init__(self, topic, payload=""):
+        self.topic = topic
+        self.payload = payload
+
+
 class MAQLabError(Exception):
     pass
 
 
+# --------------------------------------------------------------------------------
+# Class                             M Q T T
+# --------------------------------------------------------------------------------
 class MQTT:
     class Msg:
         def __init__(self, topic, payload=""):
@@ -52,7 +61,7 @@ class MQTT:
                 str(datetime.datetime.now()) + "  :" + "MAQlab - Connection Error! Are you connected to the internet?")
 
     # --------------------------------------------------------
-    # MQTT Broker callbacks
+    # MQTT Broker callback on_connect
     # --------------------------------------------------------
     def __on_connect(self, _client, userdata, flags, rc):
         if rc == 0:
@@ -61,14 +70,14 @@ class MQTT:
             # client.subscribe("maqlab/#")
 
     # ------------------------------------------------------------------------------
-    #
+    # MQTT Broker callback on_disconnect
     # ------------------------------------------------------------------------------
     def __on_disconnect(self, _client, userdata, rc):
         if rc != 0:
             print(str(datetime.datetime.now()) + "  :" + "Unexpected MQTT-Broker disconnection.")
 
     # ------------------------------------------------------------------------------
-    #
+    # MQTT Broker callback on_message
     # ------------------------------------------------------------------------------
     def __on_message(self, _client, _userdata, _msg):
         # check topic
@@ -89,12 +98,11 @@ class MQTT:
         # the object _msg could be manipulated immediately
         # after putting it on the queue before it is handled
         # from the following stage.
-        # The solution is to send topic and payload as string rather than
-        # put it as object on the queue.
+        # The solution is to send topic and payload as string rather than as object
         self.__q_out.put(topic + "|" + payload, block=False, timeout=0)
 
     # ------------------------------------------------------------------------------
-    #
+    #  Flush the queue
     # ------------------------------------------------------------------------------
     def __flush(self, block=False, timeout=0):
         while True:
@@ -107,7 +115,7 @@ class MQTT:
                 return
 
     # ------------------------------------------------------------------------------
-    #
+    #  Send internal use
     # ------------------------------------------------------------------------------
     def __send(self, msg):
         try:
@@ -117,7 +125,7 @@ class MQTT:
             raise MAQLabError("Send error")
 
     # ------------------------------------------------------------------------------
-    #
+    #  Send a message ( public )
     # ------------------------------------------------------------------------------
     def send(self, msg):
         with self.__lock:
@@ -155,7 +163,7 @@ class MQTT:
                 raise e
 
     # ------------------------------------------------------------------------------
-    #
+    # Send a message and wait for the answer
     # ------------------------------------------------------------------------------
     def send_and_receive(self, msg, block=True, timeout=1.0):
         with self.__lock:
@@ -167,7 +175,7 @@ class MQTT:
                 raise e
 
     # ------------------------------------------------------------------------------
-    #
+    # Send a message and returns a list of all answers
     # ------------------------------------------------------------------------------
     def send_and_receive_burst(self, msg, block=True, timeout=1.0, burst_timout=1.0):
         _timeout = timeout
@@ -189,7 +197,7 @@ class MQTT:
                 raise e
 
     # ------------------------------------------------------------------------------
-    #
+    # List all devives
     # ------------------------------------------------------------------------------
     def all(self):
         print("Ja das sind die Geräte1")

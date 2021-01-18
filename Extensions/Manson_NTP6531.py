@@ -1,4 +1,5 @@
 import datetime
+from numpy import clip
 # --------------------------------------------------------
 from Devices.Manson import NTP6531 as _NTP6531
 from Extensions.shared import validate_topic
