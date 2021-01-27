@@ -9,6 +9,7 @@ import xlwings.utils as xwu
 
 # Adding the ../MAQLab/.. folder to the system path of python
 # It is temporarily used by this script only
+script_dir = str()
 try:
     script_dir = os.path.dirname(__file__)
     maqlab_dir = "\\maqlab"
@@ -43,6 +44,7 @@ maqlab = None
 accessnr = None
 wertzahl = None
 wertzahl = []
+
 
 # --------------------------------------------------------------------------
 # main() - will be invoked by pressing initialize
@@ -84,8 +86,6 @@ def main():
     source.range('A1').expand().clear_contents()
     source.range('A1').value = cursor.fetchall()
     '''
-
-    print("TEST-->" + mqtt.hostname)
 
     wb = xw.Book.caller()
     sht = wb.sheets.active
@@ -154,7 +154,6 @@ def main():
 # start() - will be invoked by pressing the "Start" button
 # --------------------------------------------------------------------------
 def start(interval, count):
-
     if xl_filename == "":
         main()
 

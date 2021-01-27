@@ -4,12 +4,71 @@ import datetime
 import queue
 import threading
 import secrets
+import sys
+import os
+import json
 
+# Adding the ../MAQLab/.. folder to the system path of python
+# It is temporarily used by this script only
+script_dir = str()
+try:
+    script_dir = os.path.dirname(__file__)
+    maqlab_dir = "\\maqlab"
+    script_dir = script_dir[0:script_dir.index(maqlab_dir)] + maqlab_dir
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+except:
+    pass
+
+# checking the config file
+# we have to adjust the path
+# this is not the best solution but it works so far
+# it would be better to search after the config file in the file path
+# TODO: search for  the file in the path downwards
+maqlab_config = script_dir + '\\maqlab.config'
+if not os.path.exists(maqlab_config):
+    maqlab_config = script_dir + '\\maqlab\\maqlab.config'
+
+# default broker credentials
 mqtt_hostname = "mqtt.techfit.at"
 mqtt_port = 1883
 mqtt_user = "maqlab"
 mqtt_pass = "maqlab"
 
+# reading the configuration file and set the values
+config = str()
+try:
+    with open(maqlab_config, 'r') as file:
+        config = file.read().split("\n")
+        for line in config:
+            if line.startswith("{") and line.endswith("}"):
+                js = json.loads(line)
+                try:
+                    mqtt_hostname = js["mqtt_hostname"]
+                    continue
+                except:
+                    pass
+                try:
+                    mqtt_port = js["mqtt_port"]
+                    continue
+                except:
+                    pass
+                try:
+                    mqtt_user = js["mqtt_user"]
+                    continue
+                except:
+                    pass
+                try:
+                    mqtt_pass = js["mqtt_password"]
+                    continue
+                except:
+                    pass
+
+except:
+    print(str(datetime.datetime.now()) + "  :MAQLAB - Could not open file " + maqlab_config + " or data in file is corrupted")
+    raise
+
+print(str(datetime.datetime.now()) + "  :MAQLAB - Configuration loaded successfully")
 
 class MqttMsg:
     def __init__(self, topic, payload=""):
