@@ -5,7 +5,7 @@ import queue
 import threading
 import secrets
 
-mqtt_hostname = "techfit.at"
+mqtt_hostname = "mqtt.techfit.at"
 mqtt_port = 1883
 mqtt_user = "maqlab"
 mqtt_pass = "maqlab"
@@ -24,16 +24,16 @@ class MAQLabError(Exception):
 # --------------------------------------------------------------------------------
 # Class                             M Q T T
 # --------------------------------------------------------------------------------
-class MQTT:
-    class Msg:
-        def __init__(self, topic, payload=""):
-            self.topic = topic
-            self.payload = payload
+class Mqtt:
 
     def __init__(self, host, port, user, password, session_id):
         try:
             self.__q_out = queue.Queue()
             print(str(datetime.datetime.now()) + "  :" + "MQTT - started")
+            self.__mqtt_hostname = str(host)
+            self.__mqtt_port = int(port)
+            self.__mqtt_user = str(user)
+            self.__mqtt_pass = str(password)
             self.__session_id = session_id
             self.__lock = threading.Lock()
             self.__client = paho.Client()
@@ -41,8 +41,8 @@ class MQTT:
             self.__client.on_disconnect = self.__on_disconnect
             self.__client.on_message = self.__on_message
             self.__client.reconnect_delay_set(min_delay=1, max_delay=5)
-            self.__client.username_pw_set(user, password)
-            self.__client.connect(host, port)
+            self.__client.username_pw_set(self.__mqtt_user, self.__mqtt_pass)
+            self.__client.connect(self.__mqtt_hostname, self.__mqtt_port)
             self.__client.loop_start()
             attemptions = 1
             while not self.__client.is_connected():
@@ -119,13 +119,13 @@ class MQTT:
     # ------------------------------------------------------------------------------
     #  Send internal use
     # ------------------------------------------------------------------------------
-    def __send(self, msg):
+    def __send(self, msg, stamp=""):
         try:
             self.__flush()
             # if it is existing remove the trailing /
             if str(msg.topic).startswith("/"):
                 msg.topic = msg.topic[1:]
-            self.__client.publish("maqlab/" + self.__session_id + "/cmd/" + msg.topic, msg.payload)
+            self.__client.publish("maqlab/" + self.__session_id + "/" + stamp + "/cmd/" + msg.topic, msg.payload)
         except:
             raise MAQLabError("Send error")
 
@@ -135,22 +135,28 @@ class MQTT:
     def send(self, msg):
         with self.__lock:
             try:
-                self.send(msg)
+                self.__send(msg)
             except Exception as e:
                 raise e
 
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
-    def __receive(self, block=True, timeout=1.0):
+    def __receive(self, block=True, timeout=1.0, stamp=""):
         try:
             rec_msg = self.__q_out.get(block=block, timeout=timeout)
-            if isinstance(rec_msg, bytes):
+            try:
                 rec_msg = rec_msg.decode("utf-8")
-            if isinstance(rec_msg, str):
-                msg = MQTT.Msg(topic=rec_msg.split("|")[0], payload=rec_msg.split("|")[1])
-                return msg
-            else:
+            except:
+                pass
+
+            try:
+                msg = MqttMsg(topic=rec_msg.split("|")[0], payload=rec_msg.split("|")[1])
+                if stamp in msg.topic:
+                    return msg
+                else:
+                    raise MAQLabError("Wrong message stamp - message discarded ")
+            except:
                 raise
         except:
             # return MQTT.Msg("ERROR", "TIMEOUT")
@@ -159,22 +165,23 @@ class MQTT:
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
-    def receive(self, block=True, timeout=1.0):
-        with self.__lock:
-            try:
-                return self.__receive(block, timeout)
-            except Exception as e:
-                raise e
+    # def receive(self, block=True, timeout=1.0):
+    #     with self.__lock:
+    #         try:
+    #             return self.__receive(block, timeout)
+    #        except Exception as e:
+    #            raise e
 
     # ------------------------------------------------------------------------------
     # Send a message and wait for the answer
     # ------------------------------------------------------------------------------
-    def send_and_receive(self, msg, block=True, timeout=1.0):
+    def send_and_receive(self, msg=None, block=True, timeout=1.0):
         with self.__lock:
             try:
+                stamp = str(int((time.time() * 1000) % 1000000))
                 self.__flush()
-                self.__send(msg)
-                return self.__receive(block, timeout)
+                self.__send(msg=msg, stamp=stamp)
+                return self.__receive(block=block, timeout=timeout, stamp=stamp)
             except Exception as e:
                 raise e
 
@@ -186,13 +193,17 @@ class MQTT:
         msg_list = list()
         with self.__lock:
             try:
-                self.__send(msg)
+                stamp = str(int((time.time() * 1000) % 1000000))
+                self.__flush()
+                self.__send(msg=msg, stamp=stamp)
                 while True:
                     try:
                         msg_received = self.__q_out.get(block=block, timeout=_timeout)
-                        # print(msg_received)
-                        _timeout = burst_timout
-                        msg_list.append(msg_received)
+                        msg = MqttMsg(topic=msg_received.split("|")[0], payload=msg_received.split("|")[1])
+                        if stamp in msg.topic:
+                            # print(msg_received)
+                            _timeout = burst_timout
+                            msg_list.append(msg)
                     except:
                         if len(msg_list) == 0:
                             raise MAQLabError("Empty data")
@@ -204,18 +215,17 @@ class MQTT:
     #
     # ------------------------------------------------------------------------------
     def __load_connected_devices(self):
-        msg = MQTT.Msg(topic="/?")
         try:
-            detected_devices_raw = self.send_and_receive_burst(msg, burst_timout=0.5)
+            detected_devices_raw = self.send_and_receive_burst(MqttMsg(topic="/?"), burst_timout=0.5)
             try:
                 detected_devices = []
                 for item in detected_devices_raw:
                     try:
-                        items = item.split("|")[0].split("/")
-                        i = list(items).index("rep")
-                        devicename = items[i + 1]
-                        accessnumber = int(item.split("|")[1])
-                        detected_devices.append(tuple((devicename, accessnumber)))
+                        if "accessnumber" in item.topic:
+                            topic_splitted = item.topic.split("/")
+                            devicename = topic_splitted[topic_splitted.index("rep") + 1]
+                            accessnumber = int(item.payload)
+                            detected_devices.append(tuple((devicename, accessnumber)))
                     except:
                         raise
             except:
@@ -233,12 +243,47 @@ class MQTT:
         except:
             raise MAQLabError("MAQLab could not load the list of available devices")
 
+    # ------------------------------------------------------------------------------
+    #
+    # ------------------------------------------------------------------------------
+    def close(self):
+        try:
+            self.__client.on_disconnect = None
+            self.__client.on_connect = None
+            self.__client.disconnect()
+        except:
+            pass
+
+    def __get_hostname(self):
+        return self.__mqtt_hostname
+
+    def __get_port(self):
+        return self.__mqtt_port
+
+    def __get_user(self):
+        return self.__mqtt_user
+
+    def __get_password(self):
+        return self.__mqtt_pass
+
+    # ------------------------------------------------------------------------------
+    #
+    # ------------------------------------------------------------------------------
     def __str__(self):
         return self.__session_id
 
+    hostname = property(__get_hostname)
+    port = property(__get_port)
+    user = property(__get_user)
+    password = property(__get_password)
 
-mqtt = MQTT(host=mqtt_hostname,
-            port=mqtt_port,
-            user=mqtt_user,
-            password=mqtt_pass,
-            session_id=secrets.token_urlsafe(3).lower())
+
+try:
+    mqtt = Mqtt(host=mqtt_hostname,
+                port=mqtt_port,
+                user=mqtt_user,
+                password=mqtt_pass,
+                session_id=secrets.token_urlsafe(3).lower())
+except Exception as e:
+    mqtt = None
+    print(e)

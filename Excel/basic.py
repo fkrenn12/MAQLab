@@ -1,13 +1,26 @@
-from MAQLab import MQTT
-from MAQLab import mqtt
-import time
-import xlwings as xw
-import xlwings.utils as xwu
-import threading
 import os
 import secrets
+import sys
+import threading
+import time
 
-from datetime import datetime
+import xlwings as xw
+import xlwings.utils as xwu
+
+# Adding the ../MAQLab/.. folder to the system path of python
+# It is temporarily used by this script only
+try:
+    script_dir = os.path.dirname(__file__)
+    maqlab_dir = "\\maqlab"
+    script_dir = script_dir[0:script_dir.index(maqlab_dir)] + maqlab_dir
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+except:
+    pass
+
+from MAQLab import Mqtt
+from MAQLab import MqttMsg
+from MAQLab import mqtt
 
 debug = True
 run_once = True
@@ -16,23 +29,23 @@ py_filename_without_extension = ""
 py_filename = ""
 xl_filename = ""
 
-mqtt_hostname = "techfit.at"
-mqtt_port = 1883
-mqtt_user = "maqlab"
-mqtt_pass = "maqlab"
-
 stop_thread = False
 error_cell_address = "A1"
 status_measure_cell_address = "B1"
 status_connection_cell_address = "E1"
-active_devices = []
+active_devices = list()
+active_devices_commands = list()
+active_devices_manufactorers = list()
+active_devices_models = list()
+active_devices_types = list()
 
 maqlab = None
 accessnr = None
 wertzahl = None
 wertzahl = []
 
-
+# --------------------------------------------------------------------------
+# main() - will be invoked by pressing initialize
 # --------------------------------------------------------------------------
 def main():
     global py_filename_without_extension
@@ -41,8 +54,10 @@ def main():
     global active_devices
     global maqlab
 
-    if mqtt is not None:
+    try:
         mqtt.close()
+    except:
+        pass
 
     py_filename = os.path.basename(__file__)
     # check .py extension
@@ -70,6 +85,8 @@ def main():
     source.range('A1').value = cursor.fetchall()
     '''
 
+    print("TEST-->" + mqtt.hostname)
+
     wb = xw.Book.caller()
     sht = wb.sheets.active
 
@@ -77,10 +94,10 @@ def main():
     sht.api.OLEObjects("MessageBox").Object.Visible = True
     sht.range(status_connection_cell_address).color = xwu.rgb_to_int((200, 200, 200))  # cell color
     sht.range(status_connection_cell_address).api.Font.Color = xwu.rgb_to_int((0, 0, 0))  # font color of text
-    sht.range(status_connection_cell_address).value = "Connecting to: " + mqtt_hostname + ":" + str(mqtt_port)
+    sht.range(status_connection_cell_address).value = "Connecting to: " + mqtt.hostname + ":" + str(mqtt.port)
 
     try:
-        maqlab = MQTT(host=mqtt_hostname, port=mqtt_port, user=mqtt_user, password=mqtt_pass,
+        maqlab = Mqtt(host=mqtt.hostname, port=mqtt.port, user=mqtt.user, password=mqtt.password,
                       session_id=secrets.token_urlsafe(3).lower())
         sht.range(status_connection_cell_address).color = xwu.rgb_to_int((0, 200, 10))  # cell color
         sht.range(status_connection_cell_address).api.Font.Color = xwu.rgb_to_int((0, 0, 0))  # font color of text
@@ -92,7 +109,6 @@ def main():
         return
 
     active_devices = maqlab.available_devices()
-    print(active_devices)
 
     # assembling text for messagebox
     text_messagebox = "Available Devices:\n"
@@ -101,10 +117,29 @@ def main():
 
     sht.api.OLEObjects("MessageBox").Object.Value = text_messagebox
 
-    # reading the commands from the devices
+    # reading the available commands and manufactor from each device
+    active_devices_commands.clear()
+    active_devices_types.clear()
+    active_devices_models.clear()
+    active_devices_manufactorers.clear()
+
     for device in active_devices:
-        x1 = maqlab.send_and_receive_burst(maqlab.Msg(topic=str(device[1]) + "/?"))
-        print(x1)
+        reps = maqlab.send_and_receive_burst(MqttMsg(topic=str(device[1]) + "/?"), burst_timout=0.5)
+        for rep in reps:
+            if "commands" in rep.topic:
+                active_devices_commands.append(rep.payload)
+            elif "manufactorer" in rep.topic:
+                active_devices_manufactorers.append(rep.payload)
+            elif "model" in rep.topic:
+                active_devices_models.append(rep.payload)
+            elif "devicetype" in rep.topic:
+                active_devices_types.append(rep.payload)
+
+    print("Active devices detected: ", active_devices)
+    print("Active devices manufactorer ", active_devices_manufactorers)
+    print("Active devices model ", active_devices_models)
+    print("Active devices type ", active_devices_types)
+    print("Active devices commands: ", active_devices_commands)
 
     # write available devices into combobox
     combo = 'ComboBox1'
@@ -116,7 +151,10 @@ def main():
 
 
 # --------------------------------------------------------------------------
+# start() - will be invoked by pressing the "Start" button
+# --------------------------------------------------------------------------
 def start(interval, count):
+
     if xl_filename == "":
         main()
 
@@ -151,11 +189,15 @@ def start(interval, count):
 
 
 # --------------------------------------------------------------------------
+# stop() - will be invoked by pressing the "Stop" button
+# --------------------------------------------------------------------------
 def stop():
     global stop_thread
     stop_thread = True
 
 
+# --------------------------------------------------------------------------
+# thread function measure
 # --------------------------------------------------------------------------
 def measure(t, count):
     global stop_thread
@@ -211,10 +253,10 @@ def measure(t, count):
         sp1 = (sht["N14"].value)
         wert1 = str(accessnr) + "/" + str(sp1) + "?"
         print("Sending " + wert1)
-        wertzahl = maqlab.send_and_receive(maqlab.Msg(topic=wert1)).payload
+        wertzahl = maqlab.send_and_receive(MqttMsg(topic=wert1)).payload
         print("Received " + wertzahl)
-        # convert into real value
-        # format is for instance  "0.543    VDC"
+        # convert into real value from string with unit
+        # format is for instance  "0.543 VDC"
         wertzahl = float(wertzahl.split(" ")[0])
 
         cell = (i + 16, 14)
@@ -228,9 +270,9 @@ def measure(t, count):
         sp1 = (sht["O14"].value)
         wert1 = str(accessnr) + "/" + str(sp1) + "?"
         print("Sending " + wert1)
-        wertzahl = maqlab.send_and_receive(maqlab.Msg(topic=wert1)).payload
+        wertzahl = maqlab.send_and_receive(MqttMsg(topic=wert1)).payload
         print("Received " + wertzahl)
-        # convert into real value
+        # convert into real value from string with unit
         # format is for instance  "0.543    VDC"
         wertzahl = float(wertzahl.split(" ")[0])
 
@@ -261,7 +303,7 @@ if __name__ == '__main__':
     if debug:
         xw.serve()
     else:
-        maqlab = MQTT(host=mqtt_hostname, port=mqtt_port, user=mqtt_user, password=mqtt_pass,
+        maqlab = Mqtt(host=Mqtt.hostname, port=Mqtt.port, user=Mqtt.user, password=Mqtt.password,
                       session_id=secrets.token_urlsafe(3).lower())
         try:
             active_devices = maqlab.available_devices()
