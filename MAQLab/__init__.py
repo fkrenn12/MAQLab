@@ -3,6 +3,12 @@ import paho.mqtt.client as paho
 import datetime
 import queue
 import threading
+import secrets
+
+mqtt_hostname = "techfit.at"
+mqtt_port = 1883
+mqtt_user = "maqlab"
+mqtt_pass = "maqlab"
 
 
 class MqttMsg:
@@ -44,21 +50,12 @@ class MQTT:
                 time.sleep(1)
                 attemptions += 1
 
-            self.__load_connected_devices()
-            '''
-            self.__msg = MQTT.Msg(topic="cmd/?")
-            try:
-                self.__detected_devices = self.send_and_receive_burst(self.__msg, burst_timout=0.5)
-            except Exception as e:
-                print(e)
-                print("Could not receive the list of detected devices")
-                raise e
-            '''
             print(str(datetime.datetime.now()) + "  :" + "MQTT - ready")
         except Exception as e:
             print(e)
             print(
                 str(datetime.datetime.now()) + "  :" + "MAQlab - Connection Error! Are you connected to the internet?")
+            raise e
 
     # --------------------------------------------------------
     # MQTT Broker callback on_connect
@@ -67,7 +64,8 @@ class MQTT:
         if rc == 0:
             print(str(datetime.datetime.now()) + "  :" + "MQTT - connected.")
             self.__client.subscribe("maqlab/" + str(self.__session_id) + "/rep/#", qos=0)
-            # client.subscribe("maqlab/#")
+            self.__client.subscribe("maqlab/" + str(self.__session_id) + "/+/rep/#", qos=0)
+            print(str(datetime.datetime.now()) + "  :" + "MQTT - Subscriptions done.")
 
     # ------------------------------------------------------------------------------
     # MQTT Broker callback on_disconnect
@@ -81,18 +79,22 @@ class MQTT:
     # ------------------------------------------------------------------------------
     def __on_message(self, _client, _userdata, _msg):
         # check topic
-        if isinstance(_msg.topic, bytes):
+        try:
             topic = _msg.topic.decode("utf-8")
-        elif isinstance(_msg.topic, str):
-            topic = _msg.topic
-        else:
-            return
-        if isinstance(_msg.payload, bytes):
+        except:
+            try:
+                topic = _msg.topic.replace(" ", " ")
+            except:
+                return
+        # check payload
+        try:
             payload = _msg.payload.decode("utf-8")
-        elif isinstance(_msg.payload, str):
-            payload = _msg.payload
-        else:
-            return
+        except:
+            try:
+                payload = _msg.payload.replace(" ", " ")
+            except:
+                return
+
         # print(_msg.topic, _msg.payload)
         # on_message is called from an other thread and therefore
         # the object _msg could be manipulated immediately
@@ -120,7 +122,10 @@ class MQTT:
     def __send(self, msg):
         try:
             self.__flush()
-            self.__client.publish("maqlab/" + self.__session_id + "/" + msg.topic, msg.payload)
+            # if it is existing remove the trailing /
+            if str(msg.topic).startswith("/"):
+                msg.topic = msg.topic[1:]
+            self.__client.publish("maqlab/" + self.__session_id + "/cmd/" + msg.topic, msg.payload)
         except:
             raise MAQLabError("Send error")
 
@@ -143,8 +148,7 @@ class MQTT:
             if isinstance(rec_msg, bytes):
                 rec_msg = rec_msg.decode("utf-8")
             if isinstance(rec_msg, str):
-                rec_msg_splitted = rec_msg.split("|")
-                msg = MQTT.Msg(topic=rec_msg_splitted[0], payload=rec_msg_splitted[1])
+                msg = MQTT.Msg(topic=rec_msg.split("|")[0], payload=rec_msg.split("|")[1])
                 return msg
             else:
                 raise
@@ -197,34 +201,44 @@ class MQTT:
                 raise e
 
     # ------------------------------------------------------------------------------
-    # List all devives
-    # ------------------------------------------------------------------------------
-    def all(self):
-        print("Ja das sind die Geräte1")
-        print("Ja das sind die Geräte2")
-
-    # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
     def __load_connected_devices(self):
-        msg = MQTT.Msg(topic="cmd/?")
+        msg = MQTT.Msg(topic="/?")
         try:
-            self.__detected_devices = self.send_and_receive_burst(msg, burst_timout=0.5)
+            detected_devices_raw = self.send_and_receive_burst(msg, burst_timout=0.5)
+            try:
+                detected_devices = []
+                for item in detected_devices_raw:
+                    try:
+                        items = item.split("|")[0].split("/")
+                        i = list(items).index("rep")
+                        devicename = items[i + 1]
+                        accessnumber = int(item.split("|")[1])
+                        detected_devices.append(tuple((devicename, accessnumber)))
+                    except:
+                        raise
+            except:
+                raise
         except:
-            pass
+            raise
+        return detected_devices
 
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
-    def connected_devices(self):
-        with self.__lock:
-            try:
-                return self.__detected_devices
-            except:
-                raise MAQLabError("MAQLab could not load the list of detected devices")
+    def available_devices(self):
+        try:
+            return self.__load_connected_devices()
+        except:
+            raise MAQLabError("MAQLab could not load the list of available devices")
 
     def __str__(self):
         return self.__session_id
 
 
-mqtt = MQTT(host="techfit.at", port=1883, user="maqlab", password="maqlab", session_id="s02")
+mqtt = MQTT(host=mqtt_hostname,
+            port=mqtt_port,
+            user=mqtt_user,
+            password=mqtt_pass,
+            session_id=secrets.token_urlsafe(3).lower())

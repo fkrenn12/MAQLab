@@ -13,6 +13,7 @@ class NORMA4000(_NORMA4000.NORMA4000):
         super().__init__(addr)
         self.__addr = addr
         self.__inventarnumber = "0"
+        self.__commands = ["vdc?", "idc?", "vdc", "idc"]
 
     def mqttmessage(self, client, msg):
         try:

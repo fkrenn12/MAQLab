@@ -12,6 +12,7 @@ class SM2400(_SM2400.SM2400):
         super().__init__(_port, _baudrate)
         self.__comport = ""
         self.__inventarnumber = "0"
+        self.__commands = ["vdc?", "idc?", "vdc", "idc"]
 
     def mqttmessage(self, client, msg):
 
@@ -63,6 +64,7 @@ class SM2400(_SM2400.SM2400):
             client.publish(t["reply"] + "/devicetype", self.devicetype)
             client.publish(t["reply"] + "/model", self.model)
             client.publish(t["reply"] + "/serialnumber", str(self.serialnumber))
+            client.publish(t["reply"] + "/commands", str(self.__commands))
             return
         elif command == "echo?" or command == "ping?":
             client.publish(t["reply"], str(datetime.datetime.utcnow()))

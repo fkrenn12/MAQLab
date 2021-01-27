@@ -12,6 +12,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
         super().__init__(addr)
         self.__addr = addr
         self.__inventarnumber = "0"
+        self.__commands = ["vdc?", "idc?", "vdc", "idc", "output"]
 
     def mqttmessage(self, client, msg):
         try:
@@ -149,6 +150,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
                 client.publish(t["reply"] + "/devicetype", self.devicetype)
                 client.publish(t["reply"] + "/model", self.model)
                 client.publish(t["reply"] + "/serialnumber", str(self.serialnumber))
+                client.publish(t["reply"] + "/commands", str(self.__commands))
                 return
             elif command == "echo?" or command == "ping?":
                 client.publish(t["reply"], str(datetime.datetime.utcnow()))

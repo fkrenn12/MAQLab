@@ -12,6 +12,7 @@ class NTP6531(_NTP6531.NTP6531):
         super().__init__(_port, _baudrate)
         self.__comport = ""
         self.__invent_number = "0"
+        self.__commands = ["vdc?", "idc?", "vdc", "idc", "output"]
 
     def mqttmessage(self, client, msg):
 
@@ -141,6 +142,7 @@ class NTP6531(_NTP6531.NTP6531):
                 client.publish(t["reply"] + "/devicetype", self.devicetype)
                 client.publish(t["reply"] + "/model", self.model)
                 client.publish(t["reply"] + "/serialnumber", str(self.serialnumber))
+                client.publish(t["reply"] + "/commands", str(self.__commands))
                 return
             elif command == "echo?" or command == "ping?":
                 client.publish(t["reply"], str(datetime.datetime.utcnow()))
