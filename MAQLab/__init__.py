@@ -65,10 +65,12 @@ try:
                     pass
 
 except:
-    print(str(datetime.datetime.now()) + "  :MAQLAB - Could not open file " + maqlab_config + " or data in file is corrupted")
+    print(str(
+        datetime.datetime.now()) + "  :MAQLAB - Could not open file " + maqlab_config + " or data in file is corrupted")
     raise
 
 print(str(datetime.datetime.now()) + "  :MAQLAB - Configuration loaded successfully")
+
 
 class MqttMsg:
     def __init__(self, topic, payload=""):
@@ -81,9 +83,9 @@ class MAQLabError(Exception):
 
 
 # --------------------------------------------------------------------------------
-# Class                             M Q T T
+# Class                             M A Q L A B
 # --------------------------------------------------------------------------------
-class Mqtt:
+class MAQLab:
 
     def __init__(self, host, port, user, password, session_id):
         try:
@@ -94,6 +96,11 @@ class Mqtt:
             self.__mqtt_user = str(user)
             self.__mqtt_pass = str(password)
             self.__session_id = session_id
+            self.__device_commands = list()
+            self.__device_types = list()
+            self.__device_models = list()
+            self.__device_manufactorers = list()
+            self.__device_accessnumbers = list()
             self.__lock = threading.Lock()
             self.__client = paho.Client()
             self.__client.on_connect = self.__on_connect
@@ -110,11 +117,11 @@ class Mqtt:
                 attemptions += 1
 
             print(str(datetime.datetime.now()) + "  :" + "MQTT - ready")
-        except Exception as e:
-            print(e)
+        except Exception as _e:
+            # print(_e)
             print(
                 str(datetime.datetime.now()) + "  :" + "MAQlab - Connection Error! Are you connected to the internet?")
-            raise e
+            raise _e
 
     # --------------------------------------------------------
     # MQTT Broker callback on_connect
@@ -195,8 +202,8 @@ class Mqtt:
         with self.__lock:
             try:
                 self.__send(msg)
-            except Exception as e:
-                raise e
+            except Exception as _e:
+                raise _e
 
     # ------------------------------------------------------------------------------
     #
@@ -234,20 +241,34 @@ class Mqtt:
     # ------------------------------------------------------------------------------
     # Send a message and wait for the answer
     # ------------------------------------------------------------------------------
-    def send_and_receive(self, msg=None, block=True, timeout=1.0):
+    def send_and_receive(self, command="", value="", msg=None, block=True, timeout=1.0):
+        try:
+            value = str(value)
+        except:
+            value = ""
+
+        if msg is None:
+            msg = MqttMsg(command, value)
         with self.__lock:
             try:
                 stamp = str(int((time.time() * 1000) % 1000000))
                 self.__flush()
                 self.__send(msg=msg, stamp=stamp)
                 return self.__receive(block=block, timeout=timeout, stamp=stamp)
-            except Exception as e:
-                raise e
+            except Exception as _e:
+                raise _e
 
     # ------------------------------------------------------------------------------
     # Send a message and returns a list of all answers
     # ------------------------------------------------------------------------------
-    def send_and_receive_burst(self, msg, block=True, timeout=1.0, burst_timout=1.0):
+    def send_and_receive_burst(self, command="", value="", msg=None, block=True, timeout=1.0, burst_timout=1.0):
+        try:
+            value = str(value)
+        except:
+            value = ""
+
+        if msg is None:
+            msg = MqttMsg(command, value)
         _timeout = timeout
         msg_list = list()
         with self.__lock:
@@ -267,15 +288,15 @@ class Mqtt:
                         if len(msg_list) == 0:
                             raise MAQLabError("Empty data")
                         return msg_list
-            except Exception as e:
-                raise e
+            except Exception as _e:
+                raise _e
 
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
-    def __load_connected_devices(self):
+    def load_devices(self):
         try:
-            detected_devices_raw = self.send_and_receive_burst(MqttMsg(topic="/?"), burst_timout=0.5)
+            detected_devices_raw = self.send_and_receive_burst(command="/?", burst_timout=0.5)
             try:
                 detected_devices = []
                 for item in detected_devices_raw:
@@ -289,6 +310,40 @@ class Mqtt:
                         raise
             except:
                 raise
+            # we have the list of device
+            # next task is to request the details of the device
+            # reading the available commands and manufactor from each device
+            # lets clear the actual list
+            self.__device_commands.clear()
+            self.__device_types.clear()
+            self.__device_models.clear()
+            self.__device_manufactorers.clear()
+
+            for device in detected_devices:
+                print(str(datetime.datetime.now()) + "  :" + "MAQlab - Detected: " + str(
+                    device[0]) + " Accessnumber is " + str(device[1]))
+                try:
+                    number = int(device[1])
+                except:
+                    raise
+                self.__device_accessnumbers.append(number)
+                reps = maqlab.send_and_receive_burst(command=str(device[1]) + "/?", burst_timout=0.5)
+                for rep in reps:
+                    if "commands" in rep.topic:
+                        self.__device_commands.append(rep.payload)
+                    elif "manufactorer" in rep.topic:
+                        self.__device_manufactorers.append(rep.payload)
+                    elif "model" in rep.topic:
+                        self.__device_models.append(rep.payload)
+                    elif "devicetype" in rep.topic:
+                        self.__device_types.append(rep.payload)
+
+            # print(self.__device_models)
+            # print(self.__device_accessnumbers)
+            # print(self.__device_manufactorers)
+            # print(self.__device_commands)
+            # print(self.__device_types)
+
         except:
             raise
         return detected_devices
@@ -296,11 +351,11 @@ class Mqtt:
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
-    def available_devices(self):
-        try:
-            return self.__load_connected_devices()
-        except:
-            raise MAQLabError("MAQLab could not load the list of available devices")
+    # def available_devices(self):
+    #    try:
+    #        return self.__load_connected_devices()
+    #    except:
+    #        raise MAQLabError("MAQLab could not load the list of available devices")
 
     # ------------------------------------------------------------------------------
     #
@@ -313,17 +368,23 @@ class Mqtt:
         except:
             pass
 
-    def __get_hostname(self):
-        return self.__mqtt_hostname
+    def __get_model(self):
+        return self.__device_models
 
-    def __get_port(self):
-        return self.__mqtt_port
+    def __get_accessnumbers(self):
+        return self.__device_accessnumbers
 
-    def __get_user(self):
-        return self.__mqtt_user
+    def __get_commands(self):
+        return self.__device_commands
 
-    def __get_password(self):
-        return self.__mqtt_pass
+    def __get_manufactorers(self):
+        return self.__device_manufactorers
+
+    def __get_types(self):
+        return self.__device_types
+
+    def __isconnected(self):
+        return self.__client.is_connected()
 
     # ------------------------------------------------------------------------------
     #
@@ -331,18 +392,20 @@ class Mqtt:
     def __str__(self):
         return self.__session_id
 
-    hostname = property(__get_hostname)
-    port = property(__get_port)
-    user = property(__get_user)
-    password = property(__get_password)
+    device_models = property(__get_model)
+    device_accessnumbers = property(__get_accessnumbers)
+    device_types = property(__get_types)
+    device_manufactorers = property(__get_manufactorers)
+    device_commands = property(__get_commands)
+    is_connected = property(__isconnected)
 
 
 try:
-    mqtt = Mqtt(host=mqtt_hostname,
-                port=mqtt_port,
-                user=mqtt_user,
-                password=mqtt_pass,
-                session_id=secrets.token_urlsafe(3).lower())
+    maqlab = MAQLab(host=mqtt_hostname,
+                    port=mqtt_port,
+                    user=mqtt_user,
+                    password=mqtt_pass,
+                    session_id=secrets.token_urlsafe(3).lower())
+    maqlab.load_devices()
 except Exception as e:
-    mqtt = None
-    print(e)
+    maqlab = None

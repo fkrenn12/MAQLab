@@ -3,6 +3,8 @@ import secrets
 import sys
 import threading
 import time
+import datetime
+import re
 
 import xlwings as xw
 import xlwings.utils as xwu
@@ -19,11 +21,9 @@ try:
 except:
     pass
 
-from MAQLab import Mqtt
 from MAQLab import MqttMsg
-from MAQLab import mqtt
+from MAQLab import maqlab
 
-debug = True
 run_once = True
 
 py_filename_without_extension = ""
@@ -40,7 +40,6 @@ active_devices_manufactorers = list()
 active_devices_models = list()
 active_devices_types = list()
 
-maqlab = None
 accessnr = None
 wertzahl = None
 wertzahl = []
@@ -54,12 +53,6 @@ def main():
     global py_filename
     global xl_filename
     global active_devices
-    global maqlab
-
-    try:
-        mqtt.close()
-    except:
-        pass
 
     py_filename = os.path.basename(__file__)
     # check .py extension
@@ -77,10 +70,10 @@ def main():
             if ex == 'xlsx' or ex == 'xlsm':
                 xl_filename = f
                 break
-    print("UDF-Server started")
-    print("Filepath:", __file__)
-    print("Python-Filename:", py_filename)
-    print("Excel-Filename:", xl_filename)
+    # print("UDF-Server started")
+    # print("Filepath:", __file__)
+    # print("Python-Filename:", py_filename)
+    # print("Excel-Filename:", xl_filename)
 
     '''
     source.range('A1').expand().clear_contents()
@@ -94,60 +87,41 @@ def main():
     sht.api.OLEObjects("MessageBox").Object.Visible = True
     sht.range(status_connection_cell_address).color = xwu.rgb_to_int((200, 200, 200))  # cell color
     sht.range(status_connection_cell_address).api.Font.Color = xwu.rgb_to_int((0, 0, 0))  # font color of text
-    sht.range(status_connection_cell_address).value = "Connecting to: " + mqtt.hostname + ":" + str(mqtt.port)
-
-    try:
-        maqlab = Mqtt(host=mqtt.hostname, port=mqtt.port, user=mqtt.user, password=mqtt.password,
-                      session_id=secrets.token_urlsafe(3).lower())
+    if maqlab is not None and maqlab.is_connected:
         sht.range(status_connection_cell_address).color = xwu.rgb_to_int((0, 200, 10))  # cell color
         sht.range(status_connection_cell_address).api.Font.Color = xwu.rgb_to_int((0, 0, 0))  # font color of text
         sht.range(status_connection_cell_address).value = "Connected"
-    except:
+    else:
         sht.range(status_connection_cell_address).color = xwu.rgb_to_int((200, 0, 10))  # cell color
         sht.range(status_connection_cell_address).api.Font.Color = xwu.rgb_to_int((255, 255, 255))  # font color of text
-        sht.range(status_connection_cell_address).value = "Failed to connect"
+        sht.range(status_connection_cell_address).value = "MAQlab not Connected"
         return
 
-    active_devices = maqlab.available_devices()
-
-    # assembling text for messagebox
+    # creating text for messagebox
     text_messagebox = "Available Devices:\n"
-    for device in active_devices:
-        text_messagebox += "#" + str(device[1]) + "-" + device[0] + "\n"
-
+    text_messagebox += "#\tModell\t\tType\n"
+    index = 0
+    for model in maqlab.device_models:
+        text_messagebox += "#" + str(maqlab.device_accessnumbers[index]) + "\t" + model \
+                           + "\t" + maqlab.device_manufactorers[index] \
+                           + "\t" + maqlab.device_types[index] + "\n"
+        index += 1
+    # send it to excel
     sht.api.OLEObjects("MessageBox").Object.Value = text_messagebox
 
-    # reading the available commands and manufactor from each device
-    active_devices_commands.clear()
-    active_devices_types.clear()
-    active_devices_models.clear()
-    active_devices_manufactorers.clear()
-
-    for device in active_devices:
-        reps = maqlab.send_and_receive_burst(MqttMsg(topic=str(device[1]) + "/?"), burst_timout=0.5)
-        for rep in reps:
-            if "commands" in rep.topic:
-                active_devices_commands.append(rep.payload)
-            elif "manufactorer" in rep.topic:
-                active_devices_manufactorers.append(rep.payload)
-            elif "model" in rep.topic:
-                active_devices_models.append(rep.payload)
-            elif "devicetype" in rep.topic:
-                active_devices_types.append(rep.payload)
-
-    print("Active devices detected: ", active_devices)
-    print("Active devices manufactorer ", active_devices_manufactorers)
-    print("Active devices model ", active_devices_models)
-    print("Active devices type ", active_devices_types)
-    print("Active devices commands: ", active_devices_commands)
+    # print("Active devices detected: ", maqlab.device_models)
+    # print("Active devices manufactorer ", maqlab.device_manufactorers)
+    # print("Active devices accessnumber ", maqlab.device_accessnumbers)
+    # print("Active devices type ", maqlab.device_types)
+    # print("Active devices commands: ", maqlab.device_commands)
 
     # write available devices into combobox
     combo = 'ComboBox1'
     sht.api.OLEObjects(combo).Object.Clear()
     # sht.api.OLEObjects(combo).Object.ColumnCount = 2
     # sht.api.OLEObjects(combo).Object.ColumnWidths = 30
-    for device in active_devices:
-        sht.api.OLEObjects(combo).Object.AddItem("#" + str(device[1]) + "-" + device[0])
+    # for device in active_devices:
+    #    sht.api.OLEObjects(combo).Object.AddItem("#" + str(device[1]) + "-" + device[0])
 
 
 # --------------------------------------------------------------------------
@@ -249,14 +223,14 @@ def measure(t, count):
 
         # ----------------------------------------------------------------------
 
-        sp1 = (sht["N14"].value)
-        wert1 = str(accessnr) + "/" + str(sp1) + "?"
+        command = str((sht["N14"].value))
+        wert1 = str(accessnr) + "/" + command + "?"
         print("Sending " + wert1)
-        wertzahl = maqlab.send_and_receive(MqttMsg(topic=wert1)).payload
+        wertzahl = maqlab.send_and_receive(command=wert1).payload
         print("Received " + wertzahl)
         # convert into real value from string with unit
         # format is for instance  "0.543 VDC"
-        wertzahl = float(wertzahl.split(" ")[0])
+        wertzahl = re.sub("[A-Za-z ]", "", wertzahl)
 
         cell = (i + 16, 14)
         sht.range(cell).value = wertzahl
@@ -266,14 +240,14 @@ def measure(t, count):
         accessnr = sht.range('O11').value
         accessnr = int(accessnr)
 
-        sp1 = (sht["O14"].value)
-        wert1 = str(accessnr) + "/" + str(sp1) + "?"
+        command = str((sht["O14"].value))
+        wert1 = str(accessnr) + "/" + str(command) + "?"
         print("Sending " + wert1)
-        wertzahl = maqlab.send_and_receive(MqttMsg(topic=wert1)).payload
+        wertzahl = maqlab.send_and_receive(command=wert1).payload
         print("Received " + wertzahl)
         # convert into real value from string with unit
         # format is for instance  "0.543    VDC"
-        wertzahl = float(wertzahl.split(" ")[0])
+        wertzahl = re.sub("[A-Za-z ]", "", wertzahl)
 
         cell = (i + 16, 15)  # COL O is 15
         sht.range(cell).value = wertzahl
@@ -294,20 +268,9 @@ def measure(t, count):
     # Statuszelle Text ändern und umfärben
     sht.range(status_measure_cell_address).api.Font.Color = xwu.rgb_to_int((255, 255, 255))
     sht.range(status_measure_cell_address).color = xwu.rgb_to_int((200, 10, 10))
-    sht.range(status_measure_cell_address).value = "Messung gestopped"
+    sht.range(status_measure_cell_address).value = "Messung beendet"
     print("Thread Stopped")
 
 
 if __name__ == '__main__':
-    if debug:
-        xw.serve()
-    else:
-        maqlab = Mqtt(host=Mqtt.hostname, port=Mqtt.port, user=Mqtt.user, password=Mqtt.password,
-                      session_id=secrets.token_urlsafe(3).lower())
-        try:
-            active_devices = maqlab.available_devices()
-            print(active_devices)
-        except Exception as e:
-            print(e)
-        while True:
-            time.sleep(1)
+    xw.serve()
