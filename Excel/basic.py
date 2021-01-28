@@ -10,7 +10,7 @@ import xlwings as xw
 import xlwings.utils as xwu
 
 # Adding the ../MAQLab/.. folder to the system path of python
-# It is temporarily used by this script only
+# It is temporarily used only by this script
 script_dir = str()
 try:
     script_dir = os.path.dirname(__file__)
@@ -83,8 +83,8 @@ def main():
     wb = xw.Book.caller()
     sht = wb.sheets.active
 
-    sht.api.OLEObjects("Command1").Object.Visible = True
-    sht.api.OLEObjects("MessageBox").Object.Visible = True
+    sht.api.OLEObjects("Command1").Object.Visible = True  # nur test
+    sht.api.OLEObjects("MessageBox").Object.Visible = True  # nur test
     sht.range(status_connection_cell_address).color = xwu.rgb_to_int((200, 200, 200))  # cell color
     sht.range(status_connection_cell_address).api.Font.Color = xwu.rgb_to_int((0, 0, 0))  # font color of text
     if maqlab is not None and maqlab.is_connected:
@@ -97,6 +97,7 @@ def main():
         sht.range(status_connection_cell_address).value = "MAQlab not Connected"
         return
 
+    maqlab.load_devices()
     # creating text for messagebox
     text_messagebox = "Available Devices:\n"
     text_messagebox += "#\tModell\t\tType\n"
@@ -133,7 +134,6 @@ def start(interval, count):
 
     wb = xw.Book.caller()
     wb.sheets.active.range(error_cell_address).value = ""
-    wb.sheets.active.api.OLEObjects("MessageBox").Object.Value = "Started...\n"
 
     # wb.sheets.active.api.OLEObjects("ComboBox").Object.Value = "some value"
     if isinstance(interval, str):
@@ -223,10 +223,9 @@ def measure(t, count):
 
         # ----------------------------------------------------------------------
 
-        command = str((sht["N14"].value))
-        wert1 = str(accessnr) + "/" + command + "?"
-        print("Sending " + wert1)
-        wertzahl = maqlab.send_and_receive(command=wert1).payload
+        command = str(sht["N14"].value)
+        print("Sending " + command)
+        wertzahl = maqlab.send_and_receive(accessnumber=accessnr, command=command).payload
         print("Received " + wertzahl)
         # convert into real value from string with unit
         # format is for instance  "0.543 VDC"
@@ -240,10 +239,9 @@ def measure(t, count):
         accessnr = sht.range('O11').value
         accessnr = int(accessnr)
 
-        command = str((sht["O14"].value))
-        wert1 = str(accessnr) + "/" + str(command) + "?"
-        print("Sending " + wert1)
-        wertzahl = maqlab.send_and_receive(command=wert1).payload
+        command = str(sht["O14"].value)
+        print("Sending " + command)
+        wertzahl = maqlab.send_and_receive(accessnumber=accessnr, command=command).payload
         print("Received " + wertzahl)
         # convert into real value from string with unit
         # format is for instance  "0.543    VDC"
@@ -268,7 +266,7 @@ def measure(t, count):
     # Statuszelle Text ändern und umfärben
     sht.range(status_measure_cell_address).api.Font.Color = xwu.rgb_to_int((255, 255, 255))
     sht.range(status_measure_cell_address).color = xwu.rgb_to_int((200, 10, 10))
-    sht.range(status_measure_cell_address).value = "Messung beendet"
+    sht.range(status_measure_cell_address).value = "Messung fertig"
     print("Thread Stopped")
 
 

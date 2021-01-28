@@ -188,10 +188,7 @@ class MAQLab:
     def __send(self, msg, stamp=""):
         try:
             self.__flush()
-            # if it is existing remove the trailing /
-            if str(msg.topic).startswith("/"):
-                msg.topic = msg.topic[1:]
-            self.__client.publish("maqlab/" + self.__session_id + "/" + stamp + "/cmd/" + msg.topic, msg.payload)
+            self.__client.publish("maqlab/" + self.__session_id + "/" + stamp + "/cmd" + msg.topic, msg.payload)
         except:
             raise MAQLabError("Send error")
 
@@ -241,14 +238,24 @@ class MAQLab:
     # ------------------------------------------------------------------------------
     # Send a message and wait for the answer
     # ------------------------------------------------------------------------------
-    def send_and_receive(self, command="", value="", msg=None, block=True, timeout=1.0):
+    def send_and_receive(self, accessnumber=None, command="", value="", msg=None, block=True, timeout=1.0):
         try:
             value = str(value)
         except:
             value = ""
 
         if msg is None:
+            if not command.startswith("/"):
+                command = "/" + command
+            if accessnumber is not None:
+                command = "/" + str(accessnumber) + command
             msg = MqttMsg(command, value)
+        else:
+            if not msg.topic.startswith("/"):
+                msg.topic = "/" + msg.topic
+            if accessnumber is not None:
+                msg.topic = "/" + str(accessnumber) + msg.topic
+
         with self.__lock:
             try:
                 stamp = str(int((time.time() * 1000) % 1000000))
@@ -261,14 +268,25 @@ class MAQLab:
     # ------------------------------------------------------------------------------
     # Send a message and returns a list of all answers
     # ------------------------------------------------------------------------------
-    def send_and_receive_burst(self, command="", value="", msg=None, block=True, timeout=1.0, burst_timout=1.0):
+    def send_and_receive_burst(self, accessnumber=None, command="", value="", msg=None, block=True, timeout=1.0,
+                               burst_timout=1.0):
         try:
             value = str(value)
         except:
             value = ""
 
         if msg is None:
+            if not command.startswith("/"):
+                command = "/" + command
+            if accessnumber is not None:
+                command = "/" + str(accessnumber) + command
             msg = MqttMsg(command, value)
+        else:
+            if not msg.topic.startswith("/"):
+                msg.topic = "/" + msg.topic
+            if accessnumber is not None:
+                msg.topic = "/" + str(accessnumber) + msg.topic
+
         _timeout = timeout
         msg_list = list()
         with self.__lock:
