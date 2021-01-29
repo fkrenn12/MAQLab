@@ -185,7 +185,7 @@ class MAQLab:
                 return
 
     # ------------------------------------------------------------------------------
-    #  Send internal use
+    #  Send ( internal used )
     # ------------------------------------------------------------------------------
     def __send(self, msg, stamp="_"):
         try:
@@ -214,9 +214,9 @@ class MAQLab:
                 rec_msg = rec_msg.decode("utf-8")
             except:
                 pass
+            # eval to list object
             rec_msg = ast.literal_eval(rec_msg)
             try:
-                # msg = MqttMsg(topic=rec_msg.split("|")[0], payload=rec_msg.split("|")[1])
                 msg = MqttMsg(topic=rec_msg[0], payload=rec_msg[1])
                 if stamp in msg.topic.split("/"):
                     return msg
@@ -225,7 +225,6 @@ class MAQLab:
             except:
                 raise
         except:
-            # return MQTT.Msg("ERROR", "TIMEOUT")
             raise MAQLabError("Timeout error")
 
     # ------------------------------------------------------------------------------

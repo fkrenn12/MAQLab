@@ -42,7 +42,7 @@ while True:
 
         rel1 = 0
         while True:
-            time.sleep(2)
+            time.sleep(0)
 
 
             #m.topic = "cmd/" + str(access) + "/vdc?"
@@ -59,37 +59,26 @@ while True:
             #except:
             #    print(str(datetime.datetime.now()) + ": DELTA NO RESPONSE")
 
-            m.topic = "8385/rel/4"
             if rel1 == 1:
                 rel1 = 0
             else:
                 rel1 = 1
-            m.payload = rel1
             try:
                 maqlab.send_and_receive(command="rel/4", value=rel1, accessnumber=8385)
-            except Exception as e:
+            except:
                 print(str(datetime.datetime.now()) + ": ESP32 R4 NO RESPONSE REL1")
 
-            time.sleep(0.2)
-            m.topic = "8385/rel/1"
-
-            m.payload = rel1
+            time.sleep(0)
             try:
                 maqlab.send_and_receive(command="rel/1", value=rel1, accessnumber=8385)
             except:
                 print(str(datetime.datetime.now()) + ": ESP32 R4 NO RESPONSE REL2")
 
-            m.topic = "8385/rel/2"
-
-            m.payload = rel1
             try:
                 maqlab.send_and_receive(command="rel/2", value=rel1, accessnumber=8385)
             except:
                 print(str(datetime.datetime.now()) + ": ESP32 R4 NO RESPONSE REL3")
 
-            m.topic = "8385/rel/3"
-
-            m.payload = rel1
             try:
                 maqlab.send_and_receive(command="rel/3", value=rel1, accessnumber=8385)
             except:
