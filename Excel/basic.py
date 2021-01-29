@@ -40,9 +40,9 @@ active_devices_manufactorers = list()
 active_devices_models = list()
 active_devices_types = list()
 
+sht_maqlab_config = None
 accessnr = None
 wertzahl = None
-wertzahl = []
 
 
 # --------------------------------------------------------------------------
@@ -53,6 +53,7 @@ def main():
     global py_filename
     global xl_filename
     global active_devices
+    global sht_maqlab_config
 
     py_filename = os.path.basename(__file__)
     # check .py extension
@@ -81,8 +82,19 @@ def main():
     '''
 
     wb = xw.Book.caller()
-    sht = wb.sheets.active
 
+
+    try:
+        wb.sheets.add("maqlab.conf", "xlwings.conf")
+    except:
+        pass
+
+    try:
+        sht_maqlab_config = wb.sheets["maqlab.conf"]
+    except:
+        sht_maqlab_config = None
+
+    sht = wb.sheets["Automatic"]
     sht.api.OLEObjects("Command1").Object.Visible = True  # nur test
     sht.api.OLEObjects("MessageBox").Object.Visible = True  # nur test
     sht.range(status_connection_cell_address).color = xwu.rgb_to_int((200, 200, 200))  # cell color
@@ -96,13 +108,33 @@ def main():
         sht.range(status_connection_cell_address).api.Font.Color = xwu.rgb_to_int((255, 255, 255))  # font color of text
         sht.range(status_connection_cell_address).value = "MAQlab not Connected"
         return
+    reload()
 
+
+# --------------------------------------------------------------------------
+# reload() - will be invoked by pressing the "Reload Devices" button
+# --------------------------------------------------------------------------
+def reload():
+    wb = xw.Book.caller()
+    sht = wb.sheets["Automatic"]
     maqlab.load_devices()
     # creating text for messagebox
+
+    # TODO hier noch löschen der Zellen bevor aktualisiert wird
+    sht_maqlab_config.range((1, 1)).value = ["Accessnumber", "Model", "Manufactorer", "Type"]
+
     text_messagebox = "Available Devices:\n"
     text_messagebox += "#\tModell\t\tType\n"
     index = 0
+    row = 2
     for model in maqlab.device_models:
+        row += 1
+        sht_maqlab_config.range((row, 1)).value = [str(maqlab.device_accessnumbers[index]),
+                                                   model,
+                                                   str(maqlab.device_manufactorers[index]),
+                                                   maqlab.device_types[index],
+                                                   maqlab.device_commands[index]]
+
         text_messagebox += "#" + str(maqlab.device_accessnumbers[index]) + "\t" + model \
                            + "\t" + maqlab.device_manufactorers[index] \
                            + "\t" + maqlab.device_types[index] + "\n"
@@ -122,7 +154,7 @@ def main():
     # sht.api.OLEObjects(combo).Object.ColumnCount = 2
     # sht.api.OLEObjects(combo).Object.ColumnWidths = 30
     # for device in active_devices:
-    #    sht.api.OLEObjects(combo).Object.AddItem("#" + str(device[1]) + "-" + device[0])
+    # sht.api.OLEObjects(combo).Object.AddItem("#" + str(device[1]) + "-" + device[0])
 
 
 # --------------------------------------------------------------------------
@@ -224,7 +256,7 @@ def measure(t, count):
         # ----------------------------------------------------------------------
 
         command = str(sht["N14"].value)
-        print("Sending " + command)
+        print("Sending " + command + " to " + str(accessnr))
         wertzahl = maqlab.send_and_receive(accessnumber=accessnr, command=command).payload
         print("Received " + wertzahl)
         # convert into real value from string with unit
@@ -240,7 +272,7 @@ def measure(t, count):
         accessnr = int(accessnr)
 
         command = str(sht["O14"].value)
-        print("Sending " + command)
+        print("Sending " + command + " to " + str(accessnr))
         wertzahl = maqlab.send_and_receive(accessnumber=accessnr, command=command).payload
         print("Received " + wertzahl)
         # convert into real value from string with unit

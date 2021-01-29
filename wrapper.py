@@ -1,5 +1,5 @@
 import MAQLab
-# from MAQLab import mqtt as maqlab
+from MAQLab import maqlab
 import time
 import datetime
 from MAQLab.voltmeter import Voltmeter
@@ -42,7 +42,7 @@ while True:
 
         rel1 = 0
         while True:
-            time.sleep(0.1)
+            time.sleep(2)
 
 
             #m.topic = "cmd/" + str(access) + "/vdc?"
@@ -66,8 +66,8 @@ while True:
                 rel1 = 1
             m.payload = rel1
             try:
-                MAQLab.mqtt.send_and_receive(m)
-            except:
+                maqlab.send_and_receive(command="rel/4", value=rel1, accessnumber=8385)
+            except Exception as e:
                 print(str(datetime.datetime.now()) + ": ESP32 R4 NO RESPONSE REL1")
 
             time.sleep(0.2)
@@ -75,7 +75,7 @@ while True:
 
             m.payload = rel1
             try:
-                MAQLab.mqtt.send_and_receive(m)
+                maqlab.send_and_receive(command="rel/1", value=rel1, accessnumber=8385)
             except:
                 print(str(datetime.datetime.now()) + ": ESP32 R4 NO RESPONSE REL2")
 
@@ -83,7 +83,7 @@ while True:
 
             m.payload = rel1
             try:
-                MAQLab.mqtt.send_and_receive(m)
+                maqlab.send_and_receive(command="rel/2", value=rel1, accessnumber=8385)
             except:
                 print(str(datetime.datetime.now()) + ": ESP32 R4 NO RESPONSE REL3")
 
@@ -91,12 +91,12 @@ while True:
 
             m.payload = rel1
             try:
-                MAQLab.mqtt.send_and_receive(m)
+                maqlab.send_and_receive(command="rel/3", value=rel1, accessnumber=8385)
             except:
                 print(str(datetime.datetime.now()) + ": ESP32 R4 NO RESPONSE REL4")
 
 
         m.topic = str(access) + "/idc?"
-        rec = MAQLab.mqtt.send_and_receive(m)
+        rec = maqlab.send_and_receive(m)
         print(rec.topic, rec.payload)
 

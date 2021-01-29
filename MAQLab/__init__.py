@@ -7,6 +7,7 @@ import secrets
 import sys
 import os
 import json
+import ast
 
 # Adding the ../MAQLab/.. folder to the system path of python
 # It is temporarily used by this script only
@@ -87,10 +88,11 @@ class MAQLabError(Exception):
 # --------------------------------------------------------------------------------
 class MAQLab:
 
-    def __init__(self, host, port, user, password, session_id):
+    def __init__(self, host, port, user, password, session_id, stamp=""):
         try:
             self.__q_out = queue.Queue()
             print(str(datetime.datetime.now()) + "  :" + "MQTT - started")
+            self.__static_stamp = stamp
             self.__mqtt_hostname = str(host)
             self.__mqtt_port = int(port)
             self.__mqtt_user = str(user)
@@ -167,7 +169,7 @@ class MAQLab:
         # after putting it on the queue before it is handled
         # from the following stage.
         # The solution is to send topic and payload as string rather than as object
-        self.__q_out.put(topic + "|" + payload, block=False, timeout=0)
+        self.__q_out.put(str([topic, payload]), block=False, timeout=0)
 
     # ------------------------------------------------------------------------------
     #  Flush the queue
@@ -185,7 +187,7 @@ class MAQLab:
     # ------------------------------------------------------------------------------
     #  Send internal use
     # ------------------------------------------------------------------------------
-    def __send(self, msg, stamp=""):
+    def __send(self, msg, stamp="_"):
         try:
             self.__flush()
             self.__client.publish("maqlab/" + self.__session_id + "/" + stamp + "/cmd" + msg.topic, msg.payload)
@@ -205,17 +207,18 @@ class MAQLab:
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
-    def __receive(self, block=True, timeout=1.0, stamp=""):
+    def __receive(self, block=True, timeout=1.0, stamp="_"):
         try:
             rec_msg = self.__q_out.get(block=block, timeout=timeout)
             try:
                 rec_msg = rec_msg.decode("utf-8")
             except:
                 pass
-
+            rec_msg = ast.literal_eval(rec_msg)
             try:
-                msg = MqttMsg(topic=rec_msg.split("|")[0], payload=rec_msg.split("|")[1])
-                if stamp in msg.topic:
+                # msg = MqttMsg(topic=rec_msg.split("|")[0], payload=rec_msg.split("|")[1])
+                msg = MqttMsg(topic=rec_msg[0], payload=rec_msg[1])
+                if stamp in msg.topic.split("/"):
                     return msg
                 else:
                     raise MAQLabError("Wrong message stamp - message discarded ")
@@ -258,7 +261,9 @@ class MAQLab:
 
         with self.__lock:
             try:
-                stamp = str(int((time.time() * 1000) % 1000000))
+                stamp = self.__static_stamp
+                if stamp == "":
+                    stamp = str(int((time.time() * 1000) % 1000000))
                 self.__flush()
                 self.__send(msg=msg, stamp=stamp)
                 return self.__receive(block=block, timeout=timeout, stamp=stamp)
@@ -291,15 +296,21 @@ class MAQLab:
         msg_list = list()
         with self.__lock:
             try:
-                stamp = str(int((time.time() * 1000) % 1000000))
+                stamp = self.__static_stamp
+                if stamp == "":
+                    stamp = str(int((time.time() * 1000) % 1000000))
                 self.__flush()
                 self.__send(msg=msg, stamp=stamp)
                 while True:
                     try:
                         msg_received = self.__q_out.get(block=block, timeout=_timeout)
-                        msg = MqttMsg(topic=msg_received.split("|")[0], payload=msg_received.split("|")[1])
+                        try:
+                            msg_received = msg_received.decode("utf-8")
+                        except:
+                            pass
+                        msg_received = ast.literal_eval(msg_received)
+                        msg = MqttMsg(topic=msg_received[0], payload=msg_received[1])
                         if stamp in msg.topic:
-                            # print(msg_received)
                             _timeout = burst_timout
                             msg_list.append(msg)
                     except:
