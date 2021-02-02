@@ -1,5 +1,6 @@
 import datetime
 import shared as s
+import json
 
 
 # --------------------------------------------------------
@@ -12,19 +13,31 @@ def validate_payload(payload):
     payload_limited = s.payload_limited + " " + timestamp
     payload_command_error = s.payload_command_error + " " + timestamp
     try:
-        payload = payload.lower()
-        if isinstance(payload, bytes):
-            payload = payload.decode("utf-8")
-        if not isinstance(payload, str):
-            payload = str(payload)
-        if payload == "":
-            payload = "0"
-        payload = payload.replace('off', "0")
-        payload = payload.replace("on", "1")
+
         try:
-            payload = float(payload)
+            payload = payload.decode("utf-8")
+        except:
+            pass
+        try:
+            dummy = payload.lower()
         except:
             raise
+        # print(payload)
+        try:
+            payload = payload.strip(' ')
+            if not (str(payload).startswith("{") and str(payload).endswith("}")):
+                raise
+        except:
+            # it is not json
+            # print("NO JSON")
+            if payload == "":
+                payload = "0"
+            payload = payload.replace('off', "0")
+            payload = payload.replace("on", "1")
+            try:
+                payload = float(payload)
+            except:
+                raise
     except:
         raise
     return {'payload': payload,

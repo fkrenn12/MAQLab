@@ -4,7 +4,7 @@ import datetime
 import platform
 import asyncio
 scan_start = 3
-scan_stop = 9
+scan_stop = 4
 tout = 1000
 
 
@@ -31,7 +31,7 @@ async def scan_serial_devices(devices, comlist):
     # -------------------------------------------------------------
     while True:
         # print("Start check com")
-        for number in range(scan_start, scan_stop):
+        for number in range(scan_start, scan_stop + 1):
             try:
                 dev_found = None
                 # this is for windows
