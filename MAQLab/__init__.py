@@ -83,6 +83,10 @@ class MAQLabError(Exception):
     pass
 
 
+class MAQLab(Exception):
+    pass
+
+
 # --------------------------------------------------------------------------------
 # Class                             M A Q L A B
 # --------------------------------------------------------------------------------
@@ -197,12 +201,12 @@ class MAQLab:
     # ------------------------------------------------------------------------------
     #  Send a message ( public )
     # ------------------------------------------------------------------------------
-    def send(self, msg):
-        with self.__lock:
-            try:
-                self.__send(msg)
-            except Exception as _e:
-                raise _e
+    # def send(self, msg):
+    #    with self.__lock:
+    #        try:
+    #            self.__send(msg)
+    #        except Exception as _e:
+    #            raise _e
 
     # ------------------------------------------------------------------------------
     #
@@ -225,7 +229,10 @@ class MAQLab:
             except:
                 raise
         except:
-            raise MAQLabError("Timeout error")
+            if block:
+                raise MAQLabError("Timeout error")
+            else:
+                raise MAQLab("Empty")
 
     # ------------------------------------------------------------------------------
     #
@@ -240,7 +247,8 @@ class MAQLab:
     # ------------------------------------------------------------------------------
     # Send a message and wait for the answer
     # ------------------------------------------------------------------------------
-    def send_and_receive(self, accessnumber=None, command="", value="", msg=None, block=True, timeout=1.0):
+    def send_and_receive(self, receive=True, accessnumber=None, command="", value="", msg=None, block=True,
+                         timeout=1.0):
         try:
             value = str(value)
         except:
@@ -260,12 +268,16 @@ class MAQLab:
 
         with self.__lock:
             try:
-                stamp = self.__static_stamp
-                if stamp == "":
-                    stamp = str(int((time.time() * 1000) % 1000000))
                 self.__flush()
-                self.__send(msg=msg, stamp=stamp)
-                return self.__receive(block=block, timeout=timeout, stamp=stamp)
+                if not receive:
+                    self.__send(msg=msg)
+                else:
+                    stamp = self.__static_stamp
+                    if stamp == "":
+                        stamp = str(int((time.time() * 1000) % 1000000))
+                    self.__send(msg=msg, stamp=stamp)
+                if receive:
+                    return self.__receive(block=block, timeout=timeout, stamp=stamp)
             except Exception as _e:
                 raise _e
 
