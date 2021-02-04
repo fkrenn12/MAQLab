@@ -38,7 +38,7 @@ class NORMA4000(_NORMA4000.NORMA4000):
         print(self.model + " " + t["topic"] + " " + str(p["payload"]))
 
         command = t["cmd"]
-        value = p["payload"]
+        value = p["payload_float"]
 
     def on_created(self, addr, inventarnumber):
         self.__addr = addr

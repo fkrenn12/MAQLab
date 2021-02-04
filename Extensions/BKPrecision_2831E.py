@@ -38,7 +38,7 @@ class BK2831E(E2831.BK2831E):
 
         try:
             command = t["cmd"]
-            value = p["payload"]
+            value = p["payload_float"]
         except:
             try:
                 client.publish(t["reply"], p["payload_command_error"])

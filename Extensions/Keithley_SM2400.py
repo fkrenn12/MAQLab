@@ -38,7 +38,7 @@ class SM2400(_SM2400.SM2400):
         print(self.model + " " + t["topic"] + " " + str(p["payload"]))
 
         command = t["cmd"]
-        value = p["payload"]
+        value = p["payload_float"]
         if command == "volt:dc?" or command == "volt?" or command == "vdc?":
             self.set_mode_volt_meter()
             self.measure()

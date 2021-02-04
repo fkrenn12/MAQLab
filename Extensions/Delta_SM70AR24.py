@@ -37,7 +37,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
         # print(self.model + " " + t["topic"] + " " + str(p["payload"]))
         try:
             command = t["cmd"]
-            value = p["payload"]
+            value = p["payload_float"]
         except:
             try:
                 client.publish(t["reply"], p["payload_command_error"])

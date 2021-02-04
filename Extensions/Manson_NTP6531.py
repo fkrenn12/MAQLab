@@ -39,7 +39,7 @@ class NTP6531(_NTP6531.NTP6531):
 
         try:
             command = t["cmd"]
-            value = p["payload"]
+            value = p["payload_float"]
         except:
             try:
                 client.publish(t["reply"], p["payload_command_error"])

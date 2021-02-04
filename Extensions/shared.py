@@ -12,35 +12,40 @@ def validate_payload(payload):
     payload_accepted = s.payload_accepted + " " + timestamp
     payload_limited = s.payload_limited + " " + timestamp
     payload_command_error = s.payload_command_error + " " + timestamp
+    payload_float = 0
+    payload_json = "{}"
     try:
 
         try:
             payload = payload.decode("utf-8")
         except:
             pass
-        try:
-            dummy = payload.lower()
-        except:
-            raise
+        # try:
+        #    dummy = payload.lower()
+        # except:
+        #    raise
         # print(payload)
         try:
-            payload = payload.strip(' ')
+            payload = payload.strip(" ")
             if not (str(payload).startswith("{") and str(payload).endswith("}")):
                 raise
+            payload_json = payload
         except:
             # it is not json
             # print("NO JSON")
             if payload == "":
                 payload = "0"
-            payload = payload.replace('off', "0")
-            payload = payload.replace("on", "1")
             try:
-                payload = float(payload)
+                # payload_float = payload.replace('off', "0")
+                # payload_float = payload.replace("on", "1")
+                payload_float = float(payload)
             except:
-                raise
+                payload_float = 0
     except:
         raise
     return {'payload': payload,
+            'payload_float': payload_float,
+            'payload_json': payload_json,
             'payload_error': payload_error,
             'payload_accepted': payload_accepted,
             'payload_command_error': payload_command_error,
