@@ -27,6 +27,12 @@ m.payload = 1
 #    print("OUTPUT ON")
 
 clrRed = "ffbbff"
+herz_a =  ".**.**..*..*..*.*..."
+herz_b =  "..*..*...*....***..."
+smile_a = ".**.**.............*"
+smile_b = ".....*...*....***..."
+hook_a = ".......*......*..*.."
+hook_b = ".*....*.*......*...."
 
 while True:
     # m.topic = "cmd/1287/vdc?"
@@ -46,54 +52,53 @@ while True:
 
             maqlab.send_and_receive(receive=False, command="clear*", accessnumber=8704)
             time.sleep(0.5)
-            maqlab.send_and_receive(receive=False, command="filldisplay_hsv", value="ffc050", accessnumber=8704)
+            maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=8704)
             #time.sleep(2)
             try:
                 color = clrRed
-                #maqlab.send_and_receive(receive=False, command="clear", value=0, accessnumber=8704, block=False)
-                maqlab.send_and_receive(receive=False, command="fillpixel_hsv/1:2", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="fillpixel_hsv/4:2", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/8", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/11", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/14", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/16", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/22", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/25", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/29", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="fillpixel_hsv*/34:3", value=color, accessnumber=8704)
+                pattern = str(herz_a).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv/0:", value=pattern, accessnumber=8704)
+                pattern = str(herz_b).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/20:", value=pattern, accessnumber=8704)
 
                 time.sleep(1)
                 color = "ffa0ff"
-                # maqlab.send_and_receive(receive=False, command="clear", value=0, accessnumber=8704, block=False)
-                maqlab.send_and_receive(receive=False, command="fillpixel_hsv/1:2", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="fillpixel_hsv/4:2", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/8", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/11", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/14", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/16", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/22", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/25", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/29", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="fillpixel_hsv*/34:3", value=color, accessnumber=8704)
+                pattern = str(herz_a).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv/0:", value=pattern, accessnumber=8704)
+                pattern = str(herz_b).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/20:", value=pattern, accessnumber=8704)
+
 
                 time.sleep(1)
                 color = "ff80ff"
-                # maqlab.send_and_receive(receive=False, command="clear", value=0, accessnumber=8704, block=False)
-                maqlab.send_and_receive(receive=False, command="fillpixel_hsv/1:2", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="fillpixel_hsv/4:2", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/8", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/11", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/14", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/16", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/22", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/25", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="pixel_hsv/29", value=color, accessnumber=8704)
-                maqlab.send_and_receive(receive=False, command="fillpixel_hsv*/34:3", value=color, accessnumber=8704)
-                
+                pattern = str(herz_a).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv/0:", value=pattern, accessnumber=8704)
+                pattern = str(herz_b).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/20:", value=pattern, accessnumber=8704)
+
+
+                time.sleep(2)
+                color = "ff80ff"
+                pattern = str(smile_a).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=8704)
+                time.sleep(1)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv/0:", value=pattern, accessnumber=8704)
+                pattern = str(smile_b).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/20:", value=pattern, accessnumber=8704)
+
+                time.sleep(2)
+                color = "2080ff"
+                pattern = str(hook_a).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=8704)
+                time.sleep(1)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv/0:", value=pattern, accessnumber=8704)
+                pattern = str(hook_b).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/20:", value=pattern, accessnumber=8704)
+                time.sleep(2)
 
             except:
                 print(str(datetime.datetime.now()) + ": DISPLAY NO RESPONESE")
-            time.sleep(10)
+            time.sleep(5)
 
             #m.topic = "cmd/" + str(access) + "/vdc?"
             #try:

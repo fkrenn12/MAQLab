@@ -25,7 +25,7 @@ devlist = []
 comlist = []
 iplist = []
 addresses = []
-
+mqtt_subscriptions = list()
 MQTT_HOST = "techfit.at"
 MQTT_PORT = 1883
 MQTT_USER = "maqlab"
@@ -45,6 +45,9 @@ session_id = secrets.token_urlsafe(3)
 def on_connect(_client, userdata, flags, rc):
     if rc == 0:
         print(str(datetime.datetime.now()) + "  :" + "Connected to MQTT-Broker")
+        _client.subscribe("maqlab/cmd/?", qos=0)
+        _client.subscribe("maqlab/+/cmd/?", qos=0)
+        _client.subscribe("maqlab/+/+/cmd/?", qos=0)
         _client.subscribe("maqlab/+/cmd/#", qos=0)
         _client.subscribe("maqlab/+/+/cmd/#", qos=0)
         _client.subscribe("maqlab/+/rep/file/#", qos=0)
@@ -72,12 +75,14 @@ def on_message(_client, _userdata, _msg):
     global devices
     global deviceidentifications
 
+
     try:
         topic = _msg.topic.decode("utf-8")
     except:
         pass
     topic = _msg.topic
 
+    # print(topic, _msg.payload)
     try:
         # configuration file repeated
         if "/rep/file/" in topic:
@@ -256,6 +261,12 @@ async def connector(event_config_readed):
     client.on_disconnect = on_disconnect
     client.on_message = on_message
     client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
+    mqtt_subscriptions.append("maqlab/cmd/?")
+    # _client.subscribe("maqlab/+/cmd/?", qos=0)
+    # _client.subscribe("maqlab/+/+/cmd/?", qos=0)
+    # _client.subscribe("maqlab/+/cmd/#", qos=0)
+    # _client.subscribe("maqlab/+/+/cmd/#", qos=0)
+    # _client.subscribe("maqlab/+/rep/file/#", qos=0)
 
     while True:
         # we are looping the connect
@@ -349,6 +360,8 @@ async def main():
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("\n")
+
+
     serial_scan = input("For serial scan, press enter or any key with enter, other wise 'n' :")
     if serial_scan != 'n':
         serial_scan = 'y'
