@@ -3,8 +3,8 @@ import time
 import datetime
 import platform
 import asyncio
-scan_start = 3
-scan_stop = 4
+scan_start = 4
+scan_stop = 5
 tout = 1000
 
 

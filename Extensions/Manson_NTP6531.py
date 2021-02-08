@@ -168,3 +168,8 @@ class NTP6531(_NTP6531.NTP6531):
 
     def execute(self):
         pass
+
+    def __get_accessnumber(self):
+        return self.__invent_number
+
+    accessnumber = property(__get_accessnumber)

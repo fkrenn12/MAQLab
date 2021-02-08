@@ -26,6 +26,7 @@ comlist = []
 iplist = []
 addresses = []
 mqtt_subscriptions = list()
+
 MQTT_HOST = "techfit.at"
 MQTT_PORT = 1883
 MQTT_USER = "maqlab"
@@ -45,12 +46,15 @@ session_id = secrets.token_urlsafe(3)
 def on_connect(_client, userdata, flags, rc):
     if rc == 0:
         print(str(datetime.datetime.now()) + "  :" + "Connected to MQTT-Broker")
-        _client.subscribe("maqlab/cmd/?", qos=0)
-        _client.subscribe("maqlab/+/cmd/?", qos=0)
-        _client.subscribe("maqlab/+/+/cmd/?", qos=0)
-        _client.subscribe("maqlab/+/cmd/#", qos=0)
-        _client.subscribe("maqlab/+/+/cmd/#", qos=0)
-        _client.subscribe("maqlab/+/rep/file/#", qos=0)
+        for subscription in mqtt_subscriptions:
+            _client.subscribe(subscription, qos=0)
+
+        #_client.subscribe("maqlab/cmd/?", qos=0)
+        #_client.subscribe("maqlab/+/cmd/?", qos=0)
+        #_client.subscribe("maqlab/+/+/cmd/?", qos=0)
+        #_client.subscribe("maqlab/+/cmd/#", qos=0)
+        #_client.subscribe("maqlab/+/+/cmd/#", qos=0)
+        #_client.subscribe("maqlab/+/rep/file/#", qos=0)
 
 
 # ------------------------------------------------------------------------------
@@ -144,6 +148,7 @@ async def mqttloop(_client):
 #
 # ------------------------------------------------------------------------------
 async def tcp_generate_classes():
+    global mqtt_subscriptions
     while True:
         # ----------------------------------------------------------------------------------
         # Stepping through the list and generate the device instance from the classname
@@ -178,16 +183,31 @@ async def tcp_generate_classes():
 
                             devlist.append(devobject)
                             devobject.on_created(ip[dclassname], inventory_number)
+                            try:
+                                subscription = "maqlab/+/cmd/" + str(devobject.accessnumber) + "/#"
+                                mqtt_subscriptions.append(subscription)
+                                client.subscribe(subscription, qos=0)
+
+                                subscription = "maqlab/+/+/cmd/" + str(devobject.accessnumber) + "/#"
+                                mqtt_subscriptions.append(subscription)
+                                client.subscribe(subscription, qos=0)
+
+                                mqtt_subscriptions = list(set(mqtt_subscriptions))
+
+                            except:
+                                raise
+                            # --------------------------------------------------------------------> Subscribe
                 await asyncio.sleep(0.5)  # be cooperative !
                 iplist.clear()
         except:
-            pass
+            raise
 
 
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------
 async def serial_generate_classes():
+    global mqtt_subscriptions
     while True:
         await asyncio.sleep(0.2)
         try:
@@ -222,10 +242,24 @@ async def serial_generate_classes():
 
                             devlist.append(devobject)
                             devobject.on_created(com[dclassname], inventory_number)
+                            # --------------------------------------------------------------------> Subscribe
+                            try:
+                                subscription = "maqlab/+/cmd/" + str(devobject.accessnumber) + "/#"
+                                mqtt_subscriptions.append(subscription)
+                                client.subscribe(subscription, qos=0)
+
+                                subscription = "maqlab/+/+/cmd/" + str(devobject.accessnumber) + "/#"
+                                mqtt_subscriptions.append(subscription)
+                                client.subscribe(subscription, qos=0)
+
+                                mqtt_subscriptions = list(set(mqtt_subscriptions))
+
+                            except:
+                                raise
                 await asyncio.sleep(0.5)  # be cooperative !
                 comlist.clear()
         except:
-            pass
+            raise
 
 
 # ------------------------------------------------------------------------------
@@ -244,6 +278,13 @@ async def execution_loop():
                     dev.execute()
                 else:
                     # print("NOT Connected")
+                    # --------------------------------------------------------------------> Unsubscribe
+                    subscription = "maqlab/+/cmd/" + str(dev.accessnumber) + "/#"
+                    mqtt_subscriptions.remove(subscription)
+                    client.unsubscribe(subscription)
+                    subscription = "maqlab/+/+/cmd/" + str(dev.accessnumber) + "/#"
+                    mqtt_subscriptions.remove(subscription)
+                    client.unsubscribe(subscription)
                     dev.on_destroyed()
                     devlist.remove(dev)
                     del dev
@@ -262,11 +303,9 @@ async def connector(event_config_readed):
     client.on_message = on_message
     client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
     mqtt_subscriptions.append("maqlab/cmd/?")
-    # _client.subscribe("maqlab/+/cmd/?", qos=0)
-    # _client.subscribe("maqlab/+/+/cmd/?", qos=0)
-    # _client.subscribe("maqlab/+/cmd/#", qos=0)
-    # _client.subscribe("maqlab/+/+/cmd/#", qos=0)
-    # _client.subscribe("maqlab/+/rep/file/#", qos=0)
+    mqtt_subscriptions.append("maqlab/+/cmd/?")
+    mqtt_subscriptions.append("maqlab/+/+/cmd/?")
+    mqtt_subscriptions.append("maqlab/"+ session_id + "/rep/file/#")
 
     while True:
         # we are looping the connect
