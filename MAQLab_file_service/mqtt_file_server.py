@@ -5,6 +5,7 @@ import threading
 import datetime
 import json
 
+PING_TOPIC = "maqlab/ping/"
 PING_INTERVAL_MS = 2000  # ping interval time in ms
 MQTT_TIMEOUT_MS = 5000  # no response timeout in ms
 # this is the path on the linux (debian 10) system
@@ -59,10 +60,10 @@ def on_message(_client, userdata, msg):
             if os.path.exists(filepath):
                 try:
                     with open(filepath, mode='rb') as fp:
-                        f = fp.read()
-                        byte_array = bytes(f)
+                        j = json.loads(fp.read())
+                        bsjson = json.dumps(obj=j, separators=(',', ':')).encode("utf-8")
                         topic = topic.replace("/cmd/file/get", "/rep/file")
-                        client.publish(topic + payload, byte_array, 0)
+                        client.publish(topic + payload, bsjson, 0)
                 except:
                     topic = topic.replace("/cmd/file/get", "/rep/file/err")
                     client.publish(topic, "internal error occurred")
@@ -103,9 +104,8 @@ while True:
             if client.is_connected():
                 # print("CONN")
                 try:
-                    topic = "maqlab/ping/"
                     payload = str(datetime.datetime.utcnow().timestamp())
-                    client.publish(topic=topic, payload=payload, retain=False)
+                    client.publish(topic=PING_TOPIC, payload=payload, retain=False)
                     # print("Ping")
                 except:
                     # print("DISCONNECT")
