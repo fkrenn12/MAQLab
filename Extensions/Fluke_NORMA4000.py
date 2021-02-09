@@ -51,5 +51,10 @@ class NORMA4000(_NORMA4000.NORMA4000):
         print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + str(self.__addr))
         self.__addr = ("0", 0)
 
+    def __get_accessnumber(self):
+        return  self.__inventarnumber
+
     def execute(self):
         pass
+
+    accessnumber = property(__get_accessnumber)

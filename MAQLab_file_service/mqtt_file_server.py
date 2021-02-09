@@ -3,6 +3,7 @@ import paho.mqtt.client as mqtt
 import os
 import threading
 import datetime
+import json
 
 PING_INTERVAL_MS = 2000  # ping interval time in ms
 MQTT_TIMEOUT_MS = 5000  # no response timeout in ms

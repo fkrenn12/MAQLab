@@ -83,5 +83,10 @@ class SM2400(_SM2400.SM2400):
         print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)
         self.__comport = ""
 
+    def __get_accessnumber(self):
+        return self.__inventarnumber
+
     def execute(self):
         pass
+
+    accessnumber = property(__get_accessnumber)

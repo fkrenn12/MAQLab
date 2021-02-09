@@ -175,5 +175,10 @@ class SM70AR24(_SM70AR24.SM70AR24):
         print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + str(self.__addr))
         self.__addr = ("0", 0)
 
+    def __get_accessnumber(self):
+        return self.__inventarnumber
+
     def execute(self):
         pass
+
+    accessnumber = property(__get_accessnumber)

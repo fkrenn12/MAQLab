@@ -157,5 +157,10 @@ class BK2831E(E2831.BK2831E):
         print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)
         self.__comport = ""
 
+    def __get_accessnumber(self):
+        return self.__inventarnumber
+
     def execute(self):
         pass
+
+    accessnumber = property(__get_accessnumber)

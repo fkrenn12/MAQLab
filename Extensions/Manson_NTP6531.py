@@ -138,11 +138,11 @@ class NTP6531(_NTP6531.NTP6531):
             # O T H E R commands - Handling
             # ------------------------------------------------------------------------------------------------
             elif command == "?":
-                client.publish(t["reply"] + "/manufactorer", self.manufactorer)
-                client.publish(t["reply"] + "/devicetype", self.devicetype)
-                client.publish(t["reply"] + "/model", self.model)
-                client.publish(t["reply"] + "/serialnumber", str(self.serialnumber))
-                client.publish(t["reply"] + "/commands", str(self.__commands))
+                client.publish(topic=t["reply"] + "/manufactorer", payload=self.manufactorer,qos=0)
+                client.publish(topic=t["reply"] + "/devicetype", payload=self.devicetype,qos=0)
+                client.publish(topic=t["reply"] + "/model", payload=self.model,qos=0)
+                client.publish(topic=t["reply"] + "/serialnumber", payload=str(self.serialnumber),qos=0)
+                client.publish(topic=t["reply"] + "/commands", payload=str(self.__commands),qos=0)
                 return
             elif command == "echo?" or command == "ping?":
                 client.publish(t["reply"], str(datetime.datetime.utcnow()))
