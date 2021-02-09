@@ -47,7 +47,7 @@ def on_connect(_client, userdata, flags, rc):
     if rc == 0:
         print(str(datetime.datetime.now()) + "  :" + "Connected to MQTT-Broker")
         for subscription in mqtt_subscriptions:
-            _client.subscribe(subscription, qos=0)
+            _client.subscribe(subscription)
 
         #_client.subscribe("maqlab/cmd/?", qos=0)
         #_client.subscribe("maqlab/+/cmd/?", qos=0)
@@ -86,7 +86,7 @@ def on_message(_client, _userdata, _msg):
         pass
     topic = _msg.topic
 
-    # print(topic, _msg.payload)
+    print(topic, _msg.payload)
     try:
         # configuration file repeated
         if "/rep/file/" in topic:
@@ -184,13 +184,13 @@ async def tcp_generate_classes():
                             devlist.append(devobject)
                             devobject.on_created(ip[dclassname], inventory_number)
                             try:
-                                subscription = "maqlab/+/cmd/" + str(devobject.accessnumber) + "/#"
+                                subscription = ("maqlab/+/cmd/" + str(devobject.accessnumber) + "/#", 0)
                                 mqtt_subscriptions.append(subscription)
-                                client.subscribe(subscription, qos=0)
+                                client.subscribe(subscription)
 
-                                subscription = "maqlab/+/+/cmd/" + str(devobject.accessnumber) + "/#"
+                                subscription = ("maqlab/+/+/cmd/" + str(devobject.accessnumber) + "/#", 0)
                                 mqtt_subscriptions.append(subscription)
-                                client.subscribe(subscription, qos=0)
+                                client.subscribe(subscription)
 
                                 mqtt_subscriptions = list(set(mqtt_subscriptions))
 
@@ -244,13 +244,13 @@ async def serial_generate_classes():
                             devobject.on_created(com[dclassname], inventory_number)
                             # --------------------------------------------------------------------> Subscribe
                             try:
-                                subscription = "maqlab/+/cmd/" + str(devobject.accessnumber) + "/#"
+                                subscription = ("maqlab/+/cmd/" + str(devobject.accessnumber) + "/#", 0)
                                 mqtt_subscriptions.append(subscription)
-                                client.subscribe(subscription, qos=0)
+                                client.subscribe(subscription)
 
-                                subscription = "maqlab/+/+/cmd/" + str(devobject.accessnumber) + "/#"
+                                subscription = ("maqlab/+/+/cmd/" + str(devobject.accessnumber) + "/#", 0)
                                 mqtt_subscriptions.append(subscription)
-                                client.subscribe(subscription, qos=0)
+                                client.subscribe(subscription)
 
                                 mqtt_subscriptions = list(set(mqtt_subscriptions))
 
@@ -279,12 +279,12 @@ async def execution_loop():
                 else:
                     # print("NOT Connected")
                     # --------------------------------------------------------------------> Unsubscribe
-                    subscription = "maqlab/+/cmd/" + str(dev.accessnumber) + "/#"
+                    subscription = ("maqlab/+/cmd/" + str(dev.accessnumber) + "/#", 0)
                     mqtt_subscriptions.remove(subscription)
-                    client.unsubscribe(subscription)
-                    subscription = "maqlab/+/+/cmd/" + str(dev.accessnumber) + "/#"
+                    client.unsubscribe(subscription[0])
+                    subscription = ("maqlab/+/+/cmd/" + str(dev.accessnumber) + "/#", 0)
                     mqtt_subscriptions.remove(subscription)
-                    client.unsubscribe(subscription)
+                    client.unsubscribe(subscription[0])
                     dev.on_destroyed()
                     devlist.remove(dev)
                     del dev
@@ -302,10 +302,10 @@ async def connector(event_config_readed):
     client.on_disconnect = on_disconnect
     client.on_message = on_message
     client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
-    mqtt_subscriptions.append("maqlab/cmd/?")
-    mqtt_subscriptions.append("maqlab/+/cmd/?")
-    mqtt_subscriptions.append("maqlab/+/+/cmd/?")
-    mqtt_subscriptions.append("maqlab/"+ session_id + "/rep/file/#")
+    mqtt_subscriptions.append(("maqlab/cmd/?", 0))
+    mqtt_subscriptions.append(("maqlab/+/cmd/?", 0))
+    mqtt_subscriptions.append(("maqlab/+/+/cmd/?", 0))
+    mqtt_subscriptions.append(("maqlab/" + session_id + "/rep/file/#", 0))
 
     while True:
         # we are looping the connect

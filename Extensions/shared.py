@@ -40,7 +40,7 @@ def validate_payload(payload):
                 # payload_float = payload.replace("on", "1")
                 payload_float = float(payload)
             except:
-                payload_float = 0
+                payload_float = 0j
     except:
         raise
     return {'payload': payload,
