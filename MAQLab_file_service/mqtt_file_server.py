@@ -22,15 +22,17 @@ last_message_receive = 0
 # -------------------------------------------------------------
 def on_connect(_client, userdata, flags, rc):
     global last_message_receive
-    if rc == 0:
-        last_message_receive = 0
-        # print("Connected")
-        client.subscribe("maqlab/cmd/file/get/#", qos=0)
-        client.subscribe("maqlab/cmd/file/store/#", qos=0)
-        client.subscribe("maqlab/+/cmd/file/get/#", qos=0)
-        client.subscribe("maqlab/+/cmd/file/store/#", qos=0)
-        client.subscribe("maqlab/ping/#", qos=0)
-    pass
+    try:
+        if rc == 0:
+            last_message_receive = 0
+            # print("Connected")
+            client.subscribe("maqlab/cmd/file/get/#", qos=0)
+            client.subscribe("maqlab/cmd/file/store/#", qos=0)
+            client.subscribe("maqlab/+/cmd/file/get/#", qos=0)
+            client.subscribe("maqlab/+/cmd/file/store/#", qos=0)
+            client.subscribe("maqlab/ping/#", qos=0)
+    except:
+        pass
 
 
 def on_message(_client, userdata, msg):
@@ -76,44 +78,52 @@ def on_message(_client, userdata, msg):
         pass
 
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-client.username_pw_set(username, password)
-
 # -------------------------------------------------------------------------------
 #                           M A I N - L O O P
 # -------------------------------------------------------------------------------
 while True:
-    # first connection to mqtt broker
     try:
-        client.connect(host=host, port=port, keepalive=5)
-        last_message_receive = 0
+        client = mqtt.Client()
+        client.on_connect = on_connect
+        client.on_message = on_message
+        client.username_pw_set(username, password)
+        # first connection to mqtt broker
+        try:
+            client.connect(host=host, port=port, keepalive=5)
+            last_message_receive = 0
+        except:
+            # print("Exception - not connected")
+            continue
+
+        # initialize timer_2sec
+        timer_2sec = int(time.time() * 1000)
+
+        while True:
+            # print(int(time.time() * 1000) - last_message_receive)
+            if int(time.time() * 1000) - timer_2sec >= PING_INTERVAL_MS:
+                timer_2sec = int(time.time() * 1000)
+                # print("2sec")
+                if client.is_connected():
+                    # print("CONN")
+                    try:
+                        payload = str(datetime.datetime.utcnow().timestamp())
+                        client.publish(topic=PING_TOPIC, payload=payload, retain=False)
+                        # print("Ping")
+                    except:
+                        # print("DISCONNECT")
+                        client.disconnect()
+                        break
+
+            if last_message_receive > 0 and int(time.time() * 1000) - last_message_receive > MQTT_TIMEOUT_MS:
+                client.disconnect()
+                break
+            client.loop(0.05)
     except:
-        # print("Exception - not connected")
-        continue
-
-    # initialize timer_2sec
-    timer_2sec = int(time.time() * 1000)
-
-    while True:
-        # print(int(time.time() * 1000) - last_message_receive)
-        if int(time.time() * 1000) - timer_2sec >= PING_INTERVAL_MS:
-            timer_2sec = int(time.time() * 1000)
-            # print("2sec")
-            if client.is_connected():
-                # print("CONN")
-                try:
-                    payload = str(datetime.datetime.utcnow().timestamp())
-                    client.publish(topic=PING_TOPIC, payload=payload, retain=False)
-                    # print("Ping")
-                except:
-                    # print("DISCONNECT")
-                    client.disconnect()
-                    break
-
-        if last_message_receive > 0 and int(time.time() * 1000) - last_message_receive > MQTT_TIMEOUT_MS:
+        try:
             client.disconnect()
-            break
-
-        client.loop(0.05)
+            del client
+            client = None
+        except:
+            pass
+        pass
+        time.sleep(1)
