@@ -8,6 +8,7 @@ import sys
 import os
 import json
 import ast
+import tkinter
 
 # Adding the ../MAQLab/.. folder to the system path of python
 # It is temporarily used by this script only
@@ -199,17 +200,7 @@ class MAQLab:
             raise MAQLabError("Send error")
 
     # ------------------------------------------------------------------------------
-    #  Send a message ( public )
-    # ------------------------------------------------------------------------------
-    # def send(self, msg):
-    #    with self.__lock:
-    #        try:
-    #            self.__send(msg)
-    #        except Exception as _e:
-    #            raise _e
-
-    # ------------------------------------------------------------------------------
-    #
+    #  Receive ( internal used )
     # ------------------------------------------------------------------------------
     def __receive(self, block=True, timeout=1.0, stamp="_"):
         try:
@@ -233,16 +224,6 @@ class MAQLab:
                 raise MAQLabError("Timeout error")
             else:
                 raise MAQLab("Empty")
-
-    # ------------------------------------------------------------------------------
-    #
-    # ------------------------------------------------------------------------------
-    # def receive(self, block=True, timeout=1.0):
-    #     with self.__lock:
-    #         try:
-    #             return self.__receive(block, timeout)
-    #        except Exception as e:
-    #            raise e
 
     # ------------------------------------------------------------------------------
     # Send a message and wait for the answer
@@ -391,15 +372,6 @@ class MAQLab:
     # ------------------------------------------------------------------------------
     #
     # ------------------------------------------------------------------------------
-    # def available_devices(self):
-    #    try:
-    #        return self.__load_connected_devices()
-    #    except:
-    #        raise MAQLabError("MAQLab could not load the list of available devices")
-
-    # ------------------------------------------------------------------------------
-    #
-    # ------------------------------------------------------------------------------
     def close(self):
         try:
             self.__client.on_disconnect = None
@@ -447,5 +419,8 @@ try:
                     password=mqtt_pass,
                     session_id=secrets.token_urlsafe(3).lower())
     maqlab.load_devices()
+    # window = tkinter.Tk()
+    # window.title = "MAQLAB device Monitor"
+
 except Exception as e:
     maqlab = None
