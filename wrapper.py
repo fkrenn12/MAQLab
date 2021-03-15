@@ -31,7 +31,13 @@ clrRed = "ffbbff"
 herz    = ".**.**..*..*..*.*.....*..*...*....***..."
 smile   = ".**.**.............*.....*...*....***..."
 hook    = ".......*......*..*...*....*.*......*...."
-
+alpha_I = "...*.......*.......*.......*.......*...."
+alpha_L    = "..*.......*.......*.......*.......****.."
+alpha_O    = "..****....*..*....*..*....*..*....****.."
+alpha_V    = ".*.....*..*...*....*.*.....*.*......*..."
+alpha_E    = "...****....*.......***.....*.......****.."
+alpha_Y    = ".*...*....*.*......*.......*.......*...."
+alpha_U    = "..*..*....*..*....*..*....*..*....****.."
 while True:
     # m.topic = "cmd/1287/vdc?"
     # m.payload = ""
@@ -44,7 +50,7 @@ while True:
         m.payload = str(volt / 2.0)
         #rec = MAQLab.mqtt.send_and_receive(m)
         #print(rec.topic, rec.payload)
-        maqlab.send_and_receive(receive=False, command="bright*", value=20, accessnumber=access)
+        maqlab.send_and_receive(receive=False, command="bright*", value=15, accessnumber=access)
         rel1 = 0
         while True:
 
@@ -55,8 +61,45 @@ while True:
             try:
                 color = clrRed
                 # pattern = str(herz_a).replace("*", color)
+                pattern = str(alpha_I).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/0:", value=pattern, accessnumber=access)
+                time.sleep(2)
+                pattern = str(alpha_L).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=access)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/0:", value=pattern, accessnumber=access)
+                time.sleep(0.5)
+                pattern = str(alpha_O).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=access)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/0:", value=pattern, accessnumber=access)
+                time.sleep(0.5)
+                pattern = str(alpha_V).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=access)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/0:", value=pattern, accessnumber=access)
+                time.sleep(0.5)
+                pattern = str(alpha_E).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=access)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/0:", value=pattern, accessnumber=access)
+                time.sleep(2)
+                pattern = str(alpha_Y).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=access)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/0:", value=pattern, accessnumber=access)
+                time.sleep(0.5)
+                pattern = str(alpha_O).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=access)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/0:", value=pattern, accessnumber=access)
+                time.sleep(0.5)
+                pattern = str(alpha_U).replace("*", color)
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=access)
+                maqlab.send_and_receive(receive=False, command="pixel_hsv*/0:", value=pattern, accessnumber=access)
+                time.sleep(2)
+
+
+                color = clrRed
+                maqlab.send_and_receive(receive=False, command="filldisplay_hsv*", value="ffc050", accessnumber=access)
+                # pattern = str(herz_a).replace("*", color)
                 pattern = str(herz).replace("*", color)
                 maqlab.send_and_receive(receive=False, command="pixel_hsv*/0:", value=pattern, accessnumber=access)
+
 
                 time.sleep(1)
                 color = "ffa0ff"
