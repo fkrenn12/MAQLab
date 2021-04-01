@@ -6,8 +6,8 @@ import threading
 import secrets
 import sys
 import os
-import json
 import ast
+import configparser
 import tkinter
 
 # Adding the ../MAQLab/.. folder to the system path of python
@@ -22,54 +22,30 @@ try:
 except:
     pass
 
-# checking the config file
-# we have to adjust the path
-# this is not the best solution but it works so far
-# it would be better to search after the config file in the file path
-# TODO: search for  the file in the path downwards
-maqlab_config = script_dir + '\\maqlab.config'
-if not os.path.exists(maqlab_config):
-    maqlab_config = script_dir + '\\maqlab\\maqlab.config'
-
 # default broker credentials
 mqtt_hostname = "mqtt.techfit.at"
 mqtt_port = 1883
 mqtt_user = "maqlab"
 mqtt_pass = "maqlab"
+mqtt_tls = False
 
-# reading the configuration file and set the values
-config = str()
+config_file = os.path.dirname(os.path.abspath(__file__)) + "/maqlab.cfg"
+config = configparser.ConfigParser()
+
 try:
-    with open(maqlab_config, 'r') as file:
-        config = file.read().split("\n")
-        for line in config:
-            if line.startswith("{") and line.endswith("}"):
-                js = json.loads(line)
-                try:
-                    mqtt_hostname = js["mqtt_hostname"]
-                    continue
-                except:
-                    pass
-                try:
-                    mqtt_port = js["mqtt_port"]
-                    continue
-                except:
-                    pass
-                try:
-                    mqtt_user = js["mqtt_user"]
-                    continue
-                except:
-                    pass
-                try:
-                    mqtt_pass = js["mqtt_password"]
-                    continue
-                except:
-                    pass
-
+    config.read(config_file)
+    if not config.has_section("MQTT"):
+        raise Exception
+    mqtt_hostname = config.get("MQTT", "hostname")
+    mqtt_port = config.get("MQTT", "port")
+    mqtt_user = config.get("MQTT", "user")
+    mqtt_pass = config.get("MQTT", "pass")
+    mqtt_tls = config.get("MQTT", "tls")
 except:
     print(str(
-        datetime.datetime.now()) + "  :MAQLAB - Could not open file " + maqlab_config + " or data in file is corrupted")
-    raise
+        datetime.datetime.now()) + "  :MAQLAB - Could not open file " + config_file + " or data in file is corrupted")
+    exit(0)
+    # raise
 
 print(str(datetime.datetime.now()) + "  :MAQLAB - Configuration loaded successfully")
 
