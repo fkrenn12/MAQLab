@@ -14,6 +14,9 @@ from Extensions.Keithley_SM2400 import SM2400
 from Extensions.Delta_SM70AR24 import SM70AR24
 from Extensions.Fluke_NORMA4000 import NORMA4000
 
+from modules.subpub import SubPub
+
+
 client = paho.Client()
 inventory = None
 inventory_numbers = None

@@ -17,6 +17,7 @@ class msg:
     payload = "10"
 
 
+
 # print(maqlab)
 # print(maqlab.available_devices())
 
