@@ -1,4 +1,7 @@
 import datetime
+import threading
+import time
+import Extensions
 from numpy import clip
 # --------------------------------------------------------
 from Devices.Manson import NTP6531 as _NTP6531
@@ -6,16 +9,22 @@ from Extensions.shared import validate_topic
 from Extensions.shared import validate_payload
 
 
-class NTP6531(_NTP6531.NTP6531):
+
+class NTP6531(_NTP6531.NTP6531, Extensions.Device):
 
     def __init__(self, _port, _baudrate=9600):
-        super().__init__(_port, _baudrate)
+        _NTP6531.NTP6531.__init__(self,_port, _baudrate)
+        Extensions.Device.__init__(self)
         self.__comport = ""
         self.__invent_number = "0"
         self.__commands = ["vdc?", "idc?", "vdc", "idc", "output"]
 
-    def mqttmessage(self, client, msg):
+    def run(self) -> None:
+        while True:
+            time.sleep(1)
+            print("Running" + str(self.accessnumber))
 
+    def mqttmessage(self, client, msg):
         try:
             t = validate_topic(msg.topic, self.__invent_number, self.model)
         except:
@@ -156,6 +165,7 @@ class NTP6531(_NTP6531.NTP6531):
         finally:
             pass
 
+    '''
     def on_created(self, comport, invent_number):
         self.__comport = comport
         self.__invent_number = invent_number
@@ -165,6 +175,7 @@ class NTP6531(_NTP6531.NTP6531):
     def on_destroyed(self):
         print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)
         self.__comport = ""
+    '''
 
     def execute(self):
         pass

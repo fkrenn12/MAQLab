@@ -169,6 +169,8 @@ async def tcp_generate_classes():
                         if dclassname in ip:
                             # generating a deviceclass from classname
                             devobject = globals()[dclassname](ip[dclassname])
+
+
                         if devobject is not None:
                             # search for inventarnumber of the device with spec serialnumber
                             # there are some devices not declared with a serialnumber
@@ -244,6 +246,10 @@ async def serial_generate_classes():
                                 inventory_number = devobject.serialnumber
 
                             devlist.append(devobject)
+
+                            # starting the thread
+                            devobject.start()
+
                             devobject.on_created(com[dclassname], inventory_number)
                             # --------------------------------------------------------------------> Subscribe
                             try:

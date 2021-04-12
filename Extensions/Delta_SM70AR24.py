@@ -3,13 +3,19 @@ from Devices.Delta import SM70AR24 as _SM70AR24
 from Extensions.shared import validate_topic
 from Extensions.shared import validate_payload
 import datetime
+import Extensions
 
 
 # --------------------------------------------------------
-class SM70AR24(_SM70AR24.SM70AR24):
+#class SM70AR24(_SM70AR24.SM70AR24):
+
+    #def __init__(self, addr):
+    #    super().__init__(addr)
+class SM70AR24(_SM70AR24.SM70AR24, Extensions.Device):
 
     def __init__(self, addr):
-        super().__init__(addr)
+        _SM70AR24.SM70AR24.__init__(self, addr)
+        Extensions.Device.__init__(self)
         self.__addr = addr
         self.__inventarnumber = "0"
         self.__commands = ["vdc?", "idc?", "vdc", "idc", "output"]
@@ -164,6 +170,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
         finally:
             pass
 
+    '''
     def on_created(self, addr, inventarnumber):
         self.__addr = addr
         self.__inventarnumber = inventarnumber
@@ -174,6 +181,7 @@ class SM70AR24(_SM70AR24.SM70AR24):
     def on_destroyed(self):
         print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + str(self.__addr))
         self.__addr = ("0", 0)
+    '''
 
     def __get_accessnumber(self):
         return self.__inventarnumber
