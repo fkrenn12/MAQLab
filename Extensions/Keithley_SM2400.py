@@ -1,35 +1,38 @@
 # --------------------------------------------------------
 from Devices.Keithley import SM2400 as _SM2400
-from Extensions.shared import validate_topic
-from Extensions.shared import validate_payload
+import Extensions
+import time
 import datetime
 
 
-# --------------------------------------------------------
-class SM2400(_SM2400.SM2400):
+class SM2400(_SM2400.SM2400, Extensions.Device):
 
     def __init__(self, _port, _baudrate=9600):
-        super().__init__(_port, _baudrate)
-        self.__comport = ""
-        self.__inventarnumber = "0"
-        self.__commands = ["vdc?", "idc?", "vdc", "idc"]
+        _SM2400.SM2400.__init__(self, _port, _baudrate)
+        Extensions.Device.__init__(self)
+        self.__commands = ["vdc?", "idc?"]  # TODO: noch nicht komplett
+
+    def run(self) -> None:
+        while True:
+            time.sleep(1)
+            print("Running" + str(self.accessnumber))
 
     def mqttmessage(self, client, msg):
 
         try:
-            t = validate_topic(msg.topic, self.__inventarnumber, self.model)
+            t = self.validate_topic(msg.topic, self.accessnumber, self.model)
         except:
             # we cannot handle the topic which made an exception
             return
 
         try:
-            p = validate_payload(msg.payload)
+            p = self.validate_payload(msg.payload)
         except:
             client.publish(t["reply"], p["payload_error"])
             return
 
         if t["cmd"] == "accessnumber":
-            client.publish(t["reply"], str(self.__inventarnumber))
+            client.publish(t["reply"], str(self.accessnumber))
             return
 
         if not t["matching"]:
@@ -70,23 +73,3 @@ class SM2400(_SM2400.SM2400):
             client.publish(t["reply"], str(datetime.datetime.utcnow()))
             return
         return
-
-
-    def on_created(self, comport, inventarnumber):
-        self.__comport = comport
-        self.__inventarnumber = inventarnumber
-        print(str(
-            datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Inventory number is: "
-              + str(inventarnumber))
-
-    def on_destroyed(self):
-        print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)
-        self.__comport = ""
-
-    def __get_accessnumber(self):
-        return self.__inventarnumber
-
-    def execute(self):
-        pass
-
-    accessnumber = property(__get_accessnumber)

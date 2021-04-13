@@ -1,34 +1,38 @@
 # --------------------------------------------------------
-from Devices.BKPrecision import E2831
-from Extensions.shared import validate_topic
-from Extensions.shared import validate_payload
+from Devices.BKPrecision import E2831 as _E2831
+import Extensions
 import math
 import datetime
+import time
 
 
-# --------------------------------------------------------
-class BK2831E(E2831.BK2831E):
+class BK2831E(_E2831.BK2831E, Extensions.Device):
+
     def __init__(self, _port, _baudrate=9600):
-        super().__init__(_port, _baudrate)
-        self.__comport = ""
-        self.__inventarnumber = "0"
-        self.__commands = ["vdc?", "idc?", "vac?", "iac?", "f?", "r?"]
+        _E2831.BK2831E.__init__(self, _port, _baudrate)
+        Extensions.Device.__init__(self)
+        self.__commands = ["vdc?", "idc?", "vac?", "iac?", "res?", "f?", "pow?"]  # TODO: noch nicht komplett
+
+    def run(self) -> None:
+        while True:
+            time.sleep(1)
+            print("Running" + str(self.accessnumber))
 
     def mqttmessage(self, client, msg):
         try:
-            t = validate_topic(msg.topic, self.__inventarnumber, self.model)
+            t = self.validate_topic(msg.topic, self.accessnumber, self.model)
         except:
             # we cannot handle the topic which made an exception
             return
 
         try:
-            p = validate_payload(msg.payload)
+            p = self.validate_payload(msg.payload)
         except:
             client.publish(t["reply"], p["payload_error"])
             return
 
         if t["cmd"] == "accessnumber":
-            client.publish(t["reply"], str(self.__inventarnumber))
+            client.publish(t["reply"], str(self.accessnumber))
             return
 
         if not t["matching"]:
@@ -108,7 +112,7 @@ class BK2831E(E2831.BK2831E):
                 irms = math.sqrt(math.pow(iac, 2) + math.pow(idc, 2))
                 client.publish(t["reply"], "{:.6f}".format(irms) + " ARMS")
                 return
-            elif command == "pow:dc?" or command == "p:dc?" or command == "power:dc?":
+            elif command == "pow:dc?" or command == "p:dc?" or command == "power:dc?" or command == "pdc?":
                 self.set_mode_vdc_auto_range()
                 self.measure()
                 vdc = self.volt
@@ -118,7 +122,7 @@ class BK2831E(E2831.BK2831E):
                 power = vdc * idc
                 client.publish(t["reply"], "{:.6f}".format(power) + " WDC")
                 return
-            elif command == "pow:ac?" or command == "p:ac?" or command == "power:ac?":
+            elif command == "pow:ac?" or command == "p:ac?" or command == "power:ac?" or command == "pac?":
                 self.set_mode_vac_auto_range()
                 self.measure()
                 vac = self.volt
@@ -145,22 +149,3 @@ class BK2831E(E2831.BK2831E):
             return
         finally:
             return
-
-    def on_created(self, comport, inventarnumber):
-        self.__comport = comport
-        self.__inventarnumber = inventarnumber
-        print(str(
-            datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into " + self.__comport + ", Accessnumber is: "
-              + str(inventarnumber))
-
-    def on_destroyed(self):
-        print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)
-        self.__comport = ""
-
-    def __get_accessnumber(self):
-        return self.__inventarnumber
-
-    def execute(self):
-        pass
-
-    accessnumber = property(__get_accessnumber)

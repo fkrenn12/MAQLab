@@ -1,4 +1,5 @@
 import asyncio
+import aioserial
 import datetime
 import json
 import secrets
@@ -52,12 +53,12 @@ def on_connect(_client, userdata, flags, rc):
         for subscription in mqtt_subscriptions:
             _client.subscribe(subscription)
 
-        #_client.subscribe("maqlab/cmd/?", qos=0)
-        #_client.subscribe("maqlab/+/cmd/?", qos=0)
-        #_client.subscribe("maqlab/+/+/cmd/?", qos=0)
-        #_client.subscribe("maqlab/+/cmd/#", qos=0)
-        #_client.subscribe("maqlab/+/+/cmd/#", qos=0)
-        #_client.subscribe("maqlab/+/rep/file/#", qos=0)
+        # _client.subscribe("maqlab/cmd/?", qos=0)
+        # _client.subscribe("maqlab/+/cmd/?", qos=0)
+        # _client.subscribe("maqlab/+/+/cmd/?", qos=0)
+        # _client.subscribe("maqlab/+/cmd/#", qos=0)
+        # _client.subscribe("maqlab/+/+/cmd/#", qos=0)
+        # _client.subscribe("maqlab/+/rep/file/#", qos=0)
 
 
 # ------------------------------------------------------------------------------
@@ -81,7 +82,6 @@ def on_message(_client, _userdata, _msg):
     global inventory_numbers
     global devices
     global deviceidentifications
-
 
     try:
         topic = _msg.topic.decode("utf-8")
@@ -245,6 +245,9 @@ async def serial_generate_classes():
                             if inventory_number == '0':
                                 inventory_number = devobject.serialnumber
 
+                            # --------------------------------------------------------
+                            #
+                            # --------------------------------------------------------
                             devlist.append(devobject)
 
                             # starting the thread
@@ -408,7 +411,6 @@ async def main():
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("\n")
-
 
     serial_scan = input("For serial scan, press enter or any key with enter, other wise 'n' :")
     if serial_scan != 'n':

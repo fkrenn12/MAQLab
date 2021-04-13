@@ -5,18 +5,13 @@ import Extensions
 from numpy import clip
 # --------------------------------------------------------
 from Devices.Manson import NTP6531 as _NTP6531
-from Extensions.shared import validate_topic
-from Extensions.shared import validate_payload
-
 
 
 class NTP6531(_NTP6531.NTP6531, Extensions.Device):
 
     def __init__(self, _port, _baudrate=9600):
-        _NTP6531.NTP6531.__init__(self,_port, _baudrate)
+        _NTP6531.NTP6531.__init__(self, _port, _baudrate)
         Extensions.Device.__init__(self)
-        self.__comport = ""
-        self.__invent_number = "0"
         self.__commands = ["vdc?", "idc?", "vdc", "idc", "output"]
 
     def run(self) -> None:
@@ -26,19 +21,19 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
 
     def mqttmessage(self, client, msg):
         try:
-            t = validate_topic(msg.topic, self.__invent_number, self.model)
+            t = self.validate_topic(msg.topic, self.accessnumber, self.model)
         except:
             # we cannot handle the topic which made an exception
             return
 
         try:
-            p = validate_payload(msg.payload)
+            p = self.validate_payload(msg.payload)
         except:
             client.publish(t["reply"], p["payload_error"])
             return
 
         if t["cmd"] == "accessnumber":
-            client.publish(t["reply"], str(self.__invent_number))
+            client.publish(t["reply"], str(self.accessnumber))
             return
 
         if not t["matching"]:
@@ -146,12 +141,15 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
             # ------------------------------------------------------------------------------------------------
             # O T H E R commands - Handling
             # ------------------------------------------------------------------------------------------------
+            elif command == "mode?":
+                client.publish(topic=t["reply"], payload=self.source_mode)
+                return
             elif command == "?":
-                client.publish(topic=t["reply"] + "/manufactorer", payload=self.manufactorer,qos=0)
-                client.publish(topic=t["reply"] + "/devicetype", payload=self.devicetype,qos=0)
-                client.publish(topic=t["reply"] + "/model", payload=self.model,qos=0)
-                client.publish(topic=t["reply"] + "/serialnumber", payload=str(self.serialnumber),qos=0)
-                client.publish(topic=t["reply"] + "/commands", payload=str(self.__commands),qos=0)
+                client.publish(topic=t["reply"] + "/manufactorer", payload=self.manufactorer, qos=0)
+                client.publish(topic=t["reply"] + "/devicetype", payload=self.devicetype, qos=0)
+                client.publish(topic=t["reply"] + "/model", payload=self.model, qos=0)
+                client.publish(topic=t["reply"] + "/serialnumber", payload=str(self.serialnumber), qos=0)
+                client.publish(topic=t["reply"] + "/commands", payload=str(self.__commands), qos=0)
                 return
             elif command == "echo?" or command == "ping?":
                 client.publish(t["reply"], str(datetime.datetime.utcnow()))
@@ -177,10 +175,10 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
         self.__comport = ""
     '''
 
-    def execute(self):
-        pass
+    #def execute(self):
+    #    pass
 
-    def __get_accessnumber(self):
-        return self.__invent_number
+    #def __get_accessnumber(self):
+    #    return self.__invent_number
 
-    accessnumber = property(__get_accessnumber)
+    #accessnumber = property(__get_accessnumber)

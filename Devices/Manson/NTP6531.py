@@ -33,7 +33,8 @@ class NTP6531:
 
         # open serial connection
         try:
-            self.__ser = serial.Serial(port, baudrate)
+            self.__ser = serial.Serial(port=port, baudrate=baudrate, timeout=0)
+            serial.Serial()
         except:
             raise Exception("Serial Port " + str(port) + " - COULD NOT CONNECT")
 
@@ -144,7 +145,7 @@ class NTP6531:
     # --------------------------------------------------
     def __send_command_and_receive_ok(self, cmd):
         try:
-            self.__send_command_and_receive_reply_and_ok(cmd,read_reply=False)
+            self.__send_command_and_receive_reply_and_ok(cmd, read_reply=False)
         except:
             raise
 
