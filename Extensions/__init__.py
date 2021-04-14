@@ -102,16 +102,8 @@ class Device(threading.Thread):
         self.sp = sp
         print(str(datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " HOHO plugged into " + self.__comport + ", Accessnumber is: "
               + str(invent_number))
-        topic = subpub.MqttTopic("maqlab/+/+/cmd/" + self.__invent_number + "/#")
-        self.mqtt1 = sp.subscribe(topic.as_regexp())
-        topic = subpub.MqttTopic("maqlab/+/cmd/" + self.__invent_number + "/#")
-        self.mqtt2 = sp.subscribe(topic.as_regexp())
-        # topic = subpub.MqttTopic("#")
-        # self.mqtt1 = sp.subscribe(topic.as_regexp())
-        # self.mqtt1 = sp.subscribe(topic)
-        # self.mqtt1 = sp.subscribe("maqlab/+/+/cmd/" + self.__invent_number + "/#")
 
-        print("Subscribed")
+        self.mqtt = sp.subscribe("(\A(.+)/cmd/" + self.__invent_number + "/(.+)$)|(\A(.+)cmd/\?$)")
 
     def on_destroyed(self):
         print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)

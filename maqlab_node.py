@@ -3,9 +3,8 @@ import aioserial
 import datetime
 import json
 import secrets
-
+import time
 import External_modules.subpub as subpub
-
 
 import paho.mqtt.client as paho
 
@@ -18,12 +17,8 @@ from Extensions.Keithley_SM2400 import SM2400
 from Extensions.Delta_SM70AR24 import SM70AR24
 from Extensions.Fluke_NORMA4000 import NORMA4000
 
-
 sp = subpub.SubPub()
-topic = subpub.MqttTopic("maqlab/+/+/rep/#")
-mqtt_device_reply1 = sp.subscribe(topic.as_regexp())
-topic = subpub.MqttTopic("maqlab/+/rep/#")
-mqtt_device_reply2 = sp.subscribe(topic.as_regexp())
+mqtt_device_reply1 = sp.subscribe("maqlab(.+)/rep/(.+)$")
 
 client = paho.Client()
 inventory = None
@@ -59,13 +54,6 @@ def on_connect(_client, userdata, flags, rc):
         print(str(datetime.datetime.now()) + "  :" + "Connected to MQTT-Broker")
         for subscription in mqtt_subscriptions:
             _client.subscribe(subscription)
-
-        # _client.subscribe("maqlab/cmd/?", qos=0)
-        # _client.subscribe("maqlab/+/cmd/?", qos=0)
-        # _client.subscribe("maqlab/+/+/cmd/?", qos=0)
-        # _client.subscribe("maqlab/+/cmd/#", qos=0)
-        # _client.subscribe("maqlab/+/+/cmd/#", qos=0)
-        # _client.subscribe("maqlab/+/rep/file/#", qos=0)
 
 
 # ------------------------------------------------------------------------------
@@ -134,17 +122,7 @@ def on_message(_client, _userdata, _msg):
     if devices is None or inventory is None:
         return
 
-    # print(topic, _msg.payload)
     sp.publish(topic, _msg.payload)
-    '''
-    try:
-        if len(devlist) > 0:
-            # distribute message to all devices
-            for _dev in devlist:
-                _dev.mqttmessage(_client, _msg)
-    except:
-        pass
-    '''
 
 
 # ------------------------------------------------------------------------------
@@ -162,10 +140,6 @@ async def mqttloop(_client):
         # and send messages to the MQTT-broker
         if not mqtt_device_reply1.empty():
             match, data = mqtt_device_reply1.get()
-            _client.publish(match.string, data)
-
-        if not mqtt_device_reply2.empty():
-            match, data = mqtt_device_reply2.get()
             _client.publish(match.string, data)
 
 
@@ -309,10 +283,10 @@ async def execution_loop():
         await asyncio.sleep(0.05)
         if len(devlist) > 0:
             for dev in devlist:
-                if dev.connected():
+                if not dev.connected():
                     # print("Connected")
-                    dev.execute()
-                else:
+                    #dev.execute()
+                #else:
                     # print("NOT Connected")
                     # --------------------------------------------------------------------> Unsubscribe
                     subscription = ("maqlab/+/cmd/" + str(dev.accessnumber) + "/#", 0)
@@ -321,7 +295,11 @@ async def execution_loop():
                     subscription = ("maqlab/+/+/cmd/" + str(dev.accessnumber) + "/#", 0)
                     mqtt_subscriptions.remove(subscription)
                     client.unsubscribe(subscription[0])
+                    dev.stop = True
+                    while dev.is_alive():
+                        time.sleep(0.01)
                     dev.on_destroyed()
+
                     devlist.remove(dev)
                     del dev
 
