@@ -4,6 +4,9 @@ import datetime
 import json
 import secrets
 
+import External_modules.subpub as subpub
+
+
 import paho.mqtt.client as paho
 
 from scan_serial import scan_serial_devices
@@ -15,8 +18,12 @@ from Extensions.Keithley_SM2400 import SM2400
 from Extensions.Delta_SM70AR24 import SM70AR24
 from Extensions.Fluke_NORMA4000 import NORMA4000
 
-from modules.subpub import SubPub
 
+sp = subpub.SubPub()
+topic = subpub.MqttTopic("maqlab/+/+/rep/#")
+mqtt_device_reply1 = sp.subscribe(topic.as_regexp())
+topic = subpub.MqttTopic("maqlab/+/rep/#")
+mqtt_device_reply2 = sp.subscribe(topic.as_regexp())
 
 client = paho.Client()
 inventory = None
@@ -77,6 +84,7 @@ def on_disconnect(_client, userdata, rc):
 #
 # ------------------------------------------------------------------------------
 def on_message(_client, _userdata, _msg):
+    global sp
     global devlist
     global inventory
     global inventory_numbers
@@ -89,7 +97,7 @@ def on_message(_client, _userdata, _msg):
         pass
     topic = _msg.topic
 
-    print(topic, _msg.payload)
+    # print(topic, _msg.payload)
     try:
         # configuration file repeated
         if "/rep/file/" in topic:
@@ -117,6 +125,7 @@ def on_message(_client, _userdata, _msg):
                     print(str(datetime.datetime.now()) + "  :" + "Error in inventory.json")
                     # print(e)
                     return
+            return
     except:
         pass
 
@@ -126,6 +135,8 @@ def on_message(_client, _userdata, _msg):
         return
 
     # print(topic, _msg.payload)
+    sp.publish(topic, _msg.payload)
+    '''
     try:
         if len(devlist) > 0:
             # distribute message to all devices
@@ -133,6 +144,7 @@ def on_message(_client, _userdata, _msg):
                 _dev.mqttmessage(_client, _msg)
     except:
         pass
+    '''
 
 
 # ------------------------------------------------------------------------------
@@ -146,12 +158,23 @@ async def mqttloop(_client):
             pass
         await asyncio.sleep(0.01)
 
+        # check the reply queues from the devices
+        # and send messages to the MQTT-broker
+        if not mqtt_device_reply1.empty():
+            match, data = mqtt_device_reply1.get()
+            _client.publish(match.string, data)
+
+        if not mqtt_device_reply2.empty():
+            match, data = mqtt_device_reply2.get()
+            _client.publish(match.string, data)
+
 
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------
 async def tcp_generate_classes():
     global mqtt_subscriptions
+    global sp
     while True:
         # ----------------------------------------------------------------------------------
         # Stepping through the list and generate the device instance from the classname
@@ -170,7 +193,6 @@ async def tcp_generate_classes():
                             # generating a deviceclass from classname
                             devobject = globals()[dclassname](ip[dclassname])
 
-
                         if devobject is not None:
                             # search for inventarnumber of the device with spec serialnumber
                             # there are some devices not declared with a serialnumber
@@ -187,7 +209,9 @@ async def tcp_generate_classes():
                                 inventory_number = devobject.serialnumber
 
                             devlist.append(devobject)
-                            devobject.on_created(ip[dclassname], inventory_number)
+                            devobject.on_created(ip[dclassname], inventory_number, sp)
+                            # starting the thread
+                            devobject.start()
                             try:
                                 subscription = ("maqlab/+/cmd/" + str(devobject.accessnumber) + "/#", 0)
                                 mqtt_subscriptions.append(subscription)
@@ -213,6 +237,7 @@ async def tcp_generate_classes():
 # ------------------------------------------------------------------------------
 async def serial_generate_classes():
     global mqtt_subscriptions
+    global sp
     while True:
         await asyncio.sleep(0.2)
         try:
@@ -250,10 +275,9 @@ async def serial_generate_classes():
                             # --------------------------------------------------------
                             devlist.append(devobject)
 
+                            devobject.on_created(com[dclassname], inventory_number, sp)
                             # starting the thread
                             devobject.start()
-
-                            devobject.on_created(com[dclassname], inventory_number)
                             # --------------------------------------------------------------------> Subscribe
                             try:
                                 subscription = ("maqlab/+/cmd/" + str(devobject.accessnumber) + "/#", 0)

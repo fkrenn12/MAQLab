@@ -1,14 +1,14 @@
 import threading
 import datetime
 import shared as s
-
+import External_modules.subpub as subpub
 
 class Device(threading.Thread):
     def __init__(self):
         super().__init__()
         self.__comport = ""
         self.__invent_number = "0"
-
+        self.sp = None
     # --------------------------------------------------------
     #  V A L I D A T E  incoming  T O P I C
     # --------------------------------------------------------
@@ -96,11 +96,22 @@ class Device(threading.Thread):
                 'payload_command_error': payload_command_error,
                 'payload_limited': payload_limited}
 
-    def on_created(self, port, invent_number):
+    def on_created(self, port, invent_number, sp):
         self.__comport = str(port)
         self.__invent_number = invent_number
+        self.sp = sp
         print(str(datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " HOHO plugged into " + self.__comport + ", Accessnumber is: "
               + str(invent_number))
+        topic = subpub.MqttTopic("maqlab/+/+/cmd/" + self.__invent_number + "/#")
+        self.mqtt1 = sp.subscribe(topic.as_regexp())
+        topic = subpub.MqttTopic("maqlab/+/cmd/" + self.__invent_number + "/#")
+        self.mqtt2 = sp.subscribe(topic.as_regexp())
+        # topic = subpub.MqttTopic("#")
+        # self.mqtt1 = sp.subscribe(topic.as_regexp())
+        # self.mqtt1 = sp.subscribe(topic)
+        # self.mqtt1 = sp.subscribe("maqlab/+/+/cmd/" + self.__invent_number + "/#")
+
+        print("Subscribed")
 
     def on_destroyed(self):
         print(str(datetime.datetime.now()) + "  :" + self.model + " removed from " + self.__comport)
@@ -110,3 +121,4 @@ class Device(threading.Thread):
         return self.__invent_number
 
     accessnumber = property(__get_accessnumber)
+
