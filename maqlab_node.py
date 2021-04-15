@@ -275,33 +275,33 @@ async def serial_generate_classes():
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------
-async def execution_loop():
+async def remove_loop():
     # --------------------------------------------------------------------------
-    # Step through connected devices and call the handlers
+    # Step through connected devices and check the threads stopped
     # --------------------------------------------------------------------------
     while True:
-        await asyncio.sleep(0.05)
-        if len(devlist) > 0:
+        await asyncio.sleep(0.2)
+        # we catch all exceptions to avoid loop termination in any case
+        try:
+            # step through all devices
             for dev in devlist:
-                if not dev.connected():
-                    # print("Connected")
-                    #dev.execute()
-                #else:
-                    # print("NOT Connected")
-                    # --------------------------------------------------------------------> Unsubscribe
+                # check the thread is stopped already
+                if not dev.is_alive():
+                    # Unsubscribing from mqtt-client and removing from internal list
                     subscription = ("maqlab/+/cmd/" + str(dev.accessnumber) + "/#", 0)
                     mqtt_subscriptions.remove(subscription)
                     client.unsubscribe(subscription[0])
-                    subscription = ("maqlab/+/+/cmd/" + str(dev.accessnumber) + "/#", 0)
+                    subscription = ("maqlab/+/+/cmdy/" + str(dev.accessnumber) + "/#", 0)
                     mqtt_subscriptions.remove(subscription)
                     client.unsubscribe(subscription[0])
-                    dev.stop = True
-                    while dev.is_alive():
-                        time.sleep(0.01)
-                    dev.on_destroyed()
-
+                    # remove from list
                     devlist.remove(dev)
+                    # last call to the device
+                    dev.on_destroyed()
+                    # destroy the object
                     del dev
+        except:
+            pass
 
 
 # ------------------------------------------------------------------------------
@@ -402,7 +402,7 @@ async def main():
         task4 = loop.create_task(tcp_generate_classes())
         task6 = loop.create_task(scan_tcp_devices(devices, addresses, iplist))
 
-    task7 = loop.create_task(execution_loop())
+    task7 = loop.create_task(remove_loop())
     # wait until all tasks finished
     await asyncio.wait([task1])
     # but will never happen in real !!!

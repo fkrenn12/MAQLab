@@ -13,165 +13,117 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
     def __init__(self, _port, _baudrate=9600):
         _NTP6531.NTP6531.__init__(self, _port, _baudrate)
         Extensions.Device.__init__(self)
-        self.__commands = ["vdc?", "idc?", "vdc", "idc", "output"]
-        self.stop = False
+        self.commands = ["vdc?", "idc?", "vdc", "idc", "output"]
 
     def run(self) -> None:
         while True:
             time.sleep(0.025)
-            if self.stop:
+            # we exit this thread loop if the device have been unplugged
+            if not self.connected():
                 break
             try:
                 match, data = self.mqtt.get(block=False)
+                self.validate(match.string, data)
             except:
                 continue
 
-            topic = match.string
-            payload = data
-
             try:
-                t = self.validate_topic(topic, self.accessnumber, self.model)
-            except:
-                # we cannot handle the topic which made an exception
-                continue
-                
-            reply_topic = str(t["reply"])
-            
-            try:
-                p = self.validate_payload(payload)
-            except:
-                self.sp.publish(reply_topic, str(p["payload_error"]))
-                continue
-
-            payload_accepted = p["payload_accepted"]
-            
-            if t["cmd"] == "accessnumber":
-                self.sp.publish(reply_topic, str(self.accessnumber))
-                continue
-
-            if not t["matching"]:
-                continue
-
-            # print(self.model + " " + t["topic"] + " " + str(p["payload"]))
-
-            try:
-                command = t["cmd"]
-                value = p["payload_float"]
-            except:
-                try:
-                    self.sp.publish(reply_topic, str(p["payload_command_error"]))
-                except:
-                    raise
-                continue
-
-            try:
-                if command == "output":
-                    if int(value) == 0:
+                if self.topic_cmd == "output":
+                    if int(self.payload_float) == 0:
                         self.output_off()
-                        self.sp.publish(reply_topic, payload_accepted)
+                        self.sp.publish(self.topic_reply, self.payload_accepted)
                     else:
                         self.output_on()
-                        self.sp.publish(reply_topic, payload_accepted)
+                        self.sp.publish(self.topic_reply, self.payload_accepted)
                     continue
                 # ------------------------------------------------------------------------------------------------
-                # V O L T A G E commands - Handling
+                # V O L T A G E self.topic_cmds - Handling
                 # ------------------------------------------------------------------------------------------------
-                elif command == "volt?" or command == "volt:dc?" or command == "vdc?":
-                    self.sp.publish(reply_topic, self.volt_as_string)
+                elif self.topic_cmd == "volt?" or self.topic_cmd == "volt:dc?" or self.topic_cmd == "vdc?":
+                    self.sp.publish(self.topic_reply, self.volt_as_string)
                     continue
-                elif command == "volt_applied?" or command == "applied:volt:dc?" or command == "applied_vdc?":
-                    self.sp.publish(reply_topic, str(self.apply_volt) + " VDC")
+                elif self.topic_cmd == "volt_applied?" or self.topic_cmd == "applied:volt:dc?" or self.topic_cmd == "applied_vdc?":
+                    self.sp.publish(self.topic_reply, str(self.apply_volt) + " VDC")
                     continue
-                elif command == "volt" or command == "volt:dc" or command == "vdc":
-                    # checking the value limits
-                    if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
-                        self.apply_volt = value
-                        self.sp.publish(reply_topic, payload_accepted)
+                elif self.topic_cmd == "volt" or self.topic_cmd == "volt:dc" or self.topic_cmd == "vdc":
+                    # checking the self.payload_float limits
+                    if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= self.payload_float >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
+                        self.apply_volt = self.payload_float
+                        self.sp.publish(self.topic_reply, self.payload_accepted)
                         continue
-                elif command == "volt_max?" or command == "volt:max?" or command == "vmax?":
-                    self.sp.publish(reply_topic, str(_NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT) + " VDC")
+                elif self.topic_cmd == "volt_max?" or self.topic_cmd == "volt:max?" or self.topic_cmd == "vmax?":
+                    self.sp.publish(self.topic_reply, str(_NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT) + " VDC")
                     continue
-                elif command == "volt_min?" or command == "volt:min?" or command == "vmin?":
-                    self.sp.publish(reply_topic, str(_NTP6531.NTP6531_VOLTAGE_LOW_LIMIT) + " VDC")
+                elif self.topic_cmd == "volt_min?" or self.topic_cmd == "volt:min?" or self.topic_cmd == "vmin?":
+                    self.sp.publish(self.topic_reply, str(_NTP6531.NTP6531_VOLTAGE_LOW_LIMIT) + " VDC")
                     continue
-                elif command == "volt_limit_up?" or command == "volt:limit:up?" or command == "vup?":
-                    self.sp.publish(reply_topic, str(self.volt_limit_upper) + " VDC")
+                elif self.topic_cmd == "volt_limit_up?" or self.topic_cmd == "volt:limit:up?" or self.topic_cmd == "vup?":
+                    self.sp.publish(self.topic_reply, str(self.volt_limit_upper) + " VDC")
                     continue
-                elif command == "volt_limit_up" or command == "volt:limit:up" or command == "vup":
+                elif self.topic_cmd == "volt_limit_up" or self.topic_cmd == "volt:limit:up" or self.topic_cmd == "vup":
                     # checking limits
-                    if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
-                        self.volt_limit_upper = value
-                        self.sp.publish(reply_topic, payload_accepted)
+                    if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= self.payload_float >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
+                        self.volt_limit_upper = self.payload_float
+                        self.sp.publish(self.topic_reply, self.payload_accepted)
                         continue
-                elif command == "volt_limit_low?" or command == "volt:limit:low?" or command == "vlow?":
-                    self.sp.publish(reply_topic, str(self.volt_limit_lower) + " VDC")
+                elif self.topic_cmd == "volt_limit_low?" or self.topic_cmd == "volt:limit:low?" or self.topic_cmd == "vlow?":
+                    self.sp.publish(self.topic_reply, str(self.volt_limit_lower) + " VDC")
                     continue
-                elif command == "volt_limit_low" or command == "volt:limit:low" or command == "vlow":
+                elif self.topic_cmd == "volt_limit_low" or self.topic_cmd == "volt:limit:low" or self.topic_cmd == "vlow":
                     # checking limits
-                    if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= value >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
-                        self.volt_limit_lower = value
-                        self.sp.publish(reply_topic, payload_accepted)
+                    if _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT >= self.payload_float >= _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT:
+                        self.volt_limit_lower = self.payload_float
+                        self.sp.publish(self.topic_reply, self.payload_accepted)
                         continue
                 # ------------------------------------------------------------------------------------------------
-                # C U R R E N T commands - Handling
+                # C U R R E N T self.topic_cmds - Handling
                 # ------------------------------------------------------------------------------------------------
-                elif command == "curr" or command == "curr:dc" or command == "idc":
+                elif self.topic_cmd == "curr" or self.topic_cmd == "curr:dc" or self.topic_cmd == "idc":
                     # checking limits
-                    if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= value >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
-                        self.apply_current = value
-                        self.sp.publish(reply_topic, payload_accepted)
+                    if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= self.payload_float >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
+                        self.apply_current = self.payload_float
+                        self.sp.publish(self.topic_reply, self.payload_accepted)
                         continue
-                elif command == "curr_applied?" or command == "applied:curr:dc?" or command == "applied_idc?":
-                    self.sp.publish(reply_topic, str(self.apply_current) + " ADC")
+                elif self.topic_cmd == "curr_applied?" or self.topic_cmd == "applied:curr:dc?" or self.topic_cmd == "applied_idc?":
+                    self.sp.publish(self.topic_reply, str(self.apply_current) + " ADC")
                     continue
-                elif command == "curr?" or command == "curr:dc?" or command == "idc?":
-                    self.sp.publish(reply_topic, self.current_as_string)
+                elif self.topic_cmd == "curr?" or self.topic_cmd == "curr:dc?" or self.topic_cmd == "idc?":
+                    self.sp.publish(self.topic_reply, self.current_as_string)
                     continue
-                elif command == "curr_max?" or command == "curr:max?" or command == "imax?":
-                    self.sp.publish(reply_topic, str(_NTP6531.NTP6531_CURRENT_HIGH_LIMIT) + " ADC")
+                elif self.topic_cmd == "curr_max?" or self.topic_cmd == "curr:max?" or self.topic_cmd == "imax?":
+                    self.sp.publish(self.topic_reply, str(_NTP6531.NTP6531_CURRENT_HIGH_LIMIT) + " ADC")
                     continue
-                elif command == "curr_min?" or command == "curr:min?" or command == "imin?":
-                    self.sp.publish(reply_topic, str(_NTP6531.NTP6531_CURRENT_LOW_LIMIT) + " ADC")
+                elif self.topic_cmd == "curr_min?" or self.topic_cmd == "curr:min?" or self.topic_cmd == "imin?":
+                    self.sp.publish(self.topic_reply, str(_NTP6531.NTP6531_CURRENT_LOW_LIMIT) + " ADC")
                     continue
-                elif command == "curr_limit_up?" or command == "curr:limit:up?" or command == "iup?":
-                    self.sp.publish(reply_topic, str(self.current_limit_upper) + " ADC")
+                elif self.topic_cmd == "curr_limit_up?" or self.topic_cmd == "curr:limit:up?" or self.topic_cmd == "iup?":
+                    self.sp.publish(self.topic_reply, str(self.current_limit_upper) + " ADC")
                     continue
-                elif command == "curr_limit_up" or command == "curr:limit:up" or command == "iup":
+                elif self.topic_cmd == "curr_limit_up" or self.topic_cmd == "curr:limit:up" or self.topic_cmd == "iup":
                     # checking limits
-                    if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= value >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
-                        self.current_limit_upper = value
-                        self.sp.publish(reply_topic, payload_accepted)
+                    if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= self.payload_float >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
+                        self.current_limit_upper = self.payload_float
+                        self.sp.publish(self.topic_reply, self.payload_accepted)
                         continue
-                elif command == "curr_limit_low?" or command == "curr:limit:low?" or command == "ilow?":
-                    self.sp.publish(reply_topic, str(self.current_limit_lower) + " ADC")
+                elif self.topic_cmd == "curr_limit_low?" or self.topic_cmd == "curr:limit:low?" or self.topic_cmd == "ilow?":
+                    self.sp.publish(self.topic_reply, str(self.current_limit_lower) + " ADC")
                     continue
-                elif command == "curr_limit_low" or command == "curr:limit:low" or command == "ilow":
+                elif self.topic_cmd == "curr_limit_low" or self.topic_cmd == "curr:limit:low" or self.topic_cmd == "ilow":
                     # checking limits
-                    if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= value >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
-                        self.current_limit_lower = value
-                        self.sp.publish(reply_topic, str(payload_accepted))
+                    if _NTP6531.NTP6531_CURRENT_HIGH_LIMIT >= self.payload_float >= _NTP6531.NTP6531_CURRENT_LOW_LIMIT:
+                        self.current_limit_lower = self.payload_float
+                        self.sp.publish(self.topic_reply, str(self.payload_accepted))
                         continue
                 # ------------------------------------------------------------------------------------------------
-                # O T H E R commands - Handling
+                # O T H E R self.topic_cmds - Handling
                 # ------------------------------------------------------------------------------------------------
-                elif command == "mode?":
-                    self.sp.publish(topic=reply_topic, payload=self.source_mode)
+                elif self.topic_cmd == "mode?":
+                    self.sp.publish(topic=self.topic_reply, payload=self.source_mode)
                     continue
-                elif command == "?":
-                    self.sp.publish(reply_topic + "/manufactorer", self.manufactorer)
-                    self.sp.publish(reply_topic + "/devicetype", self.devicetype)
-                    self.sp.publish(reply_topic + "/model", self.model)
-                    self.sp.publish(reply_topic + "/serialnumber", str(self.serialnumber))
-                    self.sp.publish(reply_topic + "/commands", str(self.__commands))
-                    continue
-                elif command == "echo?" or command == "ping?":
-                    self.sp.publish(reply_topic, str(datetime.datetime.utcnow()))
-                    continue
-
                 raise Exception("Command invalid")
 
             except Exception as e:
-                self.sp.publish(reply_topic, str(p["payload_error"]) + ":" + str(e))
+                self.sp.publish(self.topic_reply, self.payload_error + ":" + str(e))
                 continue
             finally:
                 pass

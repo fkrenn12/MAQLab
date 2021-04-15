@@ -6,7 +6,7 @@ import datetime
 import time
 
 
-class BK2831E(_E2831.BK2831E, Extensions.Device):
+class  BK2831E(_E2831.BK2831E, Extensions.Device):
 
     def __init__(self, _port, _baudrate=9600):
         _E2831.BK2831E.__init__(self, _port, _baudrate)
