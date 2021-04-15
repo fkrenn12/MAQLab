@@ -1,5 +1,6 @@
 import threading
 import datetime
+import time
 import shared as s
 
 
@@ -21,6 +22,16 @@ class Device(threading.Thread):
         self.payload_command_error = ""
         self.payload_float = 0
         self.payload_json = "{}"
+
+    # --------------------------------------------------------
+    #  READ FROM MQTT queue
+    # --------------------------------------------------------
+    def read_from_mqtt(self):
+        try:
+            match, data = self.mqtt.get(block=False)
+            self.validate(match.string, data)
+        except:
+            raise Exception
 
     # --------------------------------------------------------
     #  V A L I D A T E
