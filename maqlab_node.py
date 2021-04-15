@@ -288,20 +288,31 @@ async def remove_loop():
                 # check the thread is stopped already
                 if not dev.is_alive():
                     # Unsubscribing from mqtt-client and removing from internal list
-                    subscription = ("maqlab/+/cmd/" + str(dev.accessnumber) + "/#", 0)
-                    mqtt_subscriptions.remove(subscription)
-                    client.unsubscribe(subscription[0])
-                    subscription = ("maqlab/+/+/cmdy/" + str(dev.accessnumber) + "/#", 0)
-                    mqtt_subscriptions.remove(subscription)
-                    client.unsubscribe(subscription[0])
-                    # remove from list
-                    devlist.remove(dev)
+                    try:
+                        subscription = ("maqlab/+/cmd/" + str(dev.accessnumber) + "/#", 0)
+                        mqtt_subscriptions.remove(subscription)
+                        client.unsubscribe(subscription[0])
+                    except:
+                        pass
+
+                    try:
+                        subscription = ("maqlab/+/+/cmd/" + str(dev.accessnumber) + "/#", 0)
+                        mqtt_subscriptions.remove(subscription)
+                        client.unsubscribe(subscription[0])
+                    except:
+                        pass
+                    try:
+                        # remove from list
+                        devlist.remove(dev)
+                    except:
+                        pass
                     # last call to the device
                     dev.on_destroyed()
                     # destroy the object
                     del dev
         except:
             pass
+
 
 
 # ------------------------------------------------------------------------------
