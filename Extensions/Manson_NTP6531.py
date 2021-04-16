@@ -2,8 +2,9 @@ import datetime
 import threading
 import time
 import Extensions
-from External_modules.subpub import SubPub
+from external_modules.subpub import SubPub
 from numpy import clip
+import asyncio
 # --------------------------------------------------------
 from Devices.Manson import NTP6531 as _NTP6531
 
@@ -15,8 +16,33 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
         Extensions.Device.__init__(self)
         self.commands = ["vdc?", "idc?", "vdc", "idc", "output"]
         self.continous = False
+        self.prev_continous = self.continous
+        self.loop = asyncio.get_event_loop()
+        self.__measure_task = None
+        self.count = 0
+        self.stop = False
+
+    async def main_task(self):
+        self.__measure_task = self.loop.create_task(self.task_measure())
+        await asyncio.wait([self.__measure_task])
+
+    async def task_measure(self):
+        while True:
+            try:
+                topic, payload = self.handle_command("vdc?", 0)
+                self.sp.publish(topic, payload)
+                print("TASK " + str(self.count))
+                self.count += 1
+            except:
+                pass
+            await asyncio.sleep(0.1)
+            # if self.stop:
+            #    break
 
     def run(self) -> None:
+        # mt = self.__loop.create_task(self.task_measure())
+
+        # asyncio.run(self.task_measure())
         while True:
             time.sleep(0.025)
             # we exit this thread loop if the device have been unplugged
@@ -29,9 +55,19 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
             except Exception:
                 pass
 
-            if self.continous:
-                topic, payload = self.handle_command("vdc?", 0)
-                self.sp.publish(topic, payload)
+            if self.continous != self.prev_continous:
+                if self.continous:
+                    try:
+                        # asyncio.run(self.task_measure())
+                        asyncio.run_coroutine_threadsafe(self.main_task(), self.loop)
+                    except:
+                        pass
+                else:
+                    # self.stop = True
+                    self.__measure_task.cancel()
+
+            self.prev_continous = self.continous
+
             continue
 
     # ------------------------------------------------------------------------------------------------
