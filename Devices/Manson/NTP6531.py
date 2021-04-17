@@ -2,6 +2,7 @@ import random
 import time
 from numpy import clip
 import serial
+import threading
 import datetime
 
 OK_BYTE_STRING = b'OK'
@@ -49,6 +50,7 @@ class NTP6531:
         self.__volt_applied = 0
         self.__current_setting = 0
         self.__last_command_time = int(round(time.time() * 1000))
+        self.__lock = threading.Lock()
         # ---------------------------
         # limits for MANSON NTP-6531
         # ---------------------------
@@ -158,48 +160,49 @@ class NTP6531:
                 cmd = cmd.encode("utf-8")
             except:
                 pass
-            self.__wait_minimal_command_interval(COMMAND_INTERVAL_MS)
-            try:
-                for i in range(1, 11):  # 10 times trying to  read
-                    # clear all bytes and chars in buffer
-                    self.__ser.reset_input_buffer()
-                    self.__ser.reset_output_buffer()
-                    self.__ser.flush()
-                    self.__ser.write(cmd)
-                    # note time to calculate timeout later
-                    start_wait = time.time()
-                    # loop until first char is in the buffer
-                    while self.__ser.in_waiting == 0:
-                        time.sleep(0.025)
-                        if time.time() - start_wait > (COMMAND_RESPONSE_TIME_MS / 1000.0):
-                            break
-                    # print(time.time() - start_wait)
-                    # we need some time to read all chars until \r
-                    self.__ser.timeout = 0.1
-                    try:
-                        # read the reply
-                        if read_reply:
-                            reply = self.__ser.read_until(b'\r')
-                            # print(reply)
-                            if b'\r' not in reply:
+            with self.__lock:
+                self.__wait_minimal_command_interval(COMMAND_INTERVAL_MS)
+                try:
+                    for i in range(1, 11):  # 10 times trying to  read
+                        # clear all bytes and chars in buffer
+                        self.__ser.reset_input_buffer()
+                        self.__ser.reset_output_buffer()
+                        self.__ser.flush()
+                        self.__ser.write(cmd)
+                        # note time to calculate timeout later
+                        start_wait = time.time()
+                        # loop until first char is in the buffer
+                        while self.__ser.in_waiting == 0:
+                            time.sleep(0.025)
+                            if time.time() - start_wait > (COMMAND_RESPONSE_TIME_MS / 1000.0):
+                                break
+                        # print(time.time() - start_wait)
+                        # we need some time to read all chars until \r
+                        self.__ser.timeout = 0.1
+                        try:
+                            # read the reply
+                            if read_reply:
+                                reply = self.__ser.read_until(b'\r')
+                                # print(reply)
+                                if b'\r' not in reply:
+                                    raise Exception
+                            # read the OK
+                            ok = self.__ser.read_until(b'\r')
+                            if b"OK\r" != ok:
                                 raise Exception
-                        # read the OK
-                        ok = self.__ser.read_until(b'\r')
-                        if b"OK\r" != ok:
-                            raise Exception
-                        # read all remaining chars in buffer
-                        self.__ser.timeout = 0
-                        self.__ser.read()
-                    except:
-                        # next try to execute the command
-                        continue
-                    # if (time.time() - start_wait) > 0.0:
-                    #    print(str(datetime.datetime.now()) + " " + str(time.time() - start_wait))
-                    return reply.decode("utf-8")
-                # print("Serial Timeout")
-                raise Exception("NTP6531 - Receive Timeout Error")
-            except:
-                raise
+                            # read all remaining chars in buffer
+                            self.__ser.timeout = 0
+                            self.__ser.read()
+                        except:
+                            # next try to execute the command
+                            continue
+                        # if (time.time() - start_wait) > 0.0:
+                        #    print(str(datetime.datetime.now()) + " " + str(time.time() - start_wait))
+                        return reply.decode("utf-8")
+                    # print("Serial Timeout")
+                    raise Exception("NTP6531 - Receive Timeout Error")
+                except:
+                    raise
         except:
             raise
 

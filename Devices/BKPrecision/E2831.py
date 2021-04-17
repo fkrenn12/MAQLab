@@ -1,6 +1,7 @@
 import serial
 import time
 import enum
+import threading
 
 # TODO Messung der Periode fehlt noch
 
@@ -57,7 +58,7 @@ class BK2831E:
         self.__last_frequence_unit = ""
         self.__last_periode_unit = ""
         self.__last_command_time = int(round(time.time() * 1000))
-
+        self.__lock = threading.Lock()
         self.__mode = Mode.NONE
         self.id()
         self.set_mode_vdc_auto_range()
@@ -90,6 +91,7 @@ class BK2831E:
         if len(cmd) <= 0:
             raise Exception
 
+        # with self.__lock:
         try:
             # print(cmd)
             tout = RECEIVE_LINE_TIMEOUT
@@ -170,7 +172,7 @@ class BK2831E:
         try:
             if force or self.__mode != Mode.AMPERE_METER_DC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-                #self.__send_command(b':curr:dc:rang:auto OFF\n')
+                # self.__send_command(b':curr:dc:rang:auto OFF\n')
                 self.__send_command(b'func curr:dc\n')
                 self.__send_command(b':curr:dc:rang 0.2\n')
                 self.__mode = Mode.AMPERE_METER_DC
@@ -185,7 +187,7 @@ class BK2831E:
             if force or self.__mode != Mode.AMPERE_METER_AC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func curr:AC\n')
-                #self.__send_command(b':curr:ac:rang:auto OFF\n')
+                # self.__send_command(b':curr:ac:rang:auto OFF\n')
                 self.__send_command(b':curr:ac:rang 0.2\n')
                 self.__mode = Mode.AMPERE_METER_AC
             return
@@ -199,7 +201,7 @@ class BK2831E:
             if force or self.__mode != Mode.AMPERE_METER_DC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func curr:dc\n')
-                #self.__send_command(b':curr:dc:rang:auto OFF\n')
+                # self.__send_command(b':curr:dc:rang:auto OFF\n')
                 self.__send_command(b':curr:dc:rang 20\n')
                 self.__mode = Mode.AMPERE_METER_DC
             return
@@ -213,7 +215,7 @@ class BK2831E:
             if force or self.__mode != Mode.AMPERE_METER_AC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func curr:AC\n')
-                #self.__send_command(b':curr:ac:rang:auto OFF\n')
+                # self.__send_command(b':curr:ac:rang:auto OFF\n')
                 self.__send_command(b':curr:ac:rang 20\n')
                 self.__mode = Mode.AMPERE_METER_AC
             return

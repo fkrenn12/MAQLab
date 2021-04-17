@@ -9,6 +9,11 @@ import asyncio
 from Devices.Manson import NTP6531 as _NTP6531
 
 
+def anydef():
+    print("ANYDEF")
+    pass
+
+
 class NTP6531(_NTP6531.NTP6531, Extensions.Device):
 
     def __init__(self, _port, _baudrate=9600):
@@ -21,10 +26,8 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
         self.__measure_task = None
         self.count = 0
         self.stop = False
+        self.execute = Extensions.Execute()
 
-    async def main_task(self):
-        self.__measure_task = self.loop.create_task(self.task_measure())
-        await asyncio.wait([self.__measure_task])
 
     async def task_measure(self):
         while True:
@@ -36,15 +39,21 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
             except:
                 pass
             await asyncio.sleep(0.1)
-            # if self.stop:
-            #    break
+            if self.stop:
+                break
+
+    async def main_task(self):
+        self.__measure_task = self.loop.create_task(self.task_measure())
+        await asyncio.wait([self.__measure_task])
+        # self.__measure_task = asyncio.create_task(self.task_measure())
+        # await asyncio.wait(self.__measure_task)
 
     def run(self) -> None:
         # mt = self.__loop.create_task(self.task_measure())
 
         # asyncio.run(self.task_measure())
         while True:
-            time.sleep(0.025)
+            time.sleep(0.01)
             # we exit this thread loop if the device have been unplugged
             if not self.connected():
                 break
@@ -58,12 +67,21 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
             if self.continous != self.prev_continous:
                 if self.continous:
                     try:
-                        # asyncio.run(self.task_measure())
-                        asyncio.run_coroutine_threadsafe(self.main_task(), self.loop)
+                        try:
+                            self.execute.start()
+                        except:
+                            pass
+                        self.execute.test = self.volt_as_string
+                        self.execute.executing = True
+
+
+                        # asyncio.run_coroutine_threadsafe(self.main_task(), self.loop)
+                        self.__measure_task = self.loop.create_task(self.task_measure())
                     except:
                         pass
                 else:
-                    # self.stop = True
+                    # self.execute.kill()
+                    self.execute.executing = False
                     self.__measure_task.cancel()
 
             self.prev_continous = self.continous

@@ -4,6 +4,52 @@ import time
 import shared as s
 
 
+class Execute(threading.Thread):
+    def __init__(self, sleep_interval=1):
+        super().__init__()
+        self.__lock = threading.Lock()
+        self.__executing = False
+        self._kill = threading.Event()
+        self._executing = threading.Event()
+        self._interval = sleep_interval
+        self.test = None
+
+    def run(self):
+
+        while True:
+            time.sleep(0.01)
+            executing = False
+            with self.__lock:
+                executing = self.__executing
+            if executing:
+                # print("Do Something")
+                if hasattr(self.test, '__call__'):
+                    print(self.test())
+                else:
+                    print(self.test)
+            else:
+                pass
+            is_killed = self._kill.wait(self._interval)
+            if is_killed:
+                break
+
+        print("Killing Thread")
+
+    def kill(self):
+        self._kill.set()
+
+    def __get_executing(self):
+        with self.__lock:
+            value = self.__executing
+        return value
+
+    def __set_executing(self, value):
+        with self.__lock:
+            self.__executing = value
+
+    executing = property(__get_executing, __set_executing)
+
+
 class Device(threading.Thread):
     def __init__(self):
         super().__init__()
