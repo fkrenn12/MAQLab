@@ -58,7 +58,16 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                         next_exe = exe
                         break
                 if next_exe is None:
+                    # we need a new thread
                     next_exe = Extensions.Execute_command()
+                    self.executions.append(next_exe)
+
+                next_exe.data = self.command_data(t["command"], p)
+                next_exe.executing = True
+                try:
+                    next_exe.start()
+                except:
+                    pass
 
 
 
@@ -87,6 +96,12 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
             self.prev_continous = self.continous
 
             continue
+
+    def command_data(self,command,p):
+        repetitions = 1
+        interval = 1
+
+        return ({"handler": self.handle_command, "command": command, "repetitions": repetitions, "interval": interval, "payload" : p["float"]})
 
     # ------------------------------------------------------------------------------------------------
     # COMMAND - Handler

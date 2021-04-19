@@ -12,7 +12,11 @@ class Execute_command(threading.Thread):
         self._kill = threading.Event()
         self._executing = threading.Event()
         self.interval = sleep_interval
-        self.test = None
+        self.function = None
+        self.repetitions = 1
+        self.interval = 1
+        self.data = None
+        self.__exe_counter = 0
 
     def run(self):
 
@@ -23,16 +27,29 @@ class Execute_command(threading.Thread):
                 executing = self.__executing
             if executing:
                 # print("Do Something")
+                # print(self.data["function"])
+                # x = self.data["function"]
+                # print(eval(x))
 
-                if hasattr(self.test, '__call__'):
-                    print(self.test())
-                else:
-                    print(self.test)
+                # if hasattr(self.data["functions"], '__call__'):
+                #    print(self.data["functions"]())
+                #else:
+                #    print(self.data["functions"])
+                handler = self.data["handler"]
+                if hasattr(handler, '__call__'):
+                    handler(self.data["command"], self.data["payload"])
+                    # handler("vdc?", 0)
+                self.__exe_counter += 1
             else:
                 pass
-            is_killed = self._kill.wait(self.interval)
+
+            is_killed = self._kill.wait(self.data["interval"])
             if is_killed:
                 break
+
+            if self.__exe_counter >= self.data["repetitions"]:
+                self.executing = False
+
 
         print("Killing Thread")
 
@@ -47,6 +64,7 @@ class Execute_command(threading.Thread):
     def __set_executing(self, value):
         with self.__lock:
             self.__executing = value
+            self.__exe_counter = 0
 
     executing = property(__get_executing, __set_executing)
 
@@ -59,7 +77,6 @@ class Device(threading.Thread):
         self.commands = []
         self.sp = None
         self.mqtt = None
-        self.matching = False
 
     # --------------------------------------------------------
     #  CREATED
@@ -100,7 +117,7 @@ class Device(threading.Thread):
                 self.sp.publish(reply, str(self.__invent_number))
                 raise Exception
 
-            if self.matching:
+            if t["matching"]:
                 # matching, we handle the standard commands
                 if command == "?":
                     self.sp.publish(reply + "/manufactorer", self.manufactorer)
@@ -150,10 +167,6 @@ class Device(threading.Thread):
                     if topic_splitted[index_of_cmd + 1] == str(self.__invent_number):
                         matching = True
                 return {"topic": topic, "command": command, "reply": reply_topic, "matching": matching}
-                # self.topic = topic
-                # self.topic_cmd = command
-                # self.topic_reply = reply_topic
-                # self.matching = matching
             except:
                 raise Exception
         else:
@@ -194,7 +207,7 @@ class Device(threading.Thread):
                     "accepted": payload_accepted,
                     "limited": payload_limited,
                     "command_error": payload_command_error,
-                    "float:": payload_float,
+                    "float": payload_float,
                     "json": payload_json}
         except:
             raise
