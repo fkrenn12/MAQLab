@@ -7,6 +7,7 @@ from numpy import clip
 import asyncio
 # --------------------------------------------------------
 from Devices.Manson import NTP6531 as _NTP6531
+import copy
 
 
 def anydef():
@@ -60,6 +61,8 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                 if next_exe is None:
                     # we need a new thread
                     next_exe = Extensions.Execute_command()
+                    next_exe.sp = self.sp
+                    next_exe.t = copy.deepcopy(t)
                     self.executions.append(next_exe)
 
                 next_exe.data = self.command_data(t["command"], p)
@@ -68,6 +71,8 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                     next_exe.start()
                 except:
                     pass
+
+                print("#Threads:" + str(len(self.executions)))
 
 
 
@@ -120,9 +125,8 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
             # V O L T A G E - Handling
             # ------------------------------------------------------------------------------------------------
             elif topic == "vdc?":
-                x = eval("self.volt_as_string")
                 # return self.topic_reply, self.volt_as_string
-                return self.topic_reply, x
+                return Extensions.HANDLER_STATUS_ACCEPTED , self.volt_as_string
             elif topic == "applied_vdc?":
                 return self.topic_reply, str(self.apply_volt) + " VDC"
 

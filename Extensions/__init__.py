@@ -3,6 +3,10 @@ import datetime
 import time
 import shared as s
 
+HANDLER_STATUS_ACCEPTED  = "accept"
+HANDLER_STATUS_ERROR = "error"
+HANDLER_STATUS_COMMAND_ERROR = "command_error"
+HANDLER_STATUS_PAYLOAD_ERROR = "payload_error"
 
 class Execute_command(threading.Thread):
     def __init__(self, sleep_interval=1):
@@ -17,6 +21,8 @@ class Execute_command(threading.Thread):
         self.interval = 1
         self.data = None
         self.__exe_counter = 0
+        self.sp = None
+        self.t = dict()
 
     def run(self):
 
@@ -37,7 +43,10 @@ class Execute_command(threading.Thread):
                 #    print(self.data["functions"])
                 handler = self.data["handler"]
                 if hasattr(handler, '__call__'):
-                    handler(self.data["command"], self.data["payload"])
+                    status, value = handler(self.data["command"], self.data["payload"])
+                    if status == HANDLER_STATUS_ACCEPTED:
+                        self.sp.publish(self.t["reply"], str(value))
+
                     # handler("vdc?", 0)
                 self.__exe_counter += 1
             else:
