@@ -1,18 +1,10 @@
+from Devices.Manson import NTP6531 as _NTP6531
 import datetime
 import threading
 import time
 import Extensions
-from external_modules.subpub import SubPub
 from numpy import clip
-import asyncio
-# --------------------------------------------------------
-from Devices.Manson import NTP6531 as _NTP6531
 import copy
-
-
-def anydef():
-    print("ANYDEF")
-    pass
 
 
 class NTP6531(_NTP6531.NTP6531, Extensions.Device):
@@ -20,21 +12,17 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
     def __init__(self, _port, _baudrate=9600):
         _NTP6531.NTP6531.__init__(self, _port, _baudrate)
         Extensions.Device.__init__(self)
+        self.__main_lock = threading.Lock()
         self.commands = ["vdc?", "idc?", "vdc", "idc", "output"]
-        self.loop = asyncio.get_event_loop()
         self.__measure_task = None
         self.count = 0
         self.stop = False
-        self.execute = Extensions.Execute_command()
         self.executions = list()
 
     def run(self) -> None:
-        # mt = self.__loop.create_task(self.task_measure())
-
-        # asyncio.run(self.task_measure())
         while True:
             time.sleep(0.01)
-            # we exit this thread loop if the device have been unplugged
+            # we exit this thread loop if the device has been unplugged
             if not self.connected():
                 break
             try:
@@ -48,7 +36,7 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                     raise Exception
 
                 # ---------------------------
-                # conditional creating thread
+                # conditioned creating thread
                 # ---------------------------
                 # check for available existing thread
                 next_exe = None
@@ -58,7 +46,7 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                         break
                 if next_exe is None:
                     # we need a new thread
-                    next_exe = Extensions.Execute_command()
+                    next_exe = Extensions.Execute_command(self.__main_lock)
                     self.executions.append(next_exe)
                     next_exe.sp = self.sp
 

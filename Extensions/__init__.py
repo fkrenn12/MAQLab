@@ -19,9 +19,10 @@ class Data:
 
 
 class Execute_command(threading.Thread):
-    def __init__(self):
+    def __init__(self, lock):
         super().__init__()
         self.__lock = threading.Lock()
+        self.__main_lock = lock
         self.__executing = False
         self.__exe_counter = 0
         self.data_measure = None
@@ -40,19 +41,20 @@ class Execute_command(threading.Thread):
                 try:
                     if hasattr(self.handler, '__call__'):
                         print("Executing:" + self.data_measure.command + " " + str(self.__exe_counter))
-                        status, value = self.handler(self.data_measure.command, self.data_measure.payload)
-                        if status == HANDLER_STATUS_VALUE:
-                            self.sp.publish(self.data_reply.reply, str(value))
-                        elif status == HANDLER_STATUS_ACCEPTED:
-                            self.sp.publish(self.data_reply.reply, self.data_reply.accepted + " " + timestamp)
-                        elif status == HANDLER_STATUS_LIMITED:
-                            self.sp.publish(self.data_reply.reply, self.data_reply.limited + " " + timestamp)
-                        elif status == HANDLER_STATUS_COMMAND_ERROR:
-                            self.sp.publish(self.data_reply.reply, self.data_reply.command_error + " " + timestamp)
-                        elif status == HANDLER_STATUS_PAYLOAD_ERROR:
-                            self.sp.publish(self.data_reply.reply, self.data_reply.error + " " + value + " " + timestamp)
-                        else:
-                            raise Exception
+                        with self.__main_lock:
+                            status, value = self.handler(self.data_measure.command, self.data_measure.payload)
+                            if status == HANDLER_STATUS_VALUE:
+                                self.sp.publish(self.data_reply.reply, str(value))
+                            elif status == HANDLER_STATUS_ACCEPTED:
+                                self.sp.publish(self.data_reply.reply, self.data_reply.accepted + " " + timestamp)
+                            elif status == HANDLER_STATUS_LIMITED:
+                                self.sp.publish(self.data_reply.reply, self.data_reply.limited + " " + timestamp)
+                            elif status == HANDLER_STATUS_COMMAND_ERROR:
+                                self.sp.publish(self.data_reply.reply, self.data_reply.command_error + " " + timestamp)
+                            elif status == HANDLER_STATUS_PAYLOAD_ERROR:
+                                self.sp.publish(self.data_reply.reply, self.data_reply.error + " " + value + " " + timestamp)
+                            else:
+                                raise Exception
                 except:
                     self.sp.publish(self.data_reply.reply, "Internal Error " + timestamp)
 
@@ -61,7 +63,10 @@ class Execute_command(threading.Thread):
                 pass
 
             if self.__exe_counter >= self.data_measure.repetitions:
-                self.executing = False
+                with self.__lock:
+                    self.executing = False
+            else:
+                time.sleep(self.data_measure.interval)
 
     def __get_executing(self):
         with self.__lock:
