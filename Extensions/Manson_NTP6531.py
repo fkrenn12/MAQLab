@@ -26,27 +26,8 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
         self.__measure_task = None
         self.count = 0
         self.stop = False
-        self.execute = Extensions.Execute()
-
-
-    async def task_measure(self):
-        while True:
-            try:
-                topic, payload = self.handle_command("vdc?", 0)
-                self.sp.publish(topic, payload)
-                print("TASK " + str(self.count))
-                self.count += 1
-            except:
-                pass
-            await asyncio.sleep(0.1)
-            if self.stop:
-                break
-
-    async def main_task(self):
-        self.__measure_task = self.loop.create_task(self.task_measure())
-        await asyncio.wait([self.__measure_task])
-        # self.__measure_task = asyncio.create_task(self.task_measure())
-        # await asyncio.wait(self.__measure_task)
+        self.execute = Extensions.Execute_command()
+        self.executions = list()
 
     def run(self) -> None:
         # mt = self.__loop.create_task(self.task_measure())
@@ -58,9 +39,33 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
             if not self.connected():
                 break
             try:
-                self.read_from_mqtt()
-                topic, payload = self.handle_command(self.topic_cmd, self.payload_float)
-                self.sp.publish(topic, payload)
+                topic, payload = self.read_from_mqtt()
+                t = self.validate_topic(topic=topic)
+                p = self.validate_payload(payload=payload)
+                try:
+                    self.execute_standard_commands(topic=topic, payload=payload, t=t, p=p)
+                except:
+                    # as standard command executed -> nothing more to do
+                    raise Exception
+
+                # ---------------------------
+                # conditional creating thread
+                # ---------------------------
+                # check for available existing thread
+                next_exe = None
+                for exe in self.executions:
+                    if not exe.executing:
+                        next_exe = exe
+                        break
+                if next_exe is None:
+                    next_exe = Extensions.Execute_command()
+
+
+
+
+
+                # topic, payload = self.handle_command(self.topic_cmd, self.payload_float)
+                # self.sp.publish(topic, payload)
             except Exception:
                 pass
 
@@ -73,16 +78,11 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                             pass
                         self.execute.test = self.volt_as_string
                         self.execute.executing = True
-
-
-                        # asyncio.run_coroutine_threadsafe(self.main_task(), self.loop)
-                        self.__measure_task = self.loop.create_task(self.task_measure())
                     except:
                         pass
                 else:
                     # self.execute.kill()
                     self.execute.executing = False
-                    self.__measure_task.cancel()
 
             self.prev_continous = self.continous
 
@@ -105,8 +105,9 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
             # V O L T A G E - Handling
             # ------------------------------------------------------------------------------------------------
             elif topic == "vdc?":
-                return self.topic_reply, self.volt_as_string
-
+                x = eval("self.volt_as_string")
+                # return self.topic_reply, self.volt_as_string
+                return self.topic_reply, x
             elif topic == "applied_vdc?":
                 return self.topic_reply, str(self.apply_volt) + " VDC"
 

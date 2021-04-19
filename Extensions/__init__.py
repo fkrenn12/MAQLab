@@ -4,14 +4,14 @@ import time
 import shared as s
 
 
-class Execute(threading.Thread):
+class Execute_command(threading.Thread):
     def __init__(self, sleep_interval=1):
         super().__init__()
         self.__lock = threading.Lock()
         self.__executing = False
         self._kill = threading.Event()
         self._executing = threading.Event()
-        self._interval = sleep_interval
+        self.interval = sleep_interval
         self.test = None
 
     def run(self):
@@ -23,13 +23,14 @@ class Execute(threading.Thread):
                 executing = self.__executing
             if executing:
                 # print("Do Something")
+
                 if hasattr(self.test, '__call__'):
                     print(self.test())
                 else:
                     print(self.test)
             else:
                 pass
-            is_killed = self._kill.wait(self._interval)
+            is_killed = self._kill.wait(self.interval)
             if is_killed:
                 break
 
@@ -59,15 +60,21 @@ class Device(threading.Thread):
         self.sp = None
         self.mqtt = None
         self.matching = False
-        self.topic = ""
-        self.topic_reply = ""
-        self.topic_cmd = ""
-        self.payload_error = ""
-        self.payload_accepted = ""
-        self.payload_limited = ""
-        self.payload_command_error = ""
-        self.payload_float = 0
-        self.payload_json = "{}"
+
+    # --------------------------------------------------------
+    #  CREATED
+    # --------------------------------------------------------
+    def on_created(self, port, invent_number, sp):
+        self.__comport = str(port)
+        self.__invent_number = invent_number
+        self.sp = sp  # subpub object
+        print(str(datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into "
+              + self.__comport + ", Accessnumber is: " + str(invent_number))
+        # subscribe to the internal subpub mqtt-broker
+        # we use regular expressions
+        # \A start (.+) beliebig und mindestens ein Zeichen (.+)$ beliebig und mindestens ein Zeichen und ein Ende
+        # | bedeutet "oder" \? ist das Zeichen "?" weil ? in regex eine Bedeutung hat
+        self.mqtt = sp.subscribe("(\A(.+)/cmd/" + self.__invent_number + "/(.+)$)|(\A(.+)cmd/\?$)")
 
     # --------------------------------------------------------
     #  READ FROM MQTT queue
@@ -75,33 +82,39 @@ class Device(threading.Thread):
     def read_from_mqtt(self):
         try:
             match, data = self.mqtt.get(block=False)
-            self.validate(match.string, data)
+            return match.string, data
+            # self.validate(match.string, data)
         except:
             raise Exception
 
     # --------------------------------------------------------
     #  V A L I D A T E
     # --------------------------------------------------------
-    def validate(self, topic, payload):
+    def execute_standard_commands(self, topic, payload, t, p):
         try:
-            self.validate_topic(topic=topic)
-            self.validate_payload(payload=payload)
-            if self.topic_cmd == s.topic_access_number:
-                self.sp.publish(self.topic_reply, str(self.__invent_number))
+            # self.validate_topic(topic=topic)
+            # self.validate_payload(payload=payload)
+            reply = t["reply"]
+            command = t["command"]
+            if command == s.topic_access_number:
+                self.sp.publish(reply, str(self.__invent_number))
                 raise Exception
-            elif not self.matching:
-                raise Exception
-            # matching, so and we handle the standard commands
-            if self.topic_cmd == "?":
-                self.sp.publish(self.topic_reply + "/manufactorer", self.manufactorer)
-                self.sp.publish(self.topic_reply + "/devicetype", self.devicetype)
-                self.sp.publish(self.topic_reply + "/model", self.model)
-                self.sp.publish(self.topic_reply + "/serialnumber", str(self.serialnumber))
-                self.sp.publish(self.topic_reply + "/commands", str(self.commands))
-                raise Exception
-            elif self.topic_cmd == "echo?" or self.topic_cmd == "ping?":
-                self.sp.publish(self.topic_reply, str(datetime.datetime.utcnow()))
-                raise Exception
+
+            if self.matching:
+                # matching, we handle the standard commands
+                if command == "?":
+                    self.sp.publish(reply + "/manufactorer", self.manufactorer)
+                    self.sp.publish(reply + "/devicetype", self.devicetype)
+                    self.sp.publish(reply + "/model", self.model)
+                    self.sp.publish(reply + "/serialnumber", str(self.serialnumber))
+                    self.sp.publish(reply + "/commands", str(self.commands))
+                    raise Exception
+                elif command == "echo?" or reply == "ping?":
+                    self.sp.publish(reply, str(datetime.datetime.utcnow()))
+                    raise Exception
+            else:
+                # accessnumber is not matching
+                return
         except:
             raise Exception
 
@@ -136,10 +149,11 @@ class Device(threading.Thread):
                     command = command.replace(" ", "")
                     if topic_splitted[index_of_cmd + 1] == str(self.__invent_number):
                         matching = True
-                self.topic = topic
-                self.topic_cmd = command
-                self.topic_reply = reply_topic
-                self.matching = matching
+                return {"topic": topic, "command": command, "reply": reply_topic, "matching": matching}
+                # self.topic = topic
+                # self.topic_cmd = command
+                # self.topic_reply = reply_topic
+                # self.matching = matching
             except:
                 raise Exception
         else:
@@ -150,12 +164,12 @@ class Device(threading.Thread):
     # --------------------------------------------------------
     def validate_payload(self, payload):
         timestamp = str(datetime.datetime.utcnow())
-        self.payload_error = s.payload_error + " " + timestamp
-        self.payload_accepted = s.payload_accepted + " " + timestamp
-        self.payload_limited = s.payload_limited + " " + timestamp
-        self.payload_command_error = s.payload_command_error + " " + timestamp
-        self.payload_float = 0
-        self.payload_json = "{}"
+        payload_error = s.payload_error + " " + timestamp
+        payload_accepted = s.payload_accepted + " " + timestamp
+        payload_limited = s.payload_limited + " " + timestamp
+        payload_command_error = s.payload_command_error + " " + timestamp
+        payload_float = 0
+        payload_json = "{}"
         try:
             try:
                 payload = payload.decode("utf-8")
@@ -165,33 +179,27 @@ class Device(threading.Thread):
                 payload = payload.strip(" ")
                 if not (str(payload).startswith("{") and str(payload).endswith("}")):
                     raise
-                self.payload_json = payload
+                payload_json = payload
             except:
                 # it is not json
                 # print("NO JSON")
                 if payload == "":
                     payload = "0"
                 try:
-                    self.payload_float = float(payload)
+                    payload_float = float(payload)
                 except:
-                    self.payload_float = 0.0
+                    payload_float = 0.0
+
+            return {"error": payload_error,
+                    "accepted": payload_accepted,
+                    "limited": payload_limited,
+                    "command_error": payload_command_error,
+                    "float:": payload_float,
+                    "json": payload_json}
         except:
             raise
 
-    # --------------------------------------------------------
-    #  CREATED
-    # --------------------------------------------------------
-    def on_created(self, port, invent_number, sp):
-        self.__comport = str(port)
-        self.__invent_number = invent_number
-        self.sp = sp  # subpub object
-        print(str(datetime.datetime.now()) + "  :" + self.devicetype + " " + self.model + " plugged into "
-              + self.__comport + ", Accessnumber is: " + str(invent_number))
-        # subscribe to the internal subpub mqtt-broker
-        # we use regular expressions
-        # \A start (.+) beliebig und mindestens ein Zeichen (.+)$ beliebig und mindestens ein Zeichen und ein Ende
-        # | bedeutet "oder" \? ist das Zeichen "?" weil ? in regex eine Bedeutung hat
-        self.mqtt = sp.subscribe("(\A(.+)/cmd/" + self.__invent_number + "/(.+)$)|(\A(.+)cmd/\?$)")
+
 
     # --------------------------------------------------------
     #  DESTROYED
