@@ -3,10 +3,12 @@ import datetime
 import time
 import shared as s
 
-HANDLER_STATUS_ACCEPTED  = "accept"
-HANDLER_STATUS_ERROR = "error"
+HANDLER_STATUS_VALUE = "val"
+HANDLER_STATUS_ACCEPTED = "accept"
+HANDLER_STATUS_LIMITED = "limited"
 HANDLER_STATUS_COMMAND_ERROR = "command_error"
 HANDLER_STATUS_PAYLOAD_ERROR = "payload_error"
+
 
 class Data:
     def __init__(self, **kwargs):
@@ -16,64 +18,50 @@ class Data:
         self.__dict__.update(kwargs)
 
 
-
 class Execute_command(threading.Thread):
-    def __init__(self, sleep_interval=1):
+    def __init__(self):
         super().__init__()
         self.__lock = threading.Lock()
         self.__executing = False
-        self._kill = threading.Event()
-        self._executing = threading.Event()
-        self.interval = sleep_interval
-        self.function = None
-        self.repetitions = 1
-        self.interval = 1
-        self.data = None
         self.__exe_counter = 0
+        self.data_measure = None
+        self.data_reply = None
         self.sp = None
-        self.t = dict()
+        self.handler = None
 
     def run(self):
 
         while True:
             time.sleep(0.01)
-            executing = False
             with self.__lock:
                 executing = self.__executing
             if executing:
-                # print("Do Something")
-                # print(self.data["function"])
-                # x = self.data["function"]
-                # print(eval(x))
-
-                # if hasattr(self.data["functions"], '__call__'):
-                #    print(self.data["functions"]())
-                #else:
-                #    print(self.data["functions"])
-                handler = self.data["handler"]
                 timestamp = str(datetime.datetime.utcnow())
-                if hasattr(handler, '__call__'):
-                    status, value = handler(self.data["command"], self.data["payload"])
-                    if status == HANDLER_STATUS_ACCEPTED:
-                        self.sp.publish(self.t["reply"], str(value))
+                try:
+                    if hasattr(self.handler, '__call__'):
+                        print("Executing:" + self.data_measure.command + " " + str(self.__exe_counter))
+                        status, value = self.handler(self.data_measure.command, self.data_measure.payload)
+                        if status == HANDLER_STATUS_VALUE:
+                            self.sp.publish(self.data_reply.reply, str(value))
+                        elif status == HANDLER_STATUS_ACCEPTED:
+                            self.sp.publish(self.data_reply.reply, self.data_reply.accepted + " " + timestamp)
+                        elif status == HANDLER_STATUS_LIMITED:
+                            self.sp.publish(self.data_reply.reply, self.data_reply.limited + " " + timestamp)
+                        elif status == HANDLER_STATUS_COMMAND_ERROR:
+                            self.sp.publish(self.data_reply.reply, self.data_reply.command_error + " " + timestamp)
+                        elif status == HANDLER_STATUS_PAYLOAD_ERROR:
+                            self.sp.publish(self.data_reply.reply, self.data_reply.error + " " + value + " " + timestamp)
+                        else:
+                            raise Exception
+                except:
+                    self.sp.publish(self.data_reply.reply, "Internal Error " + timestamp)
 
-                    # handler("vdc?", 0)
                 self.__exe_counter += 1
             else:
                 pass
 
-            is_killed = self._kill.wait(self.data["interval"])
-            if is_killed:
-                break
-
-            if self.__exe_counter >= self.data["repetitions"]:
+            if self.__exe_counter >= self.data_measure.repetitions:
                 self.executing = False
-
-
-        print("Killing Thread")
-
-    def kill(self):
-        self._kill.set()
 
     def __get_executing(self):
         with self.__lock:
@@ -126,27 +114,23 @@ class Device(threading.Thread):
     # --------------------------------------------------------
     #  V A L I D A T E
     # --------------------------------------------------------
-    def execute_standard_commands(self, topic, payload, t, p):
+    def execute_standard_commands(self, data):
         try:
-            # self.validate_topic(topic=topic)
-            # self.validate_payload(payload=payload)
-            reply = t["reply"]
-            command = t["command"]
-            if command == s.topic_access_number:
-                self.sp.publish(reply, str(self.__invent_number))
+            if data.command == s.topic_access_number:
+                self.sp.publish(data.reply, str(self.__invent_number))
                 raise Exception
 
-            if t["matching"]:
+            if data.matching:
                 # matching, we handle the standard commands
-                if command == "?":
-                    self.sp.publish(reply + "/manufactorer", self.manufactorer)
-                    self.sp.publish(reply + "/devicetype", self.devicetype)
-                    self.sp.publish(reply + "/model", self.model)
-                    self.sp.publish(reply + "/serialnumber", str(self.serialnumber))
-                    self.sp.publish(reply + "/commands", str(self.commands))
+                if data.command == "?":
+                    self.sp.publish(data.reply + "/manufactorer", self.manufactorer)
+                    self.sp.publish(data.reply + "/devicetype", self.devicetype)
+                    self.sp.publish(data.reply + "/model", self.model)
+                    self.sp.publish(data.reply + "/serialnumber", str(self.serialnumber))
+                    self.sp.publish(data.reply + "/commands", str(self.commands))
                     raise Exception
-                elif command == "echo?" or reply == "ping?":
-                    self.sp.publish(reply, str(datetime.datetime.utcnow()))
+                elif data.command == "echo?" or data.reply == "ping?":
+                    self.sp.publish(data.reply, str(datetime.datetime.utcnow()))
                     raise Exception
             else:
                 # accessnumber is not matching
@@ -222,12 +206,6 @@ class Device(threading.Thread):
                 except:
                     payload_float = 0.0
 
-            #return {"error": payload_error,
-            #        "accepted": payload_accepted,
-            #        "limited": payload_limited,
-            #        "command_error": payload_command_error,
-            #        "float": payload_float,
-            #        "json": payload_json}
             return Data(error=payload_error,
                         accepted=payload_accepted,
                         limited=payload_limited,
@@ -236,8 +214,6 @@ class Device(threading.Thread):
                         json=payload_json)
         except:
             raise
-
-
 
     # --------------------------------------------------------
     #  DESTROYED

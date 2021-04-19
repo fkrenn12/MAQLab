@@ -21,8 +21,6 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
         _NTP6531.NTP6531.__init__(self, _port, _baudrate)
         Extensions.Device.__init__(self)
         self.commands = ["vdc?", "idc?", "vdc", "idc", "output"]
-        self.continous = False
-        self.prev_continous = self.continous
         self.loop = asyncio.get_event_loop()
         self.__measure_task = None
         self.count = 0
@@ -41,17 +39,10 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                 break
             try:
                 topic, payload = self.read_from_mqtt()
-                t = self.validate_topic(topic=topic)
-                p = self.validate_payload(payload=payload)
-                print(t.__dict__)
-                s = copy.deepcopy(t)
-                print(s.__dict__)
-                del t
-                del p
-                print(s.__dict__)
-                print(t.__dict__)
+                data_reply = self.validate_topic(topic=topic)
+                data_reply.__dict__.update(self.validate_payload(payload=payload).__dict__)
                 try:
-                    self.execute_standard_commands(topic=topic, payload=payload, t=t, p=p)
+                    self.execute_standard_commands(data=data_reply)
                 except:
                     # as standard command executed -> nothing more to do
                     raise Exception
@@ -68,179 +59,155 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                 if next_exe is None:
                     # we need a new thread
                     next_exe = Extensions.Execute_command()
-                    next_exe.sp = self.sp
-                    next_exe.t = copy.deepcopy(t)
                     self.executions.append(next_exe)
+                    next_exe.sp = self.sp
 
-                next_exe.data = self.command_data(t["command"], p)
+                next_exe.data_reply = copy.deepcopy(data_reply)
+                next_exe.data_measure = copy.deepcopy(self.command_data(data=data_reply))
+                next_exe.handler = self.handle_command
                 next_exe.executing = True
                 try:
                     next_exe.start()
                 except:
                     pass
+                del data_reply
 
                 print("#Threads:" + str(len(self.executions)))
-
-
-
-
-
-
-                # topic, payload = self.handle_command(self.topic_cmd, self.payload_float)
-                # self.sp.publish(topic, payload)
             except Exception:
                 pass
 
-            if self.continous != self.prev_continous:
-                if self.continous:
-                    try:
-                        try:
-                            self.execute.start()
-                        except:
-                            pass
-                        self.execute.test = self.volt_as_string
-                        self.execute.executing = True
-                    except:
-                        pass
-                else:
-                    # self.execute.kill()
-                    self.execute.executing = False
-
-            self.prev_continous = self.continous
-
             continue
 
-    def command_data(self,command,p):
+    # ------------------------------------------------------------------------------------------------
+    # COMMAND DATA
+    # ------------------------------------------------------------------------------------------------
+    def command_data(self, data):
         repetitions = 1
-        interval = 1
-
-        return ({"handler": self.handle_command, "command": command, "repetitions": repetitions, "interval": interval, "payload" : p["float"]})
+        interval = 2
+        return Extensions.Data(
+            command=data.command,
+            repetitions=repetitions,
+            interval=interval,
+            payload=data.float)
 
     # ------------------------------------------------------------------------------------------------
     # COMMAND - Handler
     # ------------------------------------------------------------------------------------------------
-    def handle_command(self, topic, payload_float):
+    def handle_command(self, topic, value):
         try:
             if topic == "output":
-                if int(payload_float) == 0 or int(payload_float) == 1:
-                    if int(payload_float) == 0:
+                if int(value) == 0 or int(value) == 1:
+                    if int(value) == 0:
                         self.output_off()
-                    elif int(payload_float) == 1:
+                    elif int(value) == 1:
                         self.output_on()
-                    return self.topic_reply, self.payload_accepted
-                return self.topic_reply, self.payload_error
+                    return Extensions.HANDLER_STATUS_ACCEPTED, 0
+                return Extensions.HANDLER_STATUS_PAYLOAD_ERROR, 0
             # ------------------------------------------------------------------------------------------------
             # V O L T A G E - Handling
             # ------------------------------------------------------------------------------------------------
             elif topic == "vdc?":
                 # return self.topic_reply, self.volt_as_string
-                return Extensions.HANDLER_STATUS_ACCEPTED , self.volt_as_string
+                return Extensions.HANDLER_STATUS_VALUE, self.volt_as_string
+
             elif topic == "applied_vdc?":
-                return self.topic_reply, str(self.apply_volt) + " VDC"
+                return Extensions.HANDLER_STATUS_VALUE, str(self.apply_volt) + " VDC"
 
             elif topic == "vdc":
-                # checking the self.payload_float limits
-                val = clip(self.payload_float, _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT, _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT)
-                val = clip(val, self.volt_limit_lower, self.volt_limit_upper)
-                self.apply_volt = val
-                if val == self.payload_float:
-                    return self.topic_reply, self.payload_accepted
-                return self.topic_reply, self.payload_limited
+                # checking the value limits
+                clipped = clip(value, _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT, _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT)
+                clipped = clip(clipped, self.volt_limit_lower, self.volt_limit_upper)
+                self.apply_volt = clipped
+                if clipped == value:
+                    return Extensions.HANDLER_STATUS_ACCEPTED, 0
+                return Extensions.HANDLER_STATUS_LIMITED, 0
 
             elif topic == "vmax?":
-                return self.topic_reply, str(_NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT) + " VDC"
+                return Extensions.HANDLER_STATUS_VALUE, str(_NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT) + " VDC"
 
             elif topic == "vmin?":
-                return self.topic_reply, str(_NTP6531.NTP6531_VOLTAGE_LOW_LIMIT) + " VDC"
+                return Extensions.HANDLER_STATUS_VALUE, str(_NTP6531.NTP6531_VOLTAGE_LOW_LIMIT) + " VDC"
 
             elif topic == "vlimit_up?":
-                return self.topic_reply, str(self.volt_limit_upper) + " VDC"
+                return Extensions.HANDLER_STATUS_VALUE, str(self.volt_limit_upper) + " VDC"
 
             elif topic == "vlimit_up":
                 # checking limits
-                val = clip(self.payload_float, _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT, _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT)
-                self.volt_limit_upper = val
-                if self.payload_float == val:
-                    return self.topic_reply, self.payload_accepted
-                return self.topic_reply, self.payload_limited
+                clipped = clip(value, _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT, _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT)
+                self.volt_limit_upper = clipped
+                if value == clipped:
+                    return Extensions.HANDLER_STATUS_ACCEPTED, 0
+                return Extensions.HANDLER_STATUS_LIMITED, 0
 
             elif topic == "vlimit_low?":
-                return self.topic_reply, str(self.volt_limit_lower) + " VDC"
+                return Extensions.HANDLER_STATUS_VALUE, str(self.volt_limit_lower) + " VDC"
 
             elif topic == "vlimit_low":
                 # checking limits
-                val = clip(self.payload_float, _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT, _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT)
-                self.volt_limit_lower = val
-                if self.payload_float == val:
-                    return self.topic_reply, self.payload_accepted
-                return self.topic_reply, self.payload_limited
+                clipped = clip(value, _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT, _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT)
+                self.volt_limit_lower = clipped
+                if value == clipped:
+                    return Extensions.HANDLER_STATUS_ACCEPTED, 0
+                return Extensions.HANDLER_STATUS_LIMITED, 0
 
             # ------------------------------------------------------------------------------------------------
             # C U R R E N T - Handling
             # ------------------------------------------------------------------------------------------------
             elif topic == "idc":
                 # checking limits
-                val = clip(self.payload_float, _NTP6531.NTP6531_CURRENT_LOW_LIMIT, _NTP6531.NTP6531_CURRENT_HIGH_LIMIT)
-                val = clip(val, self.current_limit_lower, self.current_limit_upper)
-                self.apply_current = val
-                if self.payload_float == val:
-                    return self.topic_reply, self.payload_accepted
-                return self.topic_reply, self.payload_limited
+                clipped = clip(value, _NTP6531.NTP6531_CURRENT_LOW_LIMIT, _NTP6531.NTP6531_CURRENT_HIGH_LIMIT)
+                clipped = clip(clipped, self.current_limit_lower, self.current_limit_upper)
+                self.apply_current = clipped
+                if value == clipped:
+                    return Extensions.HANDLER_STATUS_ACCEPTED, 0
+                return Extensions.HANDLER_STATUS_LIMITED, 0
 
             elif topic == "applied_idc?":
-                return self.topic_reply, str(self.apply_current) + " ADC"
+                return Extensions.HANDLER_STATUS_VALUE, str(self.apply_current) + " ADC"
 
             elif topic == "idc?":
-                return self.topic_reply, self.current_as_string
+                return Extensions.HANDLER_STATUS_VALUE, self.current_as_string
 
             elif topic == "imax?":
-                return self.topic_reply, str(_NTP6531.NTP6531_CURRENT_HIGH_LIMIT) + " ADC"
+                return Extensions.HANDLER_STATUS_VALUE, str(_NTP6531.NTP6531_CURRENT_HIGH_LIMIT) + " ADC"
 
             elif topic == "imin?":
-                return self.topic_reply, str(_NTP6531.NTP6531_CURRENT_LOW_LIMIT) + " ADC"
+                return Extensions.HANDLER_STATUS_VALUE, str(_NTP6531.NTP6531_CURRENT_LOW_LIMIT) + " ADC"
 
             elif topic == "ilimit_up?":
-                return self.topic_reply, str(self.current_limit_upper) + " ADC"
+                return Extensions.HANDLER_STATUS_VALUE, str(self.current_limit_upper) + " ADC"
 
             elif topic == "ilimit_up":
                 # checking limits
-                val = clip(self.payload_float, _NTP6531.NTP6531_CURRENT_LOW_LIMIT, _NTP6531.NTP6531_CURRENT_HIGH_LIMIT)
-                self.current_limit_upper = val
-                if self.payload_float == val:
-                    return self.topic_reply, self.payload_accepted
-                return self.topic_reply, self.payload_limited
+                clipped = clip(value, _NTP6531.NTP6531_CURRENT_LOW_LIMIT, _NTP6531.NTP6531_CURRENT_HIGH_LIMIT)
+                self.current_limit_upper = clipped
+                if value == clipped:
+                    return Extensions.HANDLER_STATUS_ACCEPTED, 0
+                return Extensions.HANDLER_STATUS_LIMITED, 0
 
             elif topic == "ilimit_low?":
-                return self.topic_reply, str(self.current_limit_lower) + " ADC"
+                return Extensions.HANDLER_STATUS_VALUE, str(self.current_limit_lower) + " ADC"
 
             elif topic == "ilimit_low":
                 # checking limits
-                val = clip(self.payload_float, _NTP6531.NTP6531_CURRENT_LOW_LIMIT, _NTP6531.NTP6531_CURRENT_HIGH_LIMIT)
-                self.current_limit_lower = val
-                if self.payload_float == val:
-                    return self.topic_reply, self.payload_accepted
-                return self.topic_reply, self.payload_limited
+                clipped = clip(value, _NTP6531.NTP6531_CURRENT_LOW_LIMIT, _NTP6531.NTP6531_CURRENT_HIGH_LIMIT)
+                self.current_limit_lower = clipped
+                if value == clipped:
+                    return Extensions.HANDLER_STATUS_ACCEPTED, 0
+                return Extensions.HANDLER_STATUS_LIMITED, 0
 
             # ------------------------------------------------------------------------------------------------
             # O T H E R - Handling
             # ------------------------------------------------------------------------------------------------
             elif topic == "cmode?":
-                return self.topic_reply, self.source_mode
+                return Extensions.HANDLER_STATUS_VALUE, self.source_mode
 
             elif topic == "disable_hsm":
                 self.disable_human_safety_mode()
-                return self.topic_reply, self.payload_accepted
-
-            elif topic == "@vdc?":
-                self.continous = True
-                return self.topic_reply, self.payload_accepted
-
-            elif topic == "!@vdc?":
-                self.continous = False
-                return self.topic_reply, self.payload_accepted
+                return Extensions.HANDLER_STATUS_ACCEPTED, 0
 
         except Exception as e:
-            return self.topic_reply, self.payload_error + ":" + str(e)
+            return Extensions.HANDLER_STATUS_PAYLOAD_ERROR, str(e)
 
         # here we if no valid command was detected
-        return self.topic_reply, self.payload_command_error
+        return Extensions.HANDLER_STATUS_COMMAND_ERROR, 0
