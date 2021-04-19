@@ -43,6 +43,13 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                 topic, payload = self.read_from_mqtt()
                 t = self.validate_topic(topic=topic)
                 p = self.validate_payload(payload=payload)
+                print(t.__dict__)
+                s = copy.deepcopy(t)
+                print(s.__dict__)
+                del t
+                del p
+                print(s.__dict__)
+                print(t.__dict__)
                 try:
                     self.execute_standard_commands(topic=topic, payload=payload, t=t, p=p)
                 except:
@@ -73,6 +80,7 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
                     pass
 
                 print("#Threads:" + str(len(self.executions)))
+
 
 
 

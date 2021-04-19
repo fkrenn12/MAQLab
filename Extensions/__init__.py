@@ -8,6 +8,15 @@ HANDLER_STATUS_ERROR = "error"
 HANDLER_STATUS_COMMAND_ERROR = "command_error"
 HANDLER_STATUS_PAYLOAD_ERROR = "payload_error"
 
+class Data:
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+    def add(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
+
 class Execute_command(threading.Thread):
     def __init__(self, sleep_interval=1):
         super().__init__()
@@ -42,6 +51,7 @@ class Execute_command(threading.Thread):
                 #else:
                 #    print(self.data["functions"])
                 handler = self.data["handler"]
+                timestamp = str(datetime.datetime.utcnow())
                 if hasattr(handler, '__call__'):
                     status, value = handler(self.data["command"], self.data["payload"])
                     if status == HANDLER_STATUS_ACCEPTED:
@@ -175,7 +185,8 @@ class Device(threading.Thread):
                     command = command.replace(" ", "")
                     if topic_splitted[index_of_cmd + 1] == str(self.__invent_number):
                         matching = True
-                return {"topic": topic, "command": command, "reply": reply_topic, "matching": matching}
+                # return {"topic": topic, "command": command, "reply": reply_topic, "matching": matching}
+                return Data(topic=topic, command=command, reply=reply_topic, matching=matching)
             except:
                 raise Exception
         else:
@@ -185,11 +196,10 @@ class Device(threading.Thread):
     #  V A L I D A T E  incoming  P A Y L O A D
     # --------------------------------------------------------
     def validate_payload(self, payload):
-        timestamp = str(datetime.datetime.utcnow())
-        payload_error = s.payload_error + " " + timestamp
-        payload_accepted = s.payload_accepted + " " + timestamp
-        payload_limited = s.payload_limited + " " + timestamp
-        payload_command_error = s.payload_command_error + " " + timestamp
+        payload_error = s.payload_error
+        payload_accepted = s.payload_accepted
+        payload_limited = s.payload_limited
+        payload_command_error = s.payload_command_error
         payload_float = 0
         payload_json = "{}"
         try:
@@ -212,12 +222,18 @@ class Device(threading.Thread):
                 except:
                     payload_float = 0.0
 
-            return {"error": payload_error,
-                    "accepted": payload_accepted,
-                    "limited": payload_limited,
-                    "command_error": payload_command_error,
-                    "float": payload_float,
-                    "json": payload_json}
+            #return {"error": payload_error,
+            #        "accepted": payload_accepted,
+            #        "limited": payload_limited,
+            #        "command_error": payload_command_error,
+            #        "float": payload_float,
+            #        "json": payload_json}
+            return Data(error=payload_error,
+                        accepted=payload_accepted,
+                        limited=payload_limited,
+                        command_error=payload_command_error,
+                        float=payload_float,
+                        json=payload_json)
         except:
             raise
 
