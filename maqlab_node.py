@@ -1,15 +1,14 @@
 import asyncio
-import aioserial
 import datetime
 import json
 import secrets
-import time
 import external_modules.subpub.subpub as subpub
-import external_modules.configobj as configobj
+from external_modules.configobj import ConfigObj
 import paho.mqtt.client as paho
-
+import os
 from scan_serial import scan_serial_devices
 from scan_tcp import scan_tcp_devices
+import glob
 
 from Extensions.Manson_NTP6531 import NTP6531
 from Extensions.BKPrecision_2831E import BK2831E
@@ -18,8 +17,11 @@ from Extensions.Delta_SM70AR24 import SM70AR24
 from Extensions.Fluke_NORMA4000 import NORMA4000
 
 sp = subpub.SubPub()
-cfg = configobj.ConfigObj()  # prepared for future use
-mqtt_device_reply1 = sp.subscribe("maqlab(.+)/rep/(.+)$")
+config_files = glob.glob(os.path.dirname(os.path.abspath(__file__)) + "/**/*.conf", recursive=True)
+for file in config_files:
+    cfg = ConfigObj(file)  # prepared for future use
+
+mqtt_device_reply = sp.subscribe("maqlab(.+)/rep/(.+)$")
 
 client = paho.Client()
 inventory = None
@@ -139,8 +141,8 @@ async def mqttloop(_client):
 
         # check the reply queues from the devices
         # and send messages to the MQTT-broker
-        if not mqtt_device_reply1.empty():
-            match, data = mqtt_device_reply1.get()
+        if not mqtt_device_reply.empty():
+            match, data = mqtt_device_reply.get()
             _client.publish(match.string, data)
 
 
