@@ -4,8 +4,8 @@ import datetime
 import json
 import secrets
 import time
-import external_modules.subpub as subpub
-
+import external_modules.subpub.subpub as subpub
+import external_modules.configobj as configobj
 import paho.mqtt.client as paho
 
 from scan_serial import scan_serial_devices
@@ -18,6 +18,7 @@ from Extensions.Delta_SM70AR24 import SM70AR24
 from Extensions.Fluke_NORMA4000 import NORMA4000
 
 sp = subpub.SubPub()
+cfg = configobj.ConfigObj()  # prepared for future use
 mqtt_device_reply1 = sp.subscribe("maqlab(.+)/rep/(.+)$")
 
 client = paho.Client()
@@ -312,7 +313,6 @@ async def remove_loop():
                     del dev
         except:
             pass
-
 
 
 # ------------------------------------------------------------------------------

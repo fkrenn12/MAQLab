@@ -1,87 +1,18 @@
 from Devices.Manson import NTP6531 as _NTP6531
-import datetime
-import threading
-import time
 import Extensions
 from numpy import clip
-import copy
 
 
 class NTP6531(_NTP6531.NTP6531, Extensions.Device):
-
     def __init__(self, _port, _baudrate=9600):
-        _NTP6531.NTP6531.__init__(self, _port, _baudrate)
-        Extensions.Device.__init__(self)
-        self.__main_lock = threading.Lock()
+        eval("_NTP6531.NTP6531.__init__(self, _port, _baudrate)")
+        eval("Extensions.Device.__init__(self)")
         self.commands = ["vdc?", "idc?", "vdc", "idc", "output"]
-        self.__measure_task = None
-        self.count = 0
-        self.stop = False
-        self.executions = list()
-
-    def run(self) -> None:
-        while True:
-            time.sleep(0.01)
-            # we exit this thread loop if the device has been unplugged
-            if not self.connected():
-                break
-            try:
-                topic, payload = self.read_from_mqtt()
-                data_reply = self.validate_topic(topic=topic)
-                data_reply.__dict__.update(self.validate_payload(payload=payload).__dict__)
-                try:
-                    self.execute_standard_commands(data=data_reply)
-                except:
-                    # as standard command executed -> nothing more to do
-                    raise Exception
-
-                # ---------------------------
-                # conditioned creating thread
-                # ---------------------------
-                # check for available existing thread
-                next_exe = None
-                for exe in self.executions:
-                    if not exe.executing:
-                        next_exe = exe
-                        break
-                if next_exe is None:
-                    # we need a new thread
-                    next_exe = Extensions.Execute_command(self.__main_lock)
-                    self.executions.append(next_exe)
-                    next_exe.sp = self.sp
-
-                next_exe.data_reply = copy.deepcopy(data_reply)
-                next_exe.data_measure = copy.deepcopy(self.command_data(data=data_reply))
-                next_exe.handler = self.handle_command
-                next_exe.executing = True
-                try:
-                    next_exe.start()
-                except:
-                    pass
-                del data_reply
-
-                print("#Threads:" + str(len(self.executions)))
-            except Exception:
-                pass
-
-            continue
-
-    # ------------------------------------------------------------------------------------------------
-    # COMMAND DATA
-    # ------------------------------------------------------------------------------------------------
-    def command_data(self, data):
-        repetitions = 1
-        interval = 2
-        return Extensions.Data(
-            command=data.command,
-            repetitions=repetitions,
-            interval=interval,
-            payload=data.float)
 
     # ------------------------------------------------------------------------------------------------
     # COMMAND - Handler
     # ------------------------------------------------------------------------------------------------
-    def handle_command(self, topic, value):
+    def handler(self, topic, value):
         try:
             if topic == "output":
                 if int(value) == 0 or int(value) == 1:
@@ -96,16 +27,17 @@ class NTP6531(_NTP6531.NTP6531, Extensions.Device):
             # ------------------------------------------------------------------------------------------------
             elif topic == "vdc?":
                 # return self.topic_reply, self.volt_as_string
-                return Extensions.HANDLER_STATUS_VALUE, self.volt_as_string
+                return eval("Extensions.HANDLER_STATUS_VALUE"), eval("self.volt_as_string")
 
             elif topic == "applied_vdc?":
-                return Extensions.HANDLER_STATUS_VALUE, str(self.apply_volt) + " VDC"
+                return Extensions.HANDLER_STATUS_VALUE, str(eval("self.apply_volt")) + " VDC"
 
             elif topic == "vdc":
                 # checking the value limits
-                clipped = clip(value, _NTP6531.NTP6531_VOLTAGE_LOW_LIMIT, _NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT)
-                clipped = clip(clipped, self.volt_limit_lower, self.volt_limit_upper)
-                self.apply_volt = clipped
+                clipped = clip(value, eval("_NTP6531.NTP6531_VOLTAGE_LOW_LIMIT"),
+                               eval("_NTP6531.NTP6531_VOLTAGE_HIGH_LIMIT"))
+                clipped = clip(clipped, eval("self.volt_limit_lower"), eval("self.volt_limit_upper"))
+                eval("self.set_volt(clipped)")
                 if clipped == value:
                     return Extensions.HANDLER_STATUS_ACCEPTED, 0
                 return Extensions.HANDLER_STATUS_LIMITED, 0

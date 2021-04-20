@@ -346,6 +346,10 @@ class NTP6531:
         except:
             raise
 
+    def set_volt(self, v):
+        self.__set_volt(v)
+
+
     # --------------------------------------------------
     def __get_current(self):
         try:
