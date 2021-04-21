@@ -502,7 +502,9 @@ async def main():
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("\n")
-
+    serial_scan = 'y'
+    tcp_scan = 'n'
+    '''
     serial_scan = input("For serial scan, press enter or any key with enter, other wise 'n' :")
     if serial_scan != 'n':
         serial_scan = 'y'
@@ -522,6 +524,7 @@ if __name__ == "__main__":
         print("TCP scan: NO")
 
     print("\n")
+    '''
     # Declare event loop
     loop = asyncio.get_event_loop()
     # Run the code until completing all task

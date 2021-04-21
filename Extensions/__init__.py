@@ -58,17 +58,22 @@ class Executer(threading.Thread):
                                 self.__sp.publish(self.prepared.reply, self.prepared.limited + " " + timestamp)
                             elif status == HANDLER_STATUS_COMMAND_ERROR:
                                 self.__sp.publish(self.prepared.reply, self.prepared.command_error + " " + timestamp)
+                                raise Exception
                             elif status == HANDLER_STATUS_PAYLOAD_ERROR:
                                 self.__sp.publish(self.prepared.reply,
                                                   self.prepared.error + " " + value + " " + timestamp)
+                                raise Exception
                             else:
+                                self.__sp.publish(self.prepared.reply, "Internal Error - stopped " + timestamp)
                                 raise Exception
                 except:
-                    self.__sp.publish(self.prepared.reply, "Internal Error " + timestamp)
+                    with self.__lock:
+                        self.__running = False
 
                 self.__exe_counter += 1
 
                 print((time.time() - self.__time_of_start) / 60)
+
                 if 0 < self.to_run.repetitions <= self.__exe_counter or (time.time() - self.__time_of_start) / 60 > 1:
                     with self.__lock:
                         self.__running = False
@@ -90,7 +95,15 @@ class Executer(threading.Thread):
             if value:
                 self.__time_of_start = time.time()
 
+    def __get_sol(self):
+        return False
+
+    def __set_sol(self, value):
+        with self.__lock:
+            self.__time_of_start = time.time()
+
     running = property(__get_running, __set_running)
+    sign_of_life = property(__get_sol, __set_sol)
 
 
 # --------------------------------------------------------------------------
@@ -198,28 +211,32 @@ class Device(threading.Thread):
                 self.sp.publish(data.reply, str(self.__invent_number))
                 raise Exception
 
-            if data.matching:
-                # matching, we handle the standard commands
-                if data.command == "?":
-                    self.sp.publish(data.reply + "/manufactorer", self.manufactorer)
-                    self.sp.publish(data.reply + "/devicetype", self.devicetype)
-                    self.sp.publish(data.reply + "/model", self.model)
-                    self.sp.publish(data.reply + "/serialnumber", str(self.serialnumber))
-                    self.sp.publish(data.reply + "/commands", str(self.commands))
-                    raise Exception
-                elif data.command == "echo?" or data.reply == "ping?":
-                    self.sp.publish(data.reply, str(datetime.datetime.utcnow()))
-                    raise Exception
-                # we check the running measurement threads to send a tick
-                with self.__measure_lock:
-                    for executor in self.executions:
-                        if executor.running:
-                            # print(executor.to_run.data)
-                            print("vhrvk")
+            # if data.matching:
+            # matching the accessnumber, we handle the standard commands
+            # we check the running measurement threads for a sign of life
+            with self.__measure_lock:
+                for executor in self.executions:
+                    if executor.running:
+                        print("session-id: " + executor.to_run.session_id)
+                        if executor.to_run.session_id == data.session_id:
+                            executor.sign_of_life = True
 
-            else:
+            if data.command == "?":
+                self.sp.publish(data.reply + "/manufactorer", self.manufactorer)
+                self.sp.publish(data.reply + "/devicetype", self.devicetype)
+                self.sp.publish(data.reply + "/model", self.model)
+                self.sp.publish(data.reply + "/serialnumber", str(self.serialnumber))
+                self.sp.publish(data.reply + "/commands", str(self.commands))
+                raise Exception
+
+            elif data.command == "echo?" or data.command == "ping?":
+                self.sp.publish(data.reply, str(datetime.datetime.utcnow()))
+                raise Exception
+            return
+            #else:
                 # accessnumber is not matching
-                return
+                # this case is not possible in fact, so we must
+            #    return
         except:
             raise Exception
 
@@ -242,6 +259,8 @@ class Device(threading.Thread):
         split_count = len(topic_splitted)
         if 3 <= split_count < 7 and topic_splitted[0] == s.topic_root:
             try:
+                # the section after the root contains the session_id
+                session_id = topic_splitted[1]
                 index_of_cmd = topic_splitted.index(s.topic_cmd)
                 reply_topic = topic.replace(s.topic_cmd, s.topic_reply)
                 if topic_splitted[index_of_cmd + 1] == s.topic_request:
@@ -255,7 +274,11 @@ class Device(threading.Thread):
                     if topic_splitted[index_of_cmd + 1] == str(self.__invent_number):
                         matching = True
                 # return {"topic": topic, "command": command, "reply": reply_topic, "matching": matching}
-                return Data(topic=topic, command=command, reply=reply_topic, matching=matching)
+                return Data(topic=topic,
+                            command=command,
+                            session_id=session_id,
+                            reply=reply_topic,
+                            matching=matching)
             except:
                 raise Exception
         else:
@@ -319,6 +342,7 @@ class Device(threading.Thread):
             pass
 
         return Extensions.Data(
+            session_id=data.session_id,
             command=data.command,
             repetitions=repetitions,
             interval=interval,
