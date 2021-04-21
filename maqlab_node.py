@@ -9,25 +9,75 @@ import os
 from scan_serial import scan_serial_devices
 from scan_tcp import scan_tcp_devices
 import glob
+import importlib
+import sys
+import project_utils
+import psutil
 
+if "python.exe" not in psutil.Process(os.getpid()).name():
+    execute_mode = "exe"
+else:
+    execute_mode = "script"
+
+# deletes _meixxxx files from previous python starts-
+# Without deleting the files, disk memory consumption will
+# increase without any notice from the user
+if execute_mode == "exe":
+    project_utils.cleanup_mei()
+
+print(os.path.dirname(os.path.realpath(__file__)))
+print(sys.path.append(os.path.dirname(sys.executable)))
+dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(dir)
+# x = input()
+for path in sys.path:
+    print(path)
+
+#exec("from Extensions.Manson_NTP6531 import NTP6531")
+
+'''
+try:
+    exec("import Extensions", globals())
+    exec("from Extensions import BKPrecision_2831E as BK")
+    exec("from Extensions import Manson_NTP6531 as NTP6531", globals())
+except Exception as e:
+    print(e)
+    # x = input()
+'''
+'''
+try:
+    exec("from Extensions.BKPrecision_2831E import BK2831E", globals())
+except Exception as e:
+    print(e)
+    # x = input()
+'''
+'''
+try:
+    importlib.import_module("Extensions")
+    from Extensions import BKPrecision_2831E as BK
+
+    from Extensions import Manson_NTP6531 as NTP6531
+except Exception as e:
+    print(e)
+'''
 from Extensions.Manson_NTP6531 import NTP6531
 from Extensions.BKPrecision_2831E import BK2831E
-from Extensions.Keithley_SM2400 import SM2400
 from Extensions.Delta_SM70AR24 import SM70AR24
 from Extensions.Fluke_NORMA4000 import NORMA4000
+from Extensions.Keithley_SM2400 import SM2400
 
+# x = input()
 sp = subpub.SubPub()
-config_files = glob.glob(os.path.dirname(os.path.abspath(__file__)) + "/**/*.conf", recursive=True)
-for file in config_files:
-    cfg = ConfigObj(file)  # prepared for future use
-
 mqtt_device_reply = sp.subscribe("maqlab(.+)/rep/(.+)$")
 
 client = paho.Client()
 inventory = None
 inventory_numbers = None
-devices = []
+devices = list()
 deviceidentifications = None
+config_maqlab = None
+config_devices = list()
+config_devices_names = list()
 idstrings = {}
 
 devlist = []
@@ -48,6 +98,32 @@ PATHNAME_CONFIG_DEVICES = "/config/" + FILENAME_CONFIG_DEVICES
 PATHNAME_CONFIG_INVENTORY = "/config/" + FILENAME_CONFIG_INVENTORY
 session_id = secrets.token_urlsafe(3)
 
+
+'''
+config_files = glob.glob(os.path.dirname(os.path.abspath(__file__)) + "/**/*.conf", recursive=True)
+# NTP6531 = importlib.import_module("Extensions.Manson_NTP6531")
+print(config_files)
+
+for file in config_files:
+    filename_without_extension = os.path.splitext(os.path.basename(file))[0].lower()
+    if filename_without_extension == "maqlab":
+        config_maqlab = ConfigObj(file)  # prepared for future use
+    else:
+        cfg = ConfigObj(file)  # prepared for future use
+        name = str(cfg["GENERAL"]["device"]).lower()
+        if filename_without_extension == name:
+            # this is a device configuration file
+            config_devices.append(cfg)
+            config_devices_names.append(name)
+'''
+'''
+# import modules
+imports = config_maqlab["IMPORTS"]
+print(imports)
+for x in imports:
+    print(imports[x])
+    exec(imports[x])
+'''
 
 # --------------------------------------------------------
 # MQTT Broker callbacks
@@ -233,7 +309,7 @@ async def serial_generate_classes():
                             # generating a deviceclass from classname
                             devobject = globals()[dclassname](com[dclassname])
                         if devobject is not None:
-                            # search for inventarnumber of the device with spec serialnumber
+                            # search for inventarnumber of the device with spec serialnumyber
                             # there are some devices not declared with a serialnumber
                             # so we have to use the random generated serial for the inventarnumber
                             inventory_number = '0'

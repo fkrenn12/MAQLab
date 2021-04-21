@@ -4,6 +4,7 @@ import time
 import shared as s
 import Extensions
 import copy
+import json
 
 HANDLER_STATUS_VALUE = "val"
 HANDLER_STATUS_ACCEPTED = "accept"
@@ -20,6 +21,9 @@ class Data:
         self.__dict__.update(kwargs)
 
 
+# --------------------------------------------------------------------------
+# Measure Executer Thread
+# --------------------------------------------------------------------------
 class Executer(threading.Thread):
     def __init__(self, subpub, main_lock):
         super().__init__()
@@ -30,8 +34,8 @@ class Executer(threading.Thread):
         self.__exe_counter = 0
         self.to_run = None
         self.prepared = None
-
         self.handler = None
+        self.__time_of_start = 0
 
     def run(self):
 
@@ -63,14 +67,16 @@ class Executer(threading.Thread):
                     self.__sp.publish(self.prepared.reply, "Internal Error " + timestamp)
 
                 self.__exe_counter += 1
+
+                print((time.time() - self.__time_of_start) / 60)
+                if 0 < self.to_run.repetitions <= self.__exe_counter or (time.time() - self.__time_of_start) / 60 > 1:
+                    with self.__lock:
+                        self.__running = False
+                else:
+                    time.sleep(self.to_run.interval)
+
             else:
                 pass
-
-            if self.__exe_counter >= self.to_run.repetitions:
-                with self.__lock:
-                    self.__running = False
-            else:
-                time.sleep(self.to_run.interval)
 
     def __get_running(self):
         with self.__lock:
@@ -81,10 +87,15 @@ class Executer(threading.Thread):
         with self.__lock:
             self.__running = value
             self.__exe_counter = 0
+            if value:
+                self.__time_of_start = time.time()
 
     running = property(__get_running, __set_running)
 
 
+# --------------------------------------------------------------------------
+# Connected Device Thread
+# --------------------------------------------------------------------------
 class Device(threading.Thread):
     def __init__(self):
         super().__init__()
@@ -95,6 +106,7 @@ class Device(threading.Thread):
         self.mqtt = None
 
         self.__main_lock = threading.Lock()
+        self.__measure_lock = threading.Lock()
         self.__measure_task = None
         self.count = 0
         self.stop = False
@@ -130,8 +142,11 @@ class Device(threading.Thread):
                     # nothing found so we need a new thread
                     executor = Extensions.Executer(subpub=self.sp, main_lock=self.__main_lock)
                     # adding to the list
-                    self.executions.append(executor)
+                    with self.__measure_lock:
+                        self.executions.append(executor)
 
+                # generate running conditions fpr the measure executer
+                # and copy it to thread
                 executor.prepared = copy.deepcopy(prepared)
                 executor.to_run = copy.deepcopy(self.to_run(data=prepared))
                 executor.handler = self.handler
@@ -195,6 +210,13 @@ class Device(threading.Thread):
                 elif data.command == "echo?" or data.reply == "ping?":
                     self.sp.publish(data.reply, str(datetime.datetime.utcnow()))
                     raise Exception
+                # we check the running measurement threads to send a tick
+                with self.__measure_lock:
+                    for executor in self.executions:
+                        if executor.running:
+                            # print(executor.to_run.data)
+                            print("vhrvk")
+
             else:
                 # accessnumber is not matching
                 return
@@ -248,7 +270,7 @@ class Device(threading.Thread):
         payload_limited = s.payload_limited
         payload_command_error = s.payload_command_error
         payload_float = 0
-        payload_json = "{}"
+        payload_dict = dict()
         try:
             try:
                 payload = payload.decode("utf-8")
@@ -256,9 +278,11 @@ class Device(threading.Thread):
                 pass
             try:
                 payload = payload.strip(" ")
-                if not (str(payload).startswith("{") and str(payload).endswith("}")):
-                    raise
-                payload_json = payload
+                payload.replace("'", "\"")
+                payload_dict = json.loads(payload)
+                # if not (str(payload).startswith("{") and str(payload).endswith("}")):
+                #    raise
+                # payload_json = obj
             except:
                 # it is not json
                 # print("NO JSON")
@@ -274,7 +298,7 @@ class Device(threading.Thread):
                         limited=payload_limited,
                         command_error=payload_command_error,
                         float=payload_float,
-                        json=payload_json)
+                        dict=payload_dict)
         except:
             raise
 
@@ -283,7 +307,17 @@ class Device(threading.Thread):
     # ------------------------------------------------------------------------------------------------
     def to_run(self, data):
         repetitions = 1
-        interval = 2
+        interval = 1
+
+        try:
+            repetitions = data.dict['reps']
+        except:
+            pass
+        try:
+            interval = data.dict['interval']
+        except:
+            pass
+
         return Extensions.Data(
             command=data.command,
             repetitions=repetitions,

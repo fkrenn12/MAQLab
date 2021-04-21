@@ -29,7 +29,7 @@ mqtt_user = "maqlab"
 mqtt_pass = "maqlab"
 mqtt_tls = False
 
-config_file = os.path.dirname(os.path.abspath(__file__)) + "/maqlab.cfg"
+config_file = os.path.dirname(os.path.abspath(__file__)) + "/maqlab.conf"
 config = configparser.ConfigParser()
 
 try:
