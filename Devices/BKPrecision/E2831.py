@@ -162,8 +162,9 @@ class BK2831E:
             if force or self.__mode != Mode.VOLT_METER_DC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func volt:DC\n')
-                time.sleep(1)
-                self.__send_command(b'volt:dc:rang:auto ON\n')  # :
+                if self.__mode == Mode.FREQUENCE or self.__mode == Mode.RESISTANCE:
+                    time.sleep(0.6)
+                self.__send_command(b':volt:dc:rang:auto ON\n')  # :
                 self.__mode = Mode.VOLT_METER_DC
             return
         except:
