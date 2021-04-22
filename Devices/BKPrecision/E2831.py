@@ -79,6 +79,11 @@ class BK2831E:
             time.sleep(0.01)
         self.__last_command_time = int(round(time.time() * 1000))
 
+    def __delay_depending_on_prev_mode(self, prev_mode, new_mode):
+        if prev_mode == Mode.FREQUENCE:
+            time.sleep(1)
+        if prev_mode == Mode.RESISTANCE:
+            time.sleep(1)
     # --------------------------------------------------
     def __send_command(self, cmd):
 
@@ -115,12 +120,11 @@ class BK2831E:
                         # print(ret_char, char)
                         if ret_char == char:
                             break
-                if (int(round(time.time() * 1000)) - tic) < tout:
+                if (int(round(time.time() * 1000)) - tic) < tout * 10:
                     continue
                 else:
                     print("ERROR")
                     raise Exception("E2831 - Response CHAR " + str(cmd) + " Timeout Error")
-                    # continue
         except:
             raise
 
@@ -162,10 +166,10 @@ class BK2831E:
             if force or self.__mode != Mode.VOLT_METER_DC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func volt:DC\n')
-                if self.__mode == Mode.FREQUENCE or self.__mode == Mode.RESISTANCE:
-                    time.sleep(0.6)
+                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.VOLT_METER_DC)
                 self.__send_command(b':volt:dc:rang:auto ON\n')  # :
                 self.__mode = Mode.VOLT_METER_DC
+                time.sleep(0.1)
             return
         except:
             self.__mode = Mode.NONE
@@ -177,8 +181,10 @@ class BK2831E:
             if force or self.__mode != Mode.VOLT_METER_AC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func volt:AC\n')
+                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.VOLT_METER_AC)
                 self.__send_command(b':volt:ac:rang:auto ON\n')
                 self.__mode = Mode.VOLT_METER_AC
+                time.sleep(0.1)
             return
         except:
             self.__mode = Mode.NONE
@@ -191,8 +197,10 @@ class BK2831E:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 # self.__send_command(b':curr:dc:rang:auto OFF\n')
                 self.__send_command(b'func curr:dc\n')
+                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.AMPERE_METER_DC)
                 self.__send_command(b':curr:dc:rang 0.2\n')
                 self.__mode = Mode.AMPERE_METER_DC
+                time.sleep(0.1)
             return
         except:
             self.__mode = Mode.NONE
@@ -204,9 +212,10 @@ class BK2831E:
             if force or self.__mode != Mode.AMPERE_METER_AC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func curr:AC\n')
-                # self.__send_command(b':curr:ac:rang:auto OFF\n')
+                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.AMPERE_METER_AC)
                 self.__send_command(b':curr:ac:rang 0.2\n')
                 self.__mode = Mode.AMPERE_METER_AC
+                time.sleep(0.1)
             return
         except:
             self.__mode = Mode.NONE
@@ -218,9 +227,11 @@ class BK2831E:
             if force or self.__mode != Mode.AMPERE_METER_DC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func curr:dc\n')
+                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.AMPERE_METER_DC)
                 # self.__send_command(b':curr:dc:rang:auto OFF\n')
                 self.__send_command(b':curr:dc:rang 20\n')
                 self.__mode = Mode.AMPERE_METER_DC
+                time.sleep(0.1)
             return
         except:
             self.__mode = Mode.NONE
@@ -232,9 +243,11 @@ class BK2831E:
             if force or self.__mode != Mode.AMPERE_METER_AC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func curr:AC\n')
+                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.AMPERE_METER_AC)
                 # self.__send_command(b':curr:ac:rang:auto OFF\n')
                 self.__send_command(b':curr:ac:rang 20\n')
                 self.__mode = Mode.AMPERE_METER_AC
+                time.sleep(0.1)
             return
         except:
             self.__mode = Mode.NONE
@@ -247,7 +260,9 @@ class BK2831E:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 # if self.__mode == Mode.RESISTANCE:
                 self.__send_command(b'func res\n')
+                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.RESISTANCE)
                 self.__send_command(b':res:rang:auto ON\n')
+                time.sleep(1)
                 self.__mode = Mode.RESISTANCE
                 return
         except:
@@ -260,6 +275,7 @@ class BK2831E:
             if force or self.__mode != Mode.FREQUENCE:
                 self.__ser.timeout = 2 * RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func freq\n')
+                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.FREQUENCE)
                 self.__mode = Mode.FREQUENCE
                 return
         except:
