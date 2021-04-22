@@ -1,10 +1,13 @@
 import threading
 import datetime
+
+import numpy
 import time
 import shared as s
 import Extensions
 import copy
 import json
+from numpy import clip
 
 HANDLER_STATUS_VALUE = "val"
 HANDLER_STATUS_ACCEPTED = "accept"
@@ -44,7 +47,7 @@ class Executer(threading.Thread):
             with self.__lock:
                 running = self.__running
             if running:
-                timestamp = str(datetime.datetime.utcnow())
+                # timestamp = str(datetime.datetime.utcnow())
                 try:
                     if hasattr(self.handler, '__call__'):
                         print("Executing:" + self.to_run.command + " " + str(self.__exe_counter))
@@ -53,18 +56,18 @@ class Executer(threading.Thread):
                             if status == HANDLER_STATUS_VALUE:
                                 self.__sp.publish(self.prepared.reply, str(value))
                             elif status == HANDLER_STATUS_ACCEPTED:
-                                self.__sp.publish(self.prepared.reply, self.prepared.accepted + " " + timestamp)
+                                self.__sp.publish(self.prepared.reply, self.prepared.accepted + "," + str(value))
                             elif status == HANDLER_STATUS_LIMITED:
-                                self.__sp.publish(self.prepared.reply, self.prepared.limited + " " + timestamp)
+                                self.__sp.publish(self.prepared.reply, self.prepared.limited + "," + str(value))
                             elif status == HANDLER_STATUS_COMMAND_ERROR:
-                                self.__sp.publish(self.prepared.reply, self.prepared.command_error + " " + timestamp)
+                                self.__sp.publish(self.prepared.reply, self.prepared.command_error + "," + str(time.time()))
                                 raise Exception
                             elif status == HANDLER_STATUS_PAYLOAD_ERROR:
                                 self.__sp.publish(self.prepared.reply,
-                                                  self.prepared.error + " " + value + " " + timestamp)
+                                                  self.prepared.error + " " + value + "," + str(time.time()))
                                 raise Exception
                             else:
-                                self.__sp.publish(self.prepared.reply, "Internal Error - stopped " + timestamp)
+                                self.__sp.publish(self.prepared.reply, "Internal Error - stopped " + str(time.time()))
                                 raise Exception
                 except:
                     with self.__lock:
@@ -232,10 +235,18 @@ class Device(threading.Thread):
             elif data.command == "echo?" or data.command == "ping?":
                 self.sp.publish(data.reply, str(datetime.datetime.utcnow()))
                 raise Exception
+
+            elif data.command == "hsm_off":
+                try:
+                    self.disable_human_safety_mode()
+                except:
+                    pass
+                self.sp.publish(data.reply, "0")
+                raise Exception
             return
-            #else:
-                # accessnumber is not matching
-                # this case is not possible in fact, so we must
+            # else:
+            # accessnumber is not matching
+            # this case is not possible in fact, so we must
             #    return
         except:
             raise Exception
@@ -302,9 +313,10 @@ class Device(threading.Thread):
             try:
                 payload = payload.strip(" ")
                 payload.replace("'", "\"")
+                if not (str(payload).startswith("{") and str(payload).endswith("}")):
+                    raise
                 payload_dict = json.loads(payload)
-                # if not (str(payload).startswith("{") and str(payload).endswith("}")):
-                #    raise
+
                 # payload_json = obj
             except:
                 # it is not json
@@ -359,3 +371,27 @@ class Device(threading.Thread):
         return self.__invent_number
 
     accessnumber = property(__get_accessnumber)
+
+
+def limiter(value, limits_low, limits_high):
+    value_orig = value
+    try:
+        if type(limits_low) is not list:
+            limits_low = list(limits_low)
+        if type(limits_high) is not list:
+            limits_high = list(limits_high)
+        try:
+            for ll in limits_low:
+                value = numpy.clip(value, ll, float('inf'))
+        except:
+            pass
+        try:
+            for hl in limits_high:
+                value = numpy.clip(value, float('-inf'), hl)
+        except:
+            pass
+
+        return bool(value != value_orig), value
+    except:
+        return False, value_orig
+

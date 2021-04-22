@@ -5,7 +5,7 @@ import platform
 import asyncio
 
 scan_start = 4
-scan_stop = 5
+scan_stop = 12
 tout = 1000
 
 

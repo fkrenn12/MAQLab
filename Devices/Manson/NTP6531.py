@@ -346,10 +346,6 @@ class NTP6531:
         except:
             raise
 
-    def set_volt(self, v):
-        self.__set_volt(v)
-
-
     # --------------------------------------------------
     def __get_current(self):
         try:
@@ -382,7 +378,7 @@ class NTP6531:
     # --------------------------------------------------
     def __get_power_display_as_string(self):
         try:
-            return "{:.6f}".format(self.__get_power_display) + " " + self.__get_current_unit() + "DC"
+            return "{:.6f}".format(self.__get_power_display()) + " " + self.__get_power_unit() + "DC"
         except:
             raise
 
@@ -427,15 +423,15 @@ class NTP6531:
     volt = property(__get_volt_display)
     volt_as_string = property(__get_volt_display_as_string)
     volt_unit = property(__get_volt_unit)
-    volt_limit_upper = property(__get_volt_upper_limit, __set_volt_upper_limit)
-    volt_limit_lower = property(__get_volt_lower_limit, __set_volt_lower_limit)
+    volt_limit_high = property(__get_volt_upper_limit, __set_volt_upper_limit)
+    volt_limit_low = property(__get_volt_lower_limit, __set_volt_lower_limit)
     # -------------------------------------------------------------
     apply_current = property(__get_current, __set_current)
     current = property(__get_current_display)
     current_as_string = property(__get_current_display_as_string)
     current_unit = property(__get_current_unit)
-    current_limit_upper = property(__get_current_upper_limit, __set_current_upper_limit)
-    current_limit_lower = property(__get_current_lower_limit, __set_current_lower_limit)
+    current_limit_high = property(__get_current_upper_limit, __set_current_upper_limit)
+    current_limit_low = property(__get_current_lower_limit, __set_current_lower_limit)
     # -------------------------------------------------------------
     power = property(__get_power_display)
     power_as_string = property(__get_power_display_as_string)

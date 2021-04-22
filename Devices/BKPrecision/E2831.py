@@ -17,7 +17,7 @@ NPLC_MAXIMUM = 0.1
 BK2831E_DEFAULT_BAUDRATE = 9600
 
 
-class Mode (enum.Enum):
+class Mode(enum.Enum):
     NONE = enum.auto()
     VOLT_METER_DC = enum.auto()
     VOLT_METER_AC = enum.auto()
@@ -41,7 +41,7 @@ class BK2831E:
             self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
         except:
             raise Exception("Serial Port " + str(port) + " - COULD NOT CONNECT")
-
+        self.__minimum_time_between_commands = MINIMUM_TIME_IN_MS_BETWEEN_COMMANDS
         self.__idstring = EMPTY_STRING
         self.__serialnumber = EMPTY_STRING
         self.__model = EMPTY_STRING
@@ -75,22 +75,29 @@ class BK2831E:
     def __wait_minimal_command_interval(self, ms_interval):
 
         while (int(round(time.time() * 1000)) - self.__last_command_time) < ms_interval:
+            # print("*")
             time.sleep(0.01)
         self.__last_command_time = int(round(time.time() * 1000))
 
     # --------------------------------------------------
     def __send_command(self, cmd):
 
-        self.__wait_minimal_command_interval(MINIMUM_TIME_IN_MS_BETWEEN_COMMANDS)
+        print(cmd)
+        if cmd == "f?":
+            self.__minimum_time_between_commands = 1000
+        else:
+            self.__minimum_time_between_commands = MINIMUM_TIME_IN_MS_BETWEEN_COMMANDS
+
+        self.__wait_minimal_command_interval(self.__minimum_time_between_commands)
 
         try:
-            cmd = cmd.encode("utf-8")
+            cmd = cmd.decode("utf-8")
         except:
             pass
-
-        if len(cmd) <= 0:
-            raise Exception
-
+        if cmd == "f?":
+            self.__minimum_time_between_commands = 1000
+        else:
+            self.__minimum_time_between_commands = MINIMUM_TIME_IN_MS_BETWEEN_COMMANDS
         # with self.__lock:
         try:
             # print(cmd)
@@ -111,30 +118,38 @@ class BK2831E:
                 if (int(round(time.time() * 1000)) - tic) < tout:
                     continue
                 else:
-                    raise Exception("E2831 - Receive Timeout Error")
+                    print("ERROR")
+                    raise Exception("E2831 - Response CHAR " + str(cmd) + " Timeout Error")
+                    # continue
         except:
             raise
 
     # --------------------------------------------------
     def id(self):
         try:
+            self.__send_command(b'*RST\n')
+            while True:
+                time.sleep(2)
+                try:
+                    self.__send_command(b'*idn?\n')
+                    self.__idstring = self.__ser.readline().decode("utf-8")
+                    if "," in self.__idstring:
+                        break
+                except:
+                    pass
+            _t = self.__idstring.split(",")
+            self.__model = _t[0].split(" ")[0]
+            self.__manufactorer = "BK Precision"
+            self.__serialnumber = _t[2].replace("\n", '')
+            self.__serialnumber = self.__serialnumber.replace('\r', '')
+            self.__devicetype = "Multimeter"
+            # Initialise system
 
-            if self.__send_command(b'*idn?\n'):
-                self.__idstring = self.__ser.readline().decode("utf-8")
-                _t = self.__idstring.split(",")
-                self.__model = _t[0].split(" ")[0]
-                self.__manufactorer = "BK Precision"
-                self.__serialnumber = _t[2].replace("\n", '')
-                self.__serialnumber = self.__serialnumber.replace('\r', '')
-                self.__devicetype = "Multimeter"
-                # Initialise system
-                n_lpc = str(NLPC_DEFAULT).encode("utf-8")
-                self.__send_command(b'volt:dc:nplc ' + n_lpc + b'\n')
-                self.__send_command(b'volt:ac:nplc ' + n_lpc + b'\n')
-                self.__send_command(b'curr:dc:nplc ' + n_lpc + b'\n')
-                self.__send_command(b'curr:ac:nplc ' + n_lpc + b'\n')
-            else:
-                raise
+            n_lpc = str(NLPC_DEFAULT).encode("utf-8")
+            self.__send_command(b'volt:dc:nplc ' + n_lpc + b'\n')
+            self.__send_command(b'volt:ac:nplc ' + n_lpc + b'\n')
+            self.__send_command(b'curr:dc:nplc ' + n_lpc + b'\n')
+            self.__send_command(b'curr:ac:nplc ' + n_lpc + b'\n')
         except:
             self.__model = EMPTY_BYTE_STRING
             self.__manufactorer = EMPTY_BYTE_STRING
@@ -147,7 +162,8 @@ class BK2831E:
             if force or self.__mode != Mode.VOLT_METER_DC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func volt:DC\n')
-                self.__send_command(b':volt:dc:rang:auto ON\n')
+                time.sleep(1)
+                self.__send_command(b'volt:dc:rang:auto ON\n')  # :
                 self.__mode = Mode.VOLT_METER_DC
             return
         except:
@@ -254,7 +270,7 @@ class BK2831E:
         try:
             self.__send_command(b'fetch?\n')
             res = self.__ser.readline()
-            #print(res)
+            # print(res)
             try:
                 value = float(res)
             except:

@@ -33,7 +33,7 @@ sys.path.append(dir)
 for path in sys.path:
     print(path)
 
-#exec("from Extensions.Manson_NTP6531 import NTP6531")
+# exec("from Extensions.Manson_NTP6531 import NTP6531")
 
 '''
 try:
@@ -60,12 +60,13 @@ try:
 except Exception as e:
     print(e)
 '''
+
 from Extensions.Manson_NTP6531 import NTP6531
 from Extensions.BKPrecision_2831E import BK2831E
 from Extensions.Delta_SM70AR24 import SM70AR24
 from Extensions.Fluke_NORMA4000 import NORMA4000
 from Extensions.Keithley_SM2400 import SM2400
-
+from Extensions.BKPrecision_2831E import BK2831E
 # x = input()
 sp = subpub.SubPub()
 mqtt_device_reply = sp.subscribe("maqlab(.+)/rep/(.+)$")
