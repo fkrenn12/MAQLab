@@ -135,7 +135,7 @@ class Device(threading.Thread):
         super().__init__()
         self.__comport = ""
         self.__invent_number = "0"
-        self.commands = []
+        # self.commands = []
         self.sp = None
         self.mqtt = None
 
@@ -243,11 +243,19 @@ class Device(threading.Thread):
                             executor.sign_of_life = True
 
             if data.command == "?":
+                reply = dict()
+                reply.update({"manufactorer": self.manufactorer})
+                reply.update({"devicetype": self.devicetype})
+                reply.update({"model": self.model})
+                reply.update({"serialnumber": str(self.serialnumber)})
+                reply.update({"commands": str(self.commands)})
+
                 self.sp.publish(data.reply + "/manufactorer", self.manufactorer)
                 self.sp.publish(data.reply + "/devicetype", self.devicetype)
                 self.sp.publish(data.reply + "/model", self.model)
                 self.sp.publish(data.reply + "/serialnumber", str(self.serialnumber))
                 self.sp.publish(data.reply + "/commands", str(self.commands))
+                self.sp.publish(data.reply, json.dumps(reply))
                 raise Exception
 
             elif data.command == "echo?" or data.command == "ping?":

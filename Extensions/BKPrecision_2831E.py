@@ -10,8 +10,8 @@ class BK2831E(_E2831.BK2831E, Extensions.Device):
     def __init__(self, _port, _baudrate=9600):
         _E2831.BK2831E.__init__(self, _port, _baudrate)
         Extensions.Device.__init__(self)
-        self.__commands = ["vdc?", "idc?", "vac?", "iac?", "res?", "f?", "pdc?"]  # TODO: noch nicht komplett
-        # self.__lllock = threading.Lock()
+        self.commands = ["vdc?", "idc?", "vac?", "iac?", "res?", "f?", "pdc?",
+                         ]  # TODO: noch nicht komplett
 
     # ------------------------------------------------------------------------------------------------
     # COMMAND - Handler
