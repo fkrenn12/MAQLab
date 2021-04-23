@@ -79,33 +79,35 @@ class BK2831E:
             time.sleep(0.01)
         self.__last_command_time = int(round(time.time() * 1000))
 
-    def __delay_depending_on_prev_mode(self, prev_mode, new_mode):
-        if prev_mode == Mode.FREQUENCE:
-            time.sleep(1)
-        if prev_mode == Mode.RESISTANCE:
-            time.sleep(1)
+    def __wait_for_command_execution(self):
+        time.sleep(0.05)
+        start = time.time()
+        while True:
+            try:
+                self.__ser.write(b'\n')
+            except:
+                pass
+            # print("+")
+            time.sleep(0.05)
+            if self.__ser.in_waiting > 0 or time.time() - start > 1:
+                try:
+                    self.__ser.read_all()
+                except:
+                    pass
+                break
+        self.__ser.flushInput()
+
     # --------------------------------------------------
     def __send_command(self, cmd):
 
         print(cmd)
-        if cmd == "f?":
-            self.__minimum_time_between_commands = 1000
-        else:
-            self.__minimum_time_between_commands = MINIMUM_TIME_IN_MS_BETWEEN_COMMANDS
-
         self.__wait_minimal_command_interval(self.__minimum_time_between_commands)
 
         try:
             cmd = cmd.decode("utf-8")
         except:
             pass
-        if cmd == "f?":
-            self.__minimum_time_between_commands = 1000
-        else:
-            self.__minimum_time_between_commands = MINIMUM_TIME_IN_MS_BETWEEN_COMMANDS
-        # with self.__lock:
         try:
-            # print(cmd)
             tout = RECEIVE_LINE_TIMEOUT
             buff = EMPTY_BYTE_STRING
             self.__ser.flush()
@@ -117,13 +119,12 @@ class BK2831E:
                 while (int(round(time.time() * 1000)) - tic) < tout:
                     if self.__ser.in_waiting > 0:
                         ret_char = self.__ser.read(1)
-                        # print(ret_char, char)
                         if ret_char == char:
                             break
                 if (int(round(time.time() * 1000)) - tic) < tout * 10:
                     continue
                 else:
-                    print("ERROR")
+                    # print("ERROR")
                     raise Exception("E2831 - Response CHAR " + str(cmd) + " Timeout Error")
         except:
             raise
@@ -154,6 +155,7 @@ class BK2831E:
             self.__send_command(b'volt:ac:nplc ' + n_lpc + b'\n')
             self.__send_command(b'curr:dc:nplc ' + n_lpc + b'\n')
             self.__send_command(b'curr:ac:nplc ' + n_lpc + b'\n')
+            self.__send_command(b'res:nplc ' + n_lpc + b'\n')
         except:
             self.__model = EMPTY_BYTE_STRING
             self.__manufactorer = EMPTY_BYTE_STRING
@@ -166,10 +168,11 @@ class BK2831E:
             if force or self.__mode != Mode.VOLT_METER_DC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func volt:DC\n')
-                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.VOLT_METER_DC)
-                self.__send_command(b':volt:dc:rang:auto ON\n')  # :
+                self.__wait_for_command_execution()
+                self.__send_command(b':volt:dc:rang:auto ON\n')
+                self.__wait_for_command_execution()
                 self.__mode = Mode.VOLT_METER_DC
-                time.sleep(0.1)
+                time.sleep(0.15)
             return
         except:
             self.__mode = Mode.NONE
@@ -181,10 +184,11 @@ class BK2831E:
             if force or self.__mode != Mode.VOLT_METER_AC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func volt:AC\n')
-                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.VOLT_METER_AC)
+                self.__wait_for_command_execution()
                 self.__send_command(b':volt:ac:rang:auto ON\n')
+                self.__wait_for_command_execution()
                 self.__mode = Mode.VOLT_METER_AC
-                time.sleep(0.1)
+                time.sleep(0.15)
             return
         except:
             self.__mode = Mode.NONE
@@ -195,12 +199,12 @@ class BK2831E:
         try:
             if force or self.__mode != Mode.AMPERE_METER_DC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-                # self.__send_command(b':curr:dc:rang:auto OFF\n')
                 self.__send_command(b'func curr:dc\n')
-                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.AMPERE_METER_DC)
+                self.__wait_for_command_execution()
                 self.__send_command(b':curr:dc:rang 0.2\n')
+                self.__wait_for_command_execution()
                 self.__mode = Mode.AMPERE_METER_DC
-                time.sleep(0.1)
+                time.sleep(0.15)
             return
         except:
             self.__mode = Mode.NONE
@@ -212,10 +216,11 @@ class BK2831E:
             if force or self.__mode != Mode.AMPERE_METER_AC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func curr:AC\n')
-                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.AMPERE_METER_AC)
+                self.__wait_for_command_execution()
                 self.__send_command(b':curr:ac:rang 0.2\n')
+                self.__wait_for_command_execution()
                 self.__mode = Mode.AMPERE_METER_AC
-                time.sleep(0.1)
+                time.sleep(0.15)
             return
         except:
             self.__mode = Mode.NONE
@@ -227,11 +232,11 @@ class BK2831E:
             if force or self.__mode != Mode.AMPERE_METER_DC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func curr:dc\n')
-                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.AMPERE_METER_DC)
-                # self.__send_command(b':curr:dc:rang:auto OFF\n')
+                self.__wait_for_command_execution()
                 self.__send_command(b':curr:dc:rang 20\n')
+                self.__wait_for_command_execution()
                 self.__mode = Mode.AMPERE_METER_DC
-                time.sleep(0.1)
+                time.sleep(0.15)
             return
         except:
             self.__mode = Mode.NONE
@@ -243,11 +248,11 @@ class BK2831E:
             if force or self.__mode != Mode.AMPERE_METER_AC:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func curr:AC\n')
-                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.AMPERE_METER_AC)
-                # self.__send_command(b':curr:ac:rang:auto OFF\n')
+                self.__wait_for_command_execution()
                 self.__send_command(b':curr:ac:rang 20\n')
+                self.__wait_for_command_execution()
                 self.__mode = Mode.AMPERE_METER_AC
-                time.sleep(0.1)
+                time.sleep(0.15)
             return
         except:
             self.__mode = Mode.NONE
@@ -258,12 +263,12 @@ class BK2831E:
         try:
             if force or self.__mode != Mode.RESISTANCE:
                 self.__ser.timeout = RECEIVE_LINE_TIMEOUT / 1000
-                # if self.__mode == Mode.RESISTANCE:
                 self.__send_command(b'func res\n')
-                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.RESISTANCE)
+                self.__wait_for_command_execution()
                 self.__send_command(b':res:rang:auto ON\n')
-                time.sleep(1)
+                self.__wait_for_command_execution()
                 self.__mode = Mode.RESISTANCE
+                time.sleep(0.5)  # needed before measure after changing the system to resistance
                 return
         except:
             self.__mode = Mode.NONE
@@ -275,8 +280,23 @@ class BK2831E:
             if force or self.__mode != Mode.FREQUENCE:
                 self.__ser.timeout = 2 * RECEIVE_LINE_TIMEOUT / 1000
                 self.__send_command(b'func freq\n')
-                self.__delay_depending_on_prev_mode(prev_mode=self.__mode, new_mode=Mode.FREQUENCE)
+                self.__wait_for_command_execution()
                 self.__mode = Mode.FREQUENCE
+                time.sleep(1)  # needed before measure after changing the system to frequence
+                return
+        except:
+            self.__mode = Mode.NONE
+            raise
+
+    # --------------------------------------------------
+    def set_mode_periode_auto_range(self, force=False):
+        try:
+            if force or self.__mode != Mode.PERIODE:
+                self.__ser.timeout = 2 * RECEIVE_LINE_TIMEOUT / 1000
+                self.__send_command(b'func per\n')
+                self.__wait_for_command_execution()
+                self.__mode = Mode.PERIODE
+                time.sleep(1)  # needed before measure after changing the system to periode
                 return
         except:
             self.__mode = Mode.NONE
@@ -287,11 +307,10 @@ class BK2831E:
         try:
             self.__send_command(b'fetch?\n')
             res = self.__ser.readline()
-            # print(res)
             try:
                 value = float(res)
             except:
-                raise Exception("E2831 - VALUE ERROR")
+                raise Exception("E2831 - VALUE ERROR -> " + str(res))
             self.__ser.flush()
         except:
             raise
@@ -365,6 +384,19 @@ class BK2831E:
         return "{:.2f}".format(self.__last_frequence) + " " + self.__get_frequence_unit()
 
     # --------------------------------------------------
+    def __get_periode_unit(self):
+        return self.__last_periode_unit
+
+    # --------------------------------------------------
+    def __get_periode(self):
+        return self.__last_periode
+
+    # --------------------------------------------------
+
+    def __get_periode_as_string(self):
+        return "{:.4f}".format(self.__last_periode) + " " + self.__get_periode_unit()
+
+    # --------------------------------------------------
     def __get_resistance(self):
         return self.__last_resistance
 
@@ -403,6 +435,9 @@ class BK2831E:
     frequence = property(__get_frequence)
     frequence_unit = property(__get_frequence_unit)
     frequence_as_string = property(__get_frequence_as_string)
+    periode = property(__get_periode)
+    periode_unit = property(__get_periode_unit)
+    periode_as_string = property(__get_periode_as_string)
     serialnumber = property(__get_serialnumber)
     manufactorer = property(__get_manufactorer)
     devicetype = property(__get_devicetype)

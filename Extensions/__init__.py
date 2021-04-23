@@ -24,15 +24,32 @@ class Data:
         self.__dict__.update(kwargs)
 
 
+class ExecuterConfiguration:
+    def __init__(self):
+        self.data = None
+
+
+class ExecuterClient:
+    def __init__(self):
+        self.x = 0
+
+
+class ExecuterState:
+    def __init__(self):
+        self.x = 0
+
+
 # --------------------------------------------------------------------------
 # Measure Executer Thread
 # --------------------------------------------------------------------------
 class Executer(threading.Thread):
-    def __init__(self, subpub, main_lock):
+    def __init__(self, subpub, master_lock):
         super().__init__()
         self.__lock = threading.Lock()
-        self.__main_lock = main_lock
+        self.__master_lock = master_lock
         self.__sp = subpub
+        self.config = ExecuterConfiguration()
+        self.__clients = list()
         self.__running = False
         self.__exe_counter = 0
         self.to_run = None
@@ -51,7 +68,7 @@ class Executer(threading.Thread):
                 try:
                     if hasattr(self.handler, '__call__'):
                         print("Executing:" + self.to_run.command + " " + str(self.__exe_counter))
-                        with self.__main_lock:
+                        with self.__master_lock:
                             status, value = self.handler(self.to_run.command, self.to_run.payload)
                             if status == HANDLER_STATUS_VALUE:
                                 self.__sp.publish(self.prepared.reply, str(value))
@@ -60,7 +77,8 @@ class Executer(threading.Thread):
                             elif status == HANDLER_STATUS_LIMITED:
                                 self.__sp.publish(self.prepared.reply, self.prepared.limited + "," + str(value))
                             elif status == HANDLER_STATUS_COMMAND_ERROR:
-                                self.__sp.publish(self.prepared.reply, self.prepared.command_error + "," + str(time.time()))
+                                self.__sp.publish(self.prepared.reply,
+                                                  self.prepared.command_error + "," + str(time.time()))
                                 raise Exception
                             elif status == HANDLER_STATUS_PAYLOAD_ERROR:
                                 self.__sp.publish(self.prepared.reply,
@@ -121,7 +139,7 @@ class Device(threading.Thread):
         self.sp = None
         self.mqtt = None
 
-        self.__main_lock = threading.Lock()
+        self.__master_lock = threading.Lock()
         self.__measure_lock = threading.Lock()
         self.__measure_task = None
         self.count = 0
@@ -156,7 +174,7 @@ class Device(threading.Thread):
 
                 if executor is None:
                     # nothing found so we need a new thread
-                    executor = Extensions.Executer(subpub=self.sp, main_lock=self.__main_lock)
+                    executor = Extensions.Executer(subpub=self.sp, master_lock=self.__master_lock)
                     # adding to the list
                     with self.__measure_lock:
                         self.executions.append(executor)
@@ -394,4 +412,3 @@ def limiter(value, limits_low, limits_high):
         return bool(value != value_orig), value
     except:
         return False, value_orig
-

@@ -78,6 +78,11 @@ class BK2831E(_E2831.BK2831E, Extensions.Device):
                 self.measure()
                 return Extensions.HANDLER_STATUS_VALUE, self.frequence_as_string
 
+            elif command == "periode?":
+                self.set_mode_periode_auto_range()
+                self.measure()
+                return Extensions.HANDLER_STATUS_VALUE, self.periode_as_string
+
             elif command == "res?" or command == "r?":
                 self.set_mode_resistance_auto_range()
                 self.measure()
