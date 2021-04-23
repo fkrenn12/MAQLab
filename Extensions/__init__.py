@@ -31,12 +31,16 @@ class ExecuterConfiguration:
 
 class ExecuterClient:
     def __init__(self):
-        self.x = 0
+        self.reply_topic = str()
+        self.session_id = str()
+        self.command_id = str()
+        self.interval = 0
 
 
 class ExecuterState:
     def __init__(self):
-        self.x = 0
+        self.running = False
+        self.clients = list()
 
 
 # --------------------------------------------------------------------------
@@ -49,7 +53,7 @@ class Executer(threading.Thread):
         self.__master_lock = master_lock
         self.__sp = subpub
         self.config = ExecuterConfiguration()
-        self.__clients = list()
+        self.__state = ExecuterState()
         self.__running = False
         self.__exe_counter = 0
         self.to_run = None
