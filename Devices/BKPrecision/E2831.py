@@ -306,7 +306,7 @@ class BK2831E:
     def measure(self):
         try:
             self.__send_command(b'fetch?\n')
-            res = self.__ser.readline()
+            res = self.__ser.readline().strip(b'\r\n')
             try:
                 value = float(res)
             except:

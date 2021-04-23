@@ -26,15 +26,18 @@ class Data:
 
 class ExecuterConfiguration:
     def __init__(self):
-        self.data = None
+        self.command = None
+        self.master_interval = 0.01
 
 
 class ExecuterClient:
     def __init__(self):
         self.reply_topic = str()
         self.session_id = str()
-        self.command_id = str()
-        self.interval = 0
+        self.stamp = str()
+        self.time_of_start = time.time()
+        self.interval = 0  # in seconds
+        self.counts_of_master_interval = 0
 
 
 class ExecuterState:
@@ -132,14 +135,13 @@ class Executer(threading.Thread):
 
 
 # --------------------------------------------------------------------------
-# Connected Device Thread
+# Device Thread ( connected )
 # --------------------------------------------------------------------------
 class Device(threading.Thread):
     def __init__(self):
         super().__init__()
         self.__comport = ""
         self.__invent_number = "0"
-        # self.commands = []
         self.sp = None
         self.mqtt = None
 
