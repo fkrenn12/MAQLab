@@ -24,13 +24,13 @@ class Data:
         self.__dict__.update(kwargs)
 
 
-class ExecuterConfiguration:
+class TaskConfiguration:
     def __init__(self):
         self.command = None
         self.master_interval = 0.01
 
 
-class ExecuterClient:
+class TaskSubclient:
     def __init__(self):
         self.reply_topic = str()
         self.session_id = str()
@@ -40,23 +40,17 @@ class ExecuterClient:
         self.counts_of_master_interval = 0
 
 
-class ExecuterState:
-    def __init__(self):
-        self.running = False
-        self.clients = list()
-
-
 # --------------------------------------------------------------------------
 # Measure Executer Thread
 # --------------------------------------------------------------------------
-class Executer(threading.Thread):
+class Task(threading.Thread):
     def __init__(self, subpub, master_lock):
         super().__init__()
         self.__lock = threading.Lock()
         self.__master_lock = master_lock
         self.__sp = subpub
-        self.config = ExecuterConfiguration()
-        self.__state = ExecuterState()
+        self.config = TaskConfiguration()
+        self.clients = list()
         self.__running = False
         self.__exe_counter = 0
         self.to_run = None
@@ -111,6 +105,14 @@ class Executer(threading.Thread):
             else:
                 pass
 
+    def add_subclient(self, subclient):
+        with self.__lock:
+            self.clients.append(subclient)
+
+    def remove_subclient(self, subclient):
+        with self.__lock:
+            self.clients.remove(subclient)
+
     def __get_running(self):
         with self.__lock:
             value = self.__running
@@ -123,15 +125,15 @@ class Executer(threading.Thread):
             if value:
                 self.__time_of_start = time.time()
 
-    def __get_sol(self):
+    def __get_sign_of_live(self):
         return False
 
-    def __set_sol(self, value):
+    def __set_sign_of_live(self, value):
         with self.__lock:
             self.__time_of_start = time.time()
 
     running = property(__get_running, __set_running)
-    sign_of_life = property(__get_sol, __set_sol)
+    sign_of_life = property(__get_sign_of_live, __set_sign_of_live)
 
 
 # --------------------------------------------------------------------------
@@ -171,28 +173,28 @@ class Device(threading.Thread):
                 # ---------------------------
                 # conditioned creating thread
                 # ---------------------------
-                # check for available existing executor thread
-                executor = None
-                for a_executor in self.executions:
-                    if not a_executor.running:
-                        executor = a_executor
+                # check for available existing measuring task threads
+                task = None
+                for a_task in self.executions:
+                    if not a_task.running:
+                        task = a_task
                         break
 
-                if executor is None:
+                if task is None:
                     # nothing found so we need a new thread
-                    executor = Extensions.Executer(subpub=self.sp, master_lock=self.__master_lock)
+                    task = Extensions.Task(subpub=self.sp, master_lock=self.__master_lock)
                     # adding to the list
                     with self.__measure_lock:
-                        self.executions.append(executor)
+                        self.executions.append(task)
 
-                # generate running conditions fpr the measure executer
+                # generate running conditions fpr the measure task
                 # and copy it to thread
-                executor.prepared = copy.deepcopy(prepared)
-                executor.to_run = copy.deepcopy(self.to_run(data=prepared))
-                executor.handler = self.handler
-                executor.running = True
+                task.prepared = copy.deepcopy(prepared)
+                task.to_run = copy.deepcopy(self.to_run(data=prepared))
+                task.handler = self.handler
+                task.running = True
                 try:
-                    executor.start()
+                    task.start()
                 except:
                     pass
                 del prepared
